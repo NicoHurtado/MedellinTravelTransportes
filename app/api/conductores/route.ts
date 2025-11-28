@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         const body = await request.json();
 
         // Validar campos requeridos
-        const requiredFields = ['nombre', 'whatsapp'];
+        const requiredFields = ['nombre', 'whatsapp', 'telefono', 'documento', 'placa'];
         for (const field of requiredFields) {
             if (!body[field]) {
                 return NextResponse.json(
@@ -82,6 +82,10 @@ export async function POST(request: Request) {
             data: {
                 nombre: body.nombre,
                 whatsapp: body.whatsapp,
+                telefono: body.telefono,
+                documento: body.documento,
+                placa: body.placa,
+                foto: body.foto || null,
                 fotosVehiculo: body.fotosVehiculo || [],
                 activo: body.activo !== undefined ? body.activo : true,
                 disponible: body.disponible !== undefined ? body.disponible : true,

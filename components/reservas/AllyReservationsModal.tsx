@@ -108,7 +108,7 @@ export default function AllyReservationsModal({ isOpen, onClose, aliadoId }: All
                     <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('reservas.desde', language)}
+                                Fecha Inicio
                             </label>
                             <input
                                 type="date"

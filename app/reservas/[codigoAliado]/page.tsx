@@ -241,8 +241,6 @@ export default function ReservaAliadoPage() {
 
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-sm text-gray-500">{t('reservas.desde', language)}</p>
-                                                {/* Price display logic could be enhanced here to show custom price range */}
                                                 <p className="text-2xl font-bold text-[#D6A75D]">
                                                     ${Number(service.precioBase).toLocaleString('es-CO')}
                                                 </p>

@@ -208,6 +208,10 @@ model Conductor {
   id            String   @id @default(cuid())
   nombre        String
   whatsapp      String
+  telefono      String   // Número de teléfono
+  documento     String   // Número de documento/cédula
+  placa         String   // Placa del vehículo
+  foto          String?  // URL de la foto (Vercel Blob) - opcional
   disponible    Boolean  @default(true)
   activo        Boolean  @default(true)
   fotosVehiculo String[] // URLs

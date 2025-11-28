@@ -9,6 +9,10 @@ interface Conductor {
     id: string;
     nombre: string;
     whatsapp: string;
+    telefono: string;
+    documento: string;
+    placa: string;
+    foto: string | null;
     disponible: boolean;
     activo: boolean;
     fotosVehiculo: string[];
@@ -23,9 +27,14 @@ export default function ConductoresPage() {
     const [formData, setFormData] = useState({
         nombre: '',
         whatsapp: '',
+        telefono: '',
+        documento: '',
+        placa: '',
+        foto: null as string | null,
         disponible: true,
         activo: true
     });
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
     useEffect(() => {
         fetchConductores();
@@ -89,6 +98,10 @@ export default function ConductoresPage() {
         setFormData({
             nombre: conductor.nombre,
             whatsapp: conductor.whatsapp,
+            telefono: conductor.telefono,
+            documento: conductor.documento,
+            placa: conductor.placa,
+            foto: conductor.foto,
             disponible: conductor.disponible,
             activo: conductor.activo
         });
@@ -101,9 +114,41 @@ export default function ConductoresPage() {
         setFormData({
             nombre: '',
             whatsapp: '',
+            telefono: '',
+            documento: '',
+            placa: '',
+            foto: null,
             disponible: true,
             activo: true
         });
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingPhoto(true);
+        try {
+            const formDataUpload = new FormData();
+            formDataUpload.append('file', file);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formDataUpload
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                setFormData({ ...formData, foto: data.url });
+            } else {
+                alert('Error al subir la foto: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error uploading photo:', error);
+            alert('Error al subir la foto');
+        } finally {
+            setUploadingPhoto(false);
+        }
     };
 
     if (loading) {
@@ -159,20 +204,49 @@ export default function ConductoresPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {conductores.map((conductor) => (
                         <Card key={conductor.id} hover>
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex-1">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            <div className="flex items-start gap-4 mb-4">
+                                {/* Photo */}
+                                {conductor.foto ? (
+                                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#D6A75D] flex-shrink-0">
+                                        <img
+                                            src={conductor.foto}
+                                            alt={conductor.nombre}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-2xl font-bold text-gray-500">
+                                            {conductor.nombre.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-1 truncate">
                                         {conductor.nombre}
                                     </h3>
-                                    <a
-                                        href={`https://wa.me/${conductor.whatsapp.replace(/\D/g, '')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 text-sm text-green-600 hover:text-green-700 transition-colors"
-                                    >
-                                        <FiPhone size={16} />
-                                        {conductor.whatsapp}
-                                    </a>
+                                    <div className="space-y-1">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Tel:</span> {conductor.telefono}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Doc:</span> {conductor.documento}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Placa:</span> {conductor.placa}
+                                        </p>
+                                        <a
+                                            href={`https://wa.me/${conductor.whatsapp.replace(/\D/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 transition-colors"
+                                        >
+                                            <FiPhone size={14} />
+                                            WhatsApp
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
 
@@ -243,6 +317,16 @@ export default function ConductoresPage() {
                         />
 
                         <Input
+                            label="Teléfono"
+                            value={formData.telefono}
+                            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                            placeholder="+57 300 123 4567"
+                            required
+                            fullWidth
+                            helperText="Número de contacto del conductor"
+                        />
+
+                        <Input
                             label="WhatsApp"
                             value={formData.whatsapp}
                             onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
@@ -251,6 +335,62 @@ export default function ConductoresPage() {
                             fullWidth
                             helperText="Incluye código de país (+57)"
                         />
+
+                        <Input
+                            label="Documento"
+                            value={formData.documento}
+                            onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
+                            placeholder="1234567890"
+                            required
+                            fullWidth
+                            helperText="Número de cédula o documento de identidad"
+                        />
+
+                        <Input
+                            label="Placa del Vehículo"
+                            value={formData.placa}
+                            onChange={(e) => setFormData({ ...formData, placa: e.target.value })}
+                            placeholder="ABC123"
+                            required
+                            fullWidth
+                            helperText="Placa del vehículo asignado"
+                        />
+
+                        {/* Photo Upload */}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Foto del Conductor (Opcional)
+                            </label>
+                            <div className="flex items-center gap-4">
+                                {formData.foto && (
+                                    <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                                        <img
+                                            src={formData.foto}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handlePhotoUpload}
+                                        disabled={uploadingPhoto}
+                                        className="block w-full text-sm text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-full file:border-0
+                                            file:text-sm file:font-semibold
+                                            file:bg-[#D6A75D] file:text-white
+                                            hover:file:bg-[#C19747]
+                                            file:cursor-pointer cursor-pointer"
+                                    />
+                                    {uploadingPhoto && (
+                                        <p className="text-sm text-gray-500 mt-1">Subiendo foto...</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="space-y-3">
 
