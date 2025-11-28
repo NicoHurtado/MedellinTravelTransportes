@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import path from 'path';
+import { uploadImageToBlob, UPLOAD_ERRORS } from '@/lib/upload';
 
 export async function POST(request: NextRequest) {
     try {
@@ -9,57 +8,28 @@ export async function POST(request: NextRequest) {
 
         if (!file) {
             return NextResponse.json(
-                { error: 'No se proporcionó ningún archivo' },
+                { error: UPLOAD_ERRORS.NO_FILE },
                 { status: 400 }
             );
         }
 
-        // Validar tipo de archivo
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            return NextResponse.json(
-                { error: 'Tipo de archivo no permitido. Solo JPG, PNG y WEBP.' },
-                { status: 400 }
-            );
-        }
-
-        // Validar tamaño (5MB máximo)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            return NextResponse.json(
-                { error: 'El archivo es demasiado grande. Máximo 5MB.' },
-                { status: 400 }
-            );
-        }
-
-        // Generar nombre único
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        // Sanitizar nombre de archivo
-        const timestamp = Date.now();
-        const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const fileName = `${timestamp}-${originalName}`;
-
-        // Guardar archivo
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'servicios');
-        const filePath = path.join(uploadDir, fileName);
-
-        await writeFile(filePath, buffer);
-
-        // Retornar URL pública
-        const publicUrl = `/uploads/servicios/${fileName}`;
+        // Subir a Vercel Blob (carpeta: servicios)
+        const url = await uploadImageToBlob(file, 'servicios');
 
         return NextResponse.json({
             success: true,
-            url: publicUrl,
+            url,
             message: 'Imagen subida exitosamente'
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error uploading image:', error);
+
+        // Si el error viene de la validación, usar ese mensaje
+        const errorMessage = error.message || UPLOAD_ERRORS.UPLOAD_FAILED;
+
         return NextResponse.json(
-            { error: 'Error al subir la imagen' },
+            { error: errorMessage },
             { status: 500 }
         );
     }

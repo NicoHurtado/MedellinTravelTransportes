@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { uploadImageToBlob, UPLOAD_ERRORS } from '@/lib/upload';
 
 export async function POST(request: NextRequest) {
     try {
@@ -9,62 +8,28 @@ export async function POST(request: NextRequest) {
 
         if (!file) {
             return NextResponse.json(
-                { success: false, error: 'No file provided' },
+                { success: false, error: UPLOAD_ERRORS.NO_FILE },
                 { status: 400 }
             );
         }
 
-        // Validate file type
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid file type. Only JPG, PNG, and WebP are allowed.' },
-                { status: 400 }
-            );
-        }
-
-        // Validate file size (max 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            return NextResponse.json(
-                { success: false, error: 'File too large. Maximum size is 5MB.' },
-                { status: 400 }
-            );
-        }
-
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        // Create unique filename
-        const timestamp = Date.now();
-        const originalName = file.name.replace(/\s+/g, '-');
-        const filename = `${timestamp}-${originalName}`;
-
-        // Ensure uploads directory exists
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-        try {
-            await mkdir(uploadsDir, { recursive: true });
-        } catch (error) {
-            // Directory might already exist
-        }
-
-        // Save file
-        const filepath = path.join(uploadsDir, filename);
-        await writeFile(filepath, buffer);
-
-        // Return public URL
-        const publicUrl = `/uploads/${filename}`;
+        // Subir a Vercel Blob (carpeta: vehiculos)
+        const url = await uploadImageToBlob(file, 'vehiculos');
 
         return NextResponse.json({
             success: true,
-            url: publicUrl,
-            filename: filename
+            url,
+            filename: file.name
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error uploading file:', error);
+
+        // Si el error viene de la validación, usar ese mensaje
+        const errorMessage = error.message || UPLOAD_ERRORS.UPLOAD_FAILED;
+
         return NextResponse.json(
-            { success: false, error: 'Error uploading file' },
+            { success: false, error: errorMessage },
             { status: 500 }
         );
     }
