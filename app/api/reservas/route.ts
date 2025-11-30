@@ -138,14 +138,29 @@ export async function POST(request: Request) {
             }
         }
 
+        // Determinar método de pago (default: BOLD)
+        const metodoPago = body.metodoPago || 'BOLD';
+
         // Determinar estado inicial
         let estadoInicial: EstadoReserva;
+        let estadoPago: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'PROCESANDO' | null = null;
+
         if (body.municipio === 'OTRO') {
+            // Municipio personalizado requiere cotización
             estadoInicial = EstadoReserva.PENDIENTE_COTIZACION;
-        } else if (body.esReservaAliado) {
-            estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
+            estadoPago = null;
+        } else if (metodoPago === 'EFECTIVO') {
+            // Pago en efectivo (HOTEL) va a CONFIRMADA pendiente de asignación
+            estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION;
+            estadoPago = null;
         } else {
-            estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
+            // Pago con Bold sigue flujo normal
+            if (body.esReservaAliado) {
+                estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
+            } else {
+                estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
+            }
+            estadoPago = 'PENDIENTE';
         }
 
         // Crear reserva con asistentes
@@ -185,7 +200,10 @@ export async function POST(request: Request) {
                 comisionAliado,
 
                 estado: estadoInicial,
-                estadoPago: 'PENDIENTE',
+                estadoPago: estadoPago,
+
+                // Método de Pago
+                metodoPago: metodoPago,
 
                 // Aliado
                 aliadoId: body.aliadoId || null,

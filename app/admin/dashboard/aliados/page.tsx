@@ -129,8 +129,9 @@ export default function AliadosPage() {
         setTimeout(() => setCopiedCodigo(null), 2000);
     };
 
-    const copyLink = (codigo: string) => {
-        const link = `${window.location.origin}/reservas/${codigo}`;
+    const copyLink = (codigo: string, tipo: 'HOTEL' | 'AIRBNB') => {
+        const path = tipo === 'HOTEL' ? 'hotel' : 'reservas';
+        const link = `${window.location.origin}/${path}/${codigo}`;
         navigator.clipboard.writeText(link);
         setCopiedCodigo(`LINK-${codigo}`);
         setTimeout(() => setCopiedCodigo(null), 2000);
@@ -226,25 +227,58 @@ export default function AliadosPage() {
                                     </button>
                                 </div>
 
-                                {aliado.tipo === 'AIRBNB' && (
-                                    <div className="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                        <span className="text-xs text-gray-500">Enlace de reservas:</span>
-                                        <button
-                                            onClick={() => copyLink(aliado.codigo)}
-                                            className="text-xs flex items-center gap-1 text-[#D6A75D] hover:text-[#C5964A] font-medium"
-                                        >
-                                            {copiedCodigo === `LINK-${aliado.codigo}` ? (
-                                                <>
-                                                    <FiCheck size={14} /> Copiado
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <FiCopy size={14} /> Copiar Link
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
+                                {/* Public Link Section - Always show for both HOTEL and AIRBNB */}
+                                <div className="mt-2 pt-2 border-t border-gray-100">
+                                    {aliado.tipo === 'HOTEL' ? (
+                                        <>
+                                            {/* Hotel has both access code and public link */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-gray-500">Link Público (Huéspedes):</span>
+                                                    <button
+                                                        onClick={() => copyLink(aliado.codigo, aliado.tipo)}
+                                                        className="text-xs flex items-center gap-1 text-[#D6A75D] hover:text-[#C5964A] font-medium"
+                                                        title="Link para huéspedes - pago en efectivo"
+                                                    >
+                                                        {copiedCodigo === `LINK-${aliado.codigo}` ? (
+                                                            <>
+                                                                <FiCheck size={14} /> Copiado
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FiCopy size={14} /> Copiar Link
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                <p className="text-xs text-gray-400 italic">
+                                                    💡 El código es para recepcionistas. El link público es para huéspedes (pago en efectivo).
+                                                </p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Airbnb only has public link */}
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs text-gray-500">Enlace de reservas:</span>
+                                                <button
+                                                    onClick={() => copyLink(aliado.codigo, aliado.tipo)}
+                                                    className="text-xs flex items-center gap-1 text-[#D6A75D] hover:text-[#C5964A] font-medium"
+                                                >
+                                                    {copiedCodigo === `LINK-${aliado.codigo}` ? (
+                                                        <>
+                                                            <FiCheck size={14} /> Copiado
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FiCopy size={14} /> Copiar Link
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
 
                                 <div className="text-sm text-gray-600">
                                     <p>📧 {aliado.email}</p>

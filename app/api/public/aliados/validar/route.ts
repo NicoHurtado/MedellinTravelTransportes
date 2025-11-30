@@ -22,6 +22,7 @@ export async function POST(request: Request) {
                 id: true,
                 nombre: true,
                 codigo: true,
+                tipo: true,
             },
         });
 

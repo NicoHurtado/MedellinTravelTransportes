@@ -155,6 +155,7 @@ export default function AdminDashboard() {
     const pendienteCotizacion = allReservas.filter(r => r.estado === 'PENDIENTE_COTIZACION').length;
     const confirmadaPendientePago = allReservas.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_PAGO').length;
     const pagadaPendienteAsignacion = allReservas.filter(r => r.estado === 'PAGADA_PENDIENTE_ASIGNACION').length;
+    const confirmadaPendienteAsignacion = allReservas.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION').length;
     const asignadaPendienteCompletar = allReservas.filter(r => r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR').length;
     const completadas = allReservas.filter(r => r.estado === 'COMPLETADA').length;
     const canceladas = allReservas.filter(r => r.estado === 'CANCELADA').length;
@@ -175,6 +176,14 @@ export default function AdminDashboard() {
             icon: FiDollarSign,
             bgColor: 'bg-gray-50',
             textColor: 'text-gray-600'
+        },
+        {
+            title: 'Hotel - Pendiente Asignación',
+            value: confirmadaPendienteAsignacion,
+            estado: 'CONFIRMADA_PENDIENTE_ASIGNACION',
+            icon: FiCalendar,
+            bgColor: 'bg-green-50',
+            textColor: 'text-green-600'
         },
         {
             title: 'Pagada - Pendiente Asignación',
@@ -214,6 +223,7 @@ export default function AdminDashboard() {
         { value: '', label: 'Todos los estados' },
         { value: 'PENDIENTE_COTIZACION', label: 'Pendiente Cotización' },
         { value: 'CONFIRMADA_PENDIENTE_PAGO', label: 'Confirmada - Pendiente Pago' },
+        { value: 'CONFIRMADA_PENDIENTE_ASIGNACION', label: 'Hotel - Pendiente Asignación' },
         { value: 'PAGADA_PENDIENTE_ASIGNACION', label: 'Pagada - Pendiente Asignación' },
         { value: 'ASIGNADA_PENDIENTE_COMPLETAR', label: 'Asignada - Pendiente Completar' },
         { value: 'COMPLETADA', label: 'Completada' },

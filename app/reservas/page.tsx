@@ -275,7 +275,7 @@ export default function ReservasPage() {
 
                             {/* View Reservations Button */}
                             <button
-                                onClick={() => setShowReservationsModal(true)}
+                                onClick={() => window.open(`/reservas/mis-reservas?aliadoId=${aliado.id}`, '_blank')}
                                 className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
                                 <FiClock />
@@ -330,13 +330,15 @@ export default function ReservasPage() {
                                         </div>
 
                                         <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-sm text-gray-500">{t('reservas.desde', language)}</p>
-                                                <p className="text-2xl font-bold text-[#D6A75D]">
-                                                    ${Number(service.precioBase).toLocaleString('es-CO')}
-                                                </p>
-                                            </div>
-                                            <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors">
+                                            {!aliado && (
+                                                <div>
+                                                    <p className="text-sm text-gray-500">{t('reservas.desde', language)}</p>
+                                                    <p className="text-2xl font-bold text-[#D6A75D]">
+                                                        ${Number(service.precioBase).toLocaleString('es-CO')}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <button className={`${aliado ? 'w-full' : ''} bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors`}>
                                                 {t('header.reservar', language)}
                                             </button>
                                         </div>

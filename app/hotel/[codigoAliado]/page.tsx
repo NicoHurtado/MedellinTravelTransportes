@@ -39,7 +39,7 @@ interface Aliado {
     tipo: string;
 }
 
-export default function ReservaAliadoPage() {
+export default function HotelPublicPage() {
     const { codigoAliado } = useParams();
     const router = useRouter();
     const { language } = useLanguage();
@@ -77,6 +77,12 @@ export default function ReservaAliadoPage() {
             }
 
             const aliadoData = data.data;
+
+            // Validate that this is a HOTEL
+            if (aliadoData.tipo !== 'HOTEL') {
+                throw new Error('Este enlace solo está disponible para hoteles');
+            }
+
             setAliado(aliadoData);
 
             // 2. Load Configuration & Services
@@ -121,7 +127,6 @@ export default function ReservaAliadoPage() {
         try {
             const res = await fetch(`/api/aliados/${aliadoId}/servicios`, { cache: 'no-store' });
             const data = await res.json();
-            console.log('API Response:', data);
 
             if (!data.success) {
                 console.error('API Error:', data.error);
@@ -131,16 +136,10 @@ export default function ReservaAliadoPage() {
             // Filter only active services and map to Service format
             const activeServices = (data.data || [])
                 .filter((sa: any) => sa.activo)
-                .map((sa: any) => {
-                    console.log(`Service ${sa.servicio.nombre} raw vehicles:`, sa.servicio.vehiculosPermitidos);
-                    const mapped = {
-                        ...sa.servicio,
-                        vehiculosPermitidos: sa.servicio.vehiculosPermitidos
-                    };
-                    console.log(`Service ${sa.servicio.nombre} mapped vehicles:`, mapped.vehiculosPermitidos);
-                    return mapped;
-                });
-            console.log('Final Active Services:', activeServices);
+                .map((sa: any) => ({
+                    ...sa.servicio,
+                    vehiculosPermitidos: sa.servicio.vehiculosPermitidos
+                }));
             setServices(activeServices);
         } catch (error) {
             console.error('Error loading services:', error);
@@ -185,15 +184,19 @@ export default function ReservaAliadoPage() {
             <Header />
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
-                    {/* Partner Header */}
+                    {/* Hotel Header */}
                     <div className="bg-white rounded-2xl p-8 shadow-sm mb-12 text-center border-b-4 border-[#D6A75D]">
-                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">Reservas Exclusivas</p>
+                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">Servicios de Transporte</p>
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                             {aliado?.nombre}
                         </h1>
                         <p className="text-gray-600">
-                            Tarifas especiales para nuestros huéspedes
+                            Servicios exclusivos para nuestros huéspedes
                         </p>
+                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Pago en efectivo al recibir el servicio
+                        </div>
                     </div>
 
                     {/* Services Catalog */}
@@ -253,7 +256,7 @@ export default function ReservaAliadoPage() {
             </main>
             <Footer />
 
-            {/* Reservation Wizard Modal */}
+            {/* Reservation Wizard Modal - CASH PAYMENT */}
             {selectedService && (
                 <ReservationWizard
                     service={selectedService}
@@ -265,6 +268,7 @@ export default function ReservaAliadoPage() {
                     aliadoId={aliado?.id || null}
                     preciosPersonalizados={preciosPersonalizados}
                     tarifasMunicipios={tarifasMunicipios}
+                    metodoPago="EFECTIVO"
                 />
             )}
         </>

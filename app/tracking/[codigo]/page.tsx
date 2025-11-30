@@ -256,34 +256,43 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     const lang = (reserva.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
     const t = DICTIONARY[lang];
 
+    // Detect payment method
+    const metodoPago = reserva.metodoPago || 'BOLD';
+    const isEfectivo = metodoPago === 'EFECTIVO';
+
     const isHotelAlly = reserva.esReservaAliado && reserva.aliado?.tipo === 'HOTEL';
 
     let currentState = TIMELINE_STATES[reserva.estado as EstadoReserva];
-    // Custom override for Hotel Allies
-    if (isHotelAlly && reserva.estado === EstadoReserva.CONFIRMADA_PENDIENTE_PAGO) {
+    // Custom override for Cash Payments
+    if (isEfectivo && reserva.estado === EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION) {
         currentState = {
             ...currentState,
-            label: 'Confirmada',
-            description: 'Reserva confirmada. El pago se realizará en efectivo.'
+            label: lang === 'ES' ? 'Confirmada' : 'Confirmed',
+            description: lang === 'ES' ? 'Reserva confirmada. El pago se realizará en efectivo al recibir el servicio.' : 'Reservation confirmed. Payment will be made in cash upon receiving the service.'
         };
     }
 
     const currentOrder = getStateOrder(reserva.estado);
-    const mostrarBotonPago = !isHotelView && !isHotelAlly &&
+    const mostrarBotonPago = metodoPago === 'BOLD' &&
         reserva.estado === 'CONFIRMADA_PENDIENTE_PAGO';
     const puedeCalificar = reserva.estado === 'COMPLETADA' && !reserva.calificacion && !ratingSubmitted;
     const puedeCancelar = canCancelReservation(new Date(reserva.fecha), reserva.estado);
 
     const Icon = currentState.icon;
 
-    // Define timeline steps based on ally type
-    const timelineSteps = [
-        EstadoReserva.CONFIRMADA_PENDIENTE_PAGO,
-        // Only show "Pagada" step if NOT a hotel ally
-        !isHotelAlly ? EstadoReserva.PAGADA_PENDIENTE_ASIGNACION : null,
+    // Define timeline steps based on payment method
+    const timelineSteps = isEfectivo ? [
+        // Cash payment: CONFIRMADA → ASIGNADA → COMPLETADA
+        EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION,
         EstadoReserva.ASIGNADA_PENDIENTE_COMPLETAR,
         EstadoReserva.COMPLETADA,
-    ].filter(Boolean) as EstadoReserva[];
+    ] : [
+        // Bold payment: Normal flow
+        EstadoReserva.CONFIRMADA_PENDIENTE_PAGO,
+        EstadoReserva.PAGADA_PENDIENTE_ASIGNACION,
+        EstadoReserva.ASIGNADA_PENDIENTE_COMPLETAR,
+        EstadoReserva.COMPLETADA,
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -304,10 +313,10 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                 {timelineSteps.map((estado, index) => {
                                     const stateConfig = TIMELINE_STATES[estado];
 
-                                    // Custom label for Hotel Ally in timeline
+                                    // Custom label for Cash Payment in timeline
                                     let label = stateConfig.label;
-                                    if (isHotelAlly && estado === EstadoReserva.CONFIRMADA_PENDIENTE_PAGO) {
-                                        label = 'Confirmada';
+                                    if (isEfectivo && estado === EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION) {
+                                        label = lang === 'ES' ? 'Confirmada' : 'Confirmed';
                                     }
 
                                     const StateIcon = stateConfig.icon;
@@ -352,6 +361,13 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         <span>{currentState.label}</span>
                                     </div>
                                     <p className="text-sm text-gray-600 mt-2">{currentState.description}</p>
+                                    {/* Cash Payment Badge */}
+                                    {isEfectivo && (
+                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-medium">
+                                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                            {lang === 'ES' ? 'Pago en Efectivo' : 'Cash Payment'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

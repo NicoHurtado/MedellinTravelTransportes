@@ -4,6 +4,7 @@ import { ReservationFormData, Asistente } from '@/types/reservation';
 import { TipoDocumento } from '@prisma/client';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import { useLanguage, t } from '@/lib/i18n';
+import LegalNotice from '@/components/LegalNotice';
 
 interface Step2Props {
     formData: ReservationFormData;
@@ -164,6 +165,9 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                     {t('reservas.paso2_asistentes_nota', language)}
                 </p>
             </div>
+
+            {/* Aviso Legal */}
+            <LegalNotice />
         </div>
     );
 }

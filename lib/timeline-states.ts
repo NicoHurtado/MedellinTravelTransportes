@@ -31,6 +31,13 @@ export const TIMELINE_STATES: Record<EstadoReserva, TimelineState> = {
         bgColor: 'bg-blue-100',
         description: 'Pago recibido. Asignando conductor'
     },
+    [EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION]: {
+        label: 'Confirmada',
+        icon: FiCheck,
+        color: 'text-green-600',
+        bgColor: 'bg-green-100',
+        description: 'Reserva confirmada. El pago se realizará en efectivo al recibir el servicio.'
+    },
     [EstadoReserva.ASIGNADA_PENDIENTE_COMPLETAR]: {
         label: 'Asignada',
         icon: FiTruck,
@@ -59,6 +66,7 @@ export function getStateOrder(estado: EstadoReserva): number {
         [EstadoReserva.PENDIENTE_COTIZACION]: 0,
         [EstadoReserva.CONFIRMADA_PENDIENTE_PAGO]: 1,
         [EstadoReserva.PAGADA_PENDIENTE_ASIGNACION]: 2,
+        [EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION]: 1, // Same level as CONFIRMADA_PENDIENTE_PAGO
         [EstadoReserva.ASIGNADA_PENDIENTE_COMPLETAR]: 3,
         [EstadoReserva.COMPLETADA]: 4,
         [EstadoReserva.CANCELADA]: -1, // Special case

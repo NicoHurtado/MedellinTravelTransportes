@@ -35,6 +35,7 @@ enum EstadoReserva {
   PENDIENTE_COTIZACION
   CONFIRMADA_PENDIENTE_PAGO
   PAGADA_PENDIENTE_ASIGNACION
+  CONFIRMADA_PENDIENTE_ASIGNACION  // Nuevo: Para reservas de hotel sin asignar
   ASIGNADA_PENDIENTE_COMPLETAR
   COMPLETADA
   CANCELADA
@@ -45,6 +46,11 @@ enum EstadoPago {
   APROBADO
   RECHAZADO
   PROCESANDO
+}
+
+enum MetodoPago {
+  BOLD
+  EFECTIVO
 }
 
 enum Idioma {
@@ -272,6 +278,9 @@ model Reserva {
   // Aliado (si es reserva de hotel/airbnb)
   aliadoId        String?
   esReservaAliado Boolean @default(false)
+
+  // Método de Pago
+  metodoPago MetodoPago @default(BOLD)
 
   // Notas y Metadata
   notas         String? @db.Text // del cliente

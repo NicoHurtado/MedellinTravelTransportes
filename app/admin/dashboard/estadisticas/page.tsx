@@ -45,11 +45,11 @@ export default function EstadisticasPage() {
         }
     };
 
-    // Filter reservas by selected month
+    // Filter reservas by selected month (using creation date, not service date)
     const filteredReservas = selectedMonth === 'all'
         ? reservas
         : reservas.filter(r => {
-            const reservaDate = new Date(r.fecha);
+            const reservaDate = new Date(r.createdAt);
             const [year, month] = selectedMonth.split('-');
             return reservaDate.getFullYear() === parseInt(year) &&
                 reservaDate.getMonth() === parseInt(month) - 1;
@@ -81,6 +81,7 @@ export default function EstadisticasPage() {
     const pagosEfectivoHoteles = filteredReservas
         .filter(r => {
             const isValidState =
+                r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION' ||
                 r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
                 r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
                 r.estado === 'COMPLETADA';
@@ -90,6 +91,35 @@ export default function EstadisticasPage() {
             return isValidState && isHotel;
         })
         .reduce((sum, r) => sum + Number(r.precioTotal || 0), 0);
+
+    // Comisiones de hoteles
+    const comisionesHotel = filteredReservas
+        .filter(r => {
+            const isValidState =
+                r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION' ||
+                r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
+                r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
+                r.estado === 'COMPLETADA';
+
+            const isHotel = r.esReservaAliado && r.aliado?.tipo === 'HOTEL';
+
+            return isValidState && isHotel;
+        })
+        .reduce((sum, r) => sum + Number(r.comisionAliado || 0), 0);
+
+    // Comisiones de Airbnb
+    const comisionesAirbnb = filteredReservas
+        .filter(r => {
+            const isValidState =
+                r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
+                r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
+                r.estado === 'COMPLETADA';
+
+            const isAirbnb = r.esReservaAliado && r.aliado?.tipo === 'AIRBNB';
+
+            return isValidState && isAirbnb;
+        })
+        .reduce((sum, r) => sum + Number(r.comisionAliado || 0), 0);
 
     // Chart 1: Reservas por Servicios
     const serviciosCounts: Record<string, number> = {};
@@ -258,6 +288,35 @@ export default function EstadisticasPage() {
                                 <p className="text-xs text-gray-500 mt-1">Hoteles</p>
                             </div>
                             <div className="bg-orange-50 text-orange-600 p-3 rounded-lg">
+                                <FiDollarSign size={24} />
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Commission Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 mb-1">Comisiones Hotel</p>
+                                <p className="text-2xl font-bold text-gray-900">${comisionesHotel.toLocaleString('es-CO')}</p>
+                                <p className="text-xs text-gray-500 mt-1">Total comisiones hoteles</p>
+                            </div>
+                            <div className="bg-indigo-50 text-indigo-600 p-3 rounded-lg">
+                                <FiDollarSign size={24} />
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600 mb-1">Comisiones Airbnb</p>
+                                <p className="text-2xl font-bold text-gray-900">${comisionesAirbnb.toLocaleString('es-CO')}</p>
+                                <p className="text-xs text-gray-500 mt-1">Total comisiones Airbnb</p>
+                            </div>
+                            <div className="bg-pink-50 text-pink-600 p-3 rounded-lg">
                                 <FiDollarSign size={24} />
                             </div>
                         </div>

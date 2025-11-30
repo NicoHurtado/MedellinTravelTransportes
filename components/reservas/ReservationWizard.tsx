@@ -45,9 +45,10 @@ interface ReservationWizardProps {
     aliadoId?: string | null;
     preciosPersonalizados?: any;
     tarifasMunicipios?: any[];
+    metodoPago?: 'BOLD' | 'EFECTIVO';
 }
 
-export default function ReservationWizard({ service, isOpen, onClose, aliadoId, preciosPersonalizados, tarifasMunicipios }: ReservationWizardProps) {
+export default function ReservationWizard({ service, isOpen, onClose, aliadoId, preciosPersonalizados, tarifasMunicipios, metodoPago = 'BOLD' }: ReservationWizardProps) {
     const { language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState<ReservationFormData>({
@@ -132,6 +133,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     servicioId: service.id,
                     aliadoId: aliadoId || null,
                     esReservaAliado: !!aliadoId,
+                    metodoPago: metodoPago,
                 }),
             });
 

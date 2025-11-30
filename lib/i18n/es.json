@@ -107,7 +107,7 @@
         "paso1_aeropuerto_seleccionar": "Selecciona el Aeropuerto",
         "paso1_aeropuerto_tipo": "¿Desde o hacia aeropuerto?",
         "paso1_aeropuerto_nombre": "¿Cuál aeropuerto?",
-        "paso1_numero_vuelo": "Número de vuelo (opcional)",
+        "paso1_numero_vuelo": "Número de vuelo",
         "paso1_origen": "Origen",
         "paso1_destino": "Destino",
         "paso1_lugar_recogida": "Lugar de recogida",
