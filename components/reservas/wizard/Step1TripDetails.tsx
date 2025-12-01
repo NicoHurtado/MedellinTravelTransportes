@@ -574,7 +574,6 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                         type="date"
                         value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
                         onChange={(e) => updateFormData({ fecha: e.target.value ? new Date(e.target.value) : null })}
-                        min={new Date().toISOString().split('T')[0]}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                     />
                 </div>

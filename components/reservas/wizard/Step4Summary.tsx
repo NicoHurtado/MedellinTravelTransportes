@@ -139,6 +139,39 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                         <span className="text-gray-600">{t('tracking.hora', language)}:</span>
                         <p className="font-medium">{formData.hora}</p>
                     </div>
+
+                    {/* Origen */}
+                    <div>
+                        <span className="text-gray-600">
+                            {formData.aeropuertoTipo === 'DESDE'
+                                ? (language === 'es' ? 'Origen' : 'Origin')
+                                : t('reservas.paso1_lugar_recogida', language)}:
+                        </span>
+                        <p className="font-medium">
+                            {formData.aeropuertoTipo === 'DESDE'
+                                ? (formData.aeropuertoNombre === 'JOSE_MARIA_CORDOVA'
+                                    ? (language === 'es' ? 'Aeropuerto JMC' : 'JMC Airport')
+                                    : (language === 'es' ? 'Aeropuerto Olaya Herrera' : 'Olaya Herrera Airport'))
+                                : (formData.lugarRecogida || (language === 'es' ? 'No especificado' : 'Not specified'))}
+                        </p>
+                    </div>
+
+                    {/* Destino */}
+                    <div>
+                        <span className="text-gray-600">{language === 'es' ? 'Destino' : 'Destination'}:</span>
+                        <p className="font-medium">
+                            {formData.aeropuertoTipo === 'HACIA'
+                                ? (formData.aeropuertoNombre === 'JOSE_MARIA_CORDOVA'
+                                    ? (language === 'es' ? 'Aeropuerto JMC' : 'JMC Airport')
+                                    : (language === 'es' ? 'Aeropuerto Olaya Herrera' : 'Olaya Herrera Airport'))
+                                : (formData.aeropuertoTipo === 'DESDE'
+                                    ? (formData.lugarRecogida || (language === 'es' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence'))
+                                    : (service.destinoAutoFill || service.nombre || (language === 'es' ? 'No especificado' : 'Not specified'))
+                                )
+                            }
+                        </p>
+                    </div>
+
                     <div>
                         <span className="text-gray-600">{t('reservas.paso4_municipio', language)}:</span>
                         <p className="font-medium">{municipioLabels[formData.municipio]}</p>
