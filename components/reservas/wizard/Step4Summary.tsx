@@ -128,11 +128,14 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                     <div>
                         <span className="text-gray-600">{t('reservas.paso4_fecha', language)}:</span>
                         <p className="font-medium">
-                            {formData.fecha ? formData.fecha.toLocaleDateString(language === 'es' ? 'es-CO' : 'en-US', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                            }) : ''}
+                            {formData.fecha ? (() => {
+                                const dateStr = formData.fecha.toISOString().split('T')[0];
+                                const [year, month, day] = dateStr.split('-').map(Number);
+                                const monthNames = language === 'es'
+                                    ? ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+                                    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                                return `${day} de ${monthNames[month - 1]} de ${year}`;
+                            })() : ''}
                         </p>
                     </div>
                     <div>

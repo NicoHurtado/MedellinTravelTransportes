@@ -573,7 +573,14 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     <input
                         type="date"
                         value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
-                        onChange={(e) => updateFormData({ fecha: e.target.value ? new Date(e.target.value + 'T12:00:00') : null })}
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                const [year, month, day] = e.target.value.split('-').map(Number);
+                                updateFormData({ fecha: new Date(Date.UTC(year, month - 1, day, 12, 0, 0)) });
+                            } else {
+                                updateFormData({ fecha: null });
+                            }
+                        }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                     />
                 </div>
