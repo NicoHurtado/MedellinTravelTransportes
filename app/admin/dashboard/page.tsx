@@ -416,7 +416,11 @@ export default function AdminDashboard() {
                                             <td className="px-6 py-4">
                                                 <div>
                                                     <p className="text-sm text-gray-900">
-                                                        {new Date(reserva.fecha).toLocaleDateString('es-CO')}
+                                                        {(() => {
+                                                            const dateStr = new Date(reserva.fecha).toISOString().split('T')[0];
+                                                            const [year, month, day] = dateStr.split('-');
+                                                            return `${day}/${month}/${year}`;
+                                                        })()}
                                                     </p>
                                                     <p className="text-xs text-gray-500">{reserva.hora}</p>
                                                 </div>

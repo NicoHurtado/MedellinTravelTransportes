@@ -5,6 +5,7 @@ import { FiStar, FiPhone, FiMail, FiLoader, FiCheckCircle } from 'react-icons/fi
 import { TIMELINE_STATES, getStateOrder, canCancelReservation } from '@/lib/timeline-states';
 import { EstadoReserva } from '@prisma/client';
 import { BoldButton } from '@/components/bold/BoldButton';
+import { formatReservationDate } from '@/lib/date-utils';
 
 const DICTIONARY = {
     ES: {
@@ -393,11 +394,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                 <div>
                                     <p className="text-sm text-gray-600">{t.fechaHora}</p>
                                     <p className="font-semibold">
-                                        {new Date(reserva.fecha).toLocaleDateString(lang === 'EN' ? 'en-US' : 'es-CO', {
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric'
-                                        })} - {reserva.hora}
+                                        {formatReservationDate(reserva.fecha, lang === 'EN' ? 'en-US' : 'es-CO', 'long')} - {reserva.hora}
                                     </p>
                                 </div>
                                 <div>

@@ -5,24 +5,25 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
     FiArrowLeft,
+    FiLoader,
+    FiCheckCircle,
+    FiX,
     FiSave,
+    FiEdit2,
     FiUser,
+    FiClock,
+    FiMapPin,
+    FiDollarSign,
     FiMail,
     FiPhone,
-    FiMapPin,
     FiCalendar,
-    FiClock,
     FiUsers,
-    FiDollarSign,
-    FiTruck,
-    FiCheckCircle,
-    FiXCircle,
-    FiAlertCircle,
-    FiLoader
+    FiTruck
 } from 'react-icons/fi';
-import { EstadoReserva } from '@prisma/client';
-import { getStateLabel, getStateColor } from '@/lib/state-transitions';
+import { EstadoReserva, TipoDocumento } from '@prisma/client';
+import { getStateLabel, getStateColor, getAvailableTransitions } from '@/lib/state-transitions';
 import { getLocalizedText } from '@/types/multi-language';
+import { formatReservationDate } from '@/lib/date-utils';
 
 export default function AdminReservaDetails({ params }: { params: { id: string } }) {
     const { data: session, status } = useSession();
@@ -242,7 +243,7 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     <div className="flex items-center gap-2">
                                         <FiCalendar className="text-gray-400" />
                                         <p className="font-medium">
-                                            {new Date(reserva.fecha).toLocaleDateString('es-CO')} - {reserva.hora}
+                                            {formatReservationDate(reserva.fecha, 'es-CO', 'short')} - {reserva.hora}
                                         </p>
                                     </div>
                                 </div>
