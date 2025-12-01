@@ -11,7 +11,7 @@ import Step4Summary from './wizard/Step4Summary';
 import Step5Confirmation from './wizard/Step5Confirmation';
 import StepWhatsAppContact from './wizard/StepWhatsAppContact';
 import { ReservationFormData } from '@/types/reservation';
-import { Idioma, Municipio, TipoDocumento } from '@prisma/client';
+import { Idioma, Municipio, TipoDocumento, AeropuertoNombre } from '@prisma/client';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { useLanguage, t } from '@/lib/i18n';
 import { formatPrice } from '@/lib/pricing';
@@ -68,6 +68,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         descuentoAliado: 0,
         precioTotal: Number(service.precioBase),
         datosDinamicos: {},
+        aeropuertoNombre: AeropuertoNombre.JOSE_MARIA_CORDOVA, // Default airport
     });
     const [reservationCode, setReservationCode] = useState<string>('');
     const [loading, setLoading] = useState(false);
