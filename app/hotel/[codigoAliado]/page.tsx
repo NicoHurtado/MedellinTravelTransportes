@@ -105,13 +105,28 @@ export default function HotelPublicPage() {
             const resServicios = await fetch(`/api/aliados/${aliadoId}/servicios`, { cache: 'no-store' });
             const dataServicios = await resServicios.json();
 
-            // Build pricing map
+            console.log('📡 API Response from /api/aliados/servicios:', dataServicios);
+
+            // Build pricing map with vehicle prices and night surcharge config
             const pricingMap: any = {};
             (dataServicios.data || []).forEach((sa: any) => {
+                console.log(`🔧 Processing service ${sa.servicioId}:`, {
+                    sobrescribirRecargoNocturno: sa.sobrescribirRecargoNocturno,
+                    aplicaRecargoNocturno: sa.aplicaRecargoNocturno
+                });
+
                 pricingMap[sa.servicioId] = {
-                    preciosVehiculos: sa.preciosVehiculos || []
+                    preciosVehiculos: sa.preciosVehiculos || [],
+                    // Night surcharge override configuration
+                    sobrescribirRecargoNocturno: sa.sobrescribirRecargoNocturno,
+                    aplicaRecargoNocturno: sa.aplicaRecargoNocturno,
+                    recargoNocturnoInicio: sa.recargoNocturnoInicio,
+                    recargoNocturnoFin: sa.recargoNocturnoFin,
+                    montoRecargoNocturno: sa.montoRecargoNocturno
                 };
             });
+
+            console.log('🗺️ Final pricing map:', pricingMap);
             setPreciosPersonalizados(pricingMap);
 
             // Fetch municipality surcharges

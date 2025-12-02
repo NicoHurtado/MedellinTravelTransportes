@@ -35,7 +35,7 @@ enum EstadoReserva {
   PENDIENTE_COTIZACION
   CONFIRMADA_PENDIENTE_PAGO
   PAGADA_PENDIENTE_ASIGNACION
-  CONFIRMADA_PENDIENTE_ASIGNACION  // Nuevo: Para reservas de hotel sin asignar
+  CONFIRMADA_PENDIENTE_ASIGNACION // Nuevo: Para reservas de hotel sin asignar
   ASIGNADA_PENDIENTE_COMPLETAR
   COMPLETADA
   CANCELADA
@@ -214,10 +214,10 @@ model Conductor {
   id            String   @id @default(cuid())
   nombre        String
   whatsapp      String
-  telefono      String   // Número de teléfono
-  documento     String   // Número de documento/cédula
-  placa         String   // Placa del vehículo
-  foto          String?  // URL de la foto (Vercel Blob) - opcional
+  telefono      String // Número de teléfono
+  documento     String // Número de documento/cédula
+  placa         String // Placa del vehículo
+  foto          String? // URL de la foto (Vercel Blob) - opcional
   disponible    Boolean  @default(true)
   activo        Boolean  @default(true)
   fotosVehiculo String[] // URLs
@@ -375,17 +375,17 @@ model TarifaAliado {
 
 // Calificaciones (Reviews 1-5 estrellas)
 model Calificacion {
-  id            String   @id @default(cuid())
-  reservaId     String   @unique
-  servicioId    String
-  estrellas     Int // 1-5
-  comentario    String?  @db.Text
-  nombreCliente String
-  esPublica     Boolean  @default(false)
-  destacada     Boolean  @default(false) // Featured on landing page
-  ordenDestacada Int?    // Order for featured reviews (1, 2, 3)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  reservaId      String   @unique
+  servicioId     String
+  estrellas      Int // 1-5
+  comentario     String?  @db.Text
+  nombreCliente  String
+  esPublica      Boolean  @default(false)
+  destacada      Boolean  @default(false) // Featured on landing page
+  ordenDestacada Int? // Order for featured reviews (1, 2, 3)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   reserva  Reserva  @relation(fields: [reservaId], references: [id], onDelete: Cascade)
   servicio Servicio @relation(fields: [servicioId], references: [id])
@@ -406,6 +406,14 @@ model ServicioAliado {
   aliadoId   String
   servicioId String
   activo     Boolean @default(true)
+
+  // Configuración de recargo nocturno específica del aliado
+  // Si sobrescribirRecargoNocturno = true, se usa la configuración del aliado en lugar de la del servicio
+  sobrescribirRecargoNocturno Boolean  @default(false)
+  aplicaRecargoNocturno       Boolean? // null = usar config del servicio
+  recargoNocturnoInicio       String? // HH:mm
+  recargoNocturnoFin          String? // HH:mm
+  montoRecargoNocturno        Decimal? @db.Decimal(10, 2)
 
   aliado           Aliado                 @relation(fields: [aliadoId], references: [id], onDelete: Cascade)
   servicio         Servicio               @relation(fields: [servicioId], references: [id], onDelete: Cascade)

@@ -32,6 +32,12 @@ export interface AliadoConfig {
     tarifaMunicipio?: number;
     comisionPorcentaje?: number;
     descuentoEspecial?: number;
+    // Night surcharge override configuration
+    sobrescribirRecargoNocturno?: boolean;
+    aplicaRecargoNocturno?: boolean;
+    recargoNocturnoInicio?: string;
+    recargoNocturnoFin?: string;
+    montoRecargoNocturno?: number;
 }
 
 // ============================================
@@ -136,11 +142,29 @@ export async function calculateReservationPrice(
     }
 
     // 4. Calculate night surcharge
+    // Priority: aliadoConfig override > service default
     let recargoNocturno = 0;
-    if (servicio.aplicaRecargoNocturno && servicio.montoRecargoNocturno) {
+
+    // Determine which configuration to use
+    let aplicaRecargo = servicio.aplicaRecargoNocturno;
+    let montoRecargo = servicio.montoRecargoNocturno;
+    let horaInicioRecargo = servicio.recargoNocturnoInicio;
+    let horaFinRecargo = servicio.recargoNocturnoFin;
+
+    // If ally has override configuration, use it instead
+    if (aliadoConfig?.sobrescribirRecargoNocturno) {
+        aplicaRecargo = aliadoConfig.aplicaRecargoNocturno ?? false;
+        montoRecargo = aliadoConfig.montoRecargoNocturno
+            ? { toString: () => aliadoConfig.montoRecargoNocturno!.toString() } as any
+            : null;
+        horaInicioRecargo = aliadoConfig.recargoNocturnoInicio ?? null;
+        horaFinRecargo = aliadoConfig.recargoNocturnoFin ?? null;
+    }
+
+    if (aplicaRecargo && montoRecargo) {
         const horaReserva = hora.split(':').map(Number);
-        const horaInicio = servicio.recargoNocturnoInicio?.split(':').map(Number);
-        const horaFin = servicio.recargoNocturnoFin?.split(':').map(Number);
+        const horaInicio = horaInicioRecargo?.split(':').map(Number);
+        const horaFin = horaFinRecargo?.split(':').map(Number);
 
         if (horaInicio && horaFin) {
             const minutosReserva = horaReserva[0] * 60 + horaReserva[1];
@@ -154,7 +178,7 @@ export async function calculateReservationPrice(
                     : minutosReserva >= minutosInicio || minutosReserva <= minutosFin;
 
             if (enRango) {
-                recargoNocturno = Number(servicio.montoRecargoNocturno);
+                recargoNocturno = Number(montoRecargo);
             }
         }
     }

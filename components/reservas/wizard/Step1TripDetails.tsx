@@ -99,13 +99,46 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     }, [formData.numeroPasajeros, recommendedVehicle?.id]);
 
 
+
+
     // Calculate price whenever relevant fields change
     useEffect(() => {
-        const nightSurcharge = service.aplicaRecargoNocturno &&
-            isNightSurchargeApplicable(formData.hora, service.recargoNocturnoInicio, service.recargoNocturnoFin)
-            ? Number(service.montoRecargoNocturno || 0)
+        // Determine night surcharge configuration
+        // Priority: hotel-specific config > service default
+        let aplicaRecargo = service.aplicaRecargoNocturno;
+        let montoRecargo = service.montoRecargoNocturno;
+        let horaInicioRecargo = service.recargoNocturnoInicio;
+        let horaFinRecargo = service.recargoNocturnoFin;
+
+        // Check if hotel has override configuration
+        const hotelConfig = preciosPersonalizados?.[service.id];
+
+        console.log('🔍 Night Surcharge Debug:', {
+            serviceId: service.id,
+            serviceName: service.nombre,
+            preciosPersonalizados,
+            hotelConfig,
+            sobrescribirRecargoNocturno: hotelConfig?.sobrescribirRecargoNocturno,
+            aplicaRecargoNocturnoHotel: hotelConfig?.aplicaRecargoNocturno,
+            aplicaRecargoNocturnoServicio: service.aplicaRecargoNocturno
+        });
+
+        if (hotelConfig?.sobrescribirRecargoNocturno) {
+            console.log('✅ Using hotel override configuration');
+            aplicaRecargo = hotelConfig.aplicaRecargoNocturno ?? false;
+            montoRecargo = hotelConfig.montoRecargoNocturno;
+            horaInicioRecargo = hotelConfig.recargoNocturnoInicio;
+            horaFinRecargo = hotelConfig.recargoNocturnoFin;
+        } else {
+            console.log('⚠️ Using service default configuration');
+        }
+
+        const nightSurcharge = aplicaRecargo &&
+            isNightSurchargeApplicable(formData.hora, horaInicioRecargo, horaFinRecargo)
+            ? Number(montoRecargo || 0)
             : 0;
 
+        console.log('💰 Final night surcharge:', nightSurcharge);
         setShowNightSurcharge(nightSurcharge > 0);
 
         // Calculate base price (custom or default)

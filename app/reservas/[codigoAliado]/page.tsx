@@ -99,11 +99,17 @@ export default function ReservaAliadoPage() {
             const resServicios = await fetch(`/api/aliados/${aliadoId}/servicios`, { cache: 'no-store' });
             const dataServicios = await resServicios.json();
 
-            // Build pricing map
+            // Build pricing map with vehicle prices and night surcharge config
             const pricingMap: any = {};
             (dataServicios.data || []).forEach((sa: any) => {
                 pricingMap[sa.servicioId] = {
-                    preciosVehiculos: sa.preciosVehiculos || []
+                    preciosVehiculos: sa.preciosVehiculos || [],
+                    // Night surcharge override configuration
+                    sobrescribirRecargoNocturno: sa.sobrescribirRecargoNocturno,
+                    aplicaRecargoNocturno: sa.aplicaRecargoNocturno,
+                    recargoNocturnoInicio: sa.recargoNocturnoInicio,
+                    recargoNocturnoFin: sa.recargoNocturnoFin,
+                    montoRecargoNocturno: sa.montoRecargoNocturno
                 };
             });
             setPreciosPersonalizados(pricingMap);
