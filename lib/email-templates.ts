@@ -138,6 +138,5 @@ export const formatPrice = (price: number) => {
 export const formatDate = (date: Date, language: 'ES' | 'EN' = 'ES') => {
   return new Intl.DateTimeFormat(language === 'ES' ? 'es-CO' : 'en-US', {
     dateStyle: 'long',
-    timeStyle: 'short',
   }).format(date);
 };
