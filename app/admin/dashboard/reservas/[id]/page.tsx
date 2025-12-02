@@ -258,6 +258,18 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     <label className="block text-sm text-gray-500 mb-1">Municipio</label>
                                     <p className="font-medium">{reserva.municipio}</p>
                                 </div>
+                                {/* Origen / Lugar de Recogida */}
+                                <div>
+                                    <label className="block text-sm text-gray-500 mb-1">
+                                        {reserva.aeropuertoTipo === 'DESDE' ? 'Origen' : 'Lugar de Recogida'}
+                                    </label>
+                                    <p className="font-medium">
+                                        {reserva.aeropuertoTipo === 'DESDE'
+                                            ? (reserva.aeropuertoNombre === 'JOSE_MARIA_CORDOVA' ? 'Aeropuerto JMC' : 'Aeropuerto Olaya Herrera')
+                                            : (reserva.lugarRecogida || 'No especificado')}
+                                    </p>
+                                </div>
+                                {/* Destino */}
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Destino</label>
                                     <p className="font-medium">
@@ -278,12 +290,6 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     <div>
                                         <label className="block text-sm text-gray-500 mb-1">Vehículo</label>
                                         <p className="font-medium">{reserva.vehiculo.nombre}</p>
-                                    </div>
-                                )}
-                                {reserva.lugarRecogida && (
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm text-gray-500 mb-1">Lugar de Recogida</label>
-                                        <p className="font-medium">{reserva.lugarRecogida}</p>
                                     </div>
                                 )}
                                 {reserva.notas && (
