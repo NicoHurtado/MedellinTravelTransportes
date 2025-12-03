@@ -176,24 +176,41 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
 
     const description = descripcionParts.join('\n');
 
-    // Calcular fecha y hora de inicio
+    // Construir fecha y hora correctamente en zona horaria de Colombia
     const fechaReserva = new Date(reserva.fecha);
     const [horas, minutos] = reserva.hora.split(':').map(Number);
-    fechaReserva.setHours(horas, minutos, 0, 0);
 
-    // Calcular fecha y hora de fin (2 horas después por defecto)
-    const fechaFin = new Date(fechaReserva);
-    fechaFin.setHours(fechaFin.getHours() + 2);
+    // Obtener año, mes, día de la fecha de reserva
+    const year = fechaReserva.getUTCFullYear();
+    const month = fechaReserva.getUTCMonth();
+    const day = fechaReserva.getUTCDate();
+
+    // Crear fecha en formato ISO para Colombia (America/Bogota es UTC-5)
+    // Construir la fecha y hora en formato ISO sin conversión de zona horaria
+    const fechaInicio = new Date(year, month, day, horas, minutos, 0, 0);
+    const fechaFin = new Date(year, month, day, horas + 2, minutos, 0, 0); // 2 horas después
+
+    // Formatear en ISO pero manteniendo la zona horaria de Colombia
+    const formatDateForColombia = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    };
 
     return {
         summary,
         description,
         start: {
-            dateTime: fechaReserva.toISOString(),
+            dateTime: formatDateForColombia(fechaInicio),
             timeZone: 'America/Bogota',
         },
         end: {
-            dateTime: fechaFin.toISOString(),
+            dateTime: formatDateForColombia(fechaFin),
             timeZone: 'America/Bogota',
         },
         reminders: {
