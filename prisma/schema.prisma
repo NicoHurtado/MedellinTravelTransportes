@@ -293,6 +293,9 @@ model Reserva {
   // Ejemplo: { "numeroVuelo": "AV123", "vueltaBote": true, "cantidadAlmuerzos": 2 }
   datosDinamicos Json? @default("{}")
 
+  // Google Calendar Integration
+  googleCalendarEventId String? // ID del evento en Google Calendar
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   canceladaAt DateTime?

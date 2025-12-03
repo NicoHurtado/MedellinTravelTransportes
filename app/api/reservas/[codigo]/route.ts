@@ -181,6 +181,21 @@ export async function PUT(
             await sendConductorAsignadoEmail(reservaActualizada);
         }
 
+        // Actualizar evento en Google Calendar si cambió fecha/hora o se asignó conductor
+        if (reservaActualizada.googleCalendarEventId) {
+            const cambioRelevante = body.fecha || body.hora || body.conductorId || body.vehiculoId || body.estado;
+
+            if (cambioRelevante) {
+                try {
+                    const { updateCalendarEvent } = await import('@/lib/google-calendar-service');
+                    await updateCalendarEvent(reservaActualizada as any);
+                    console.log('✅ [Reserva] Google Calendar event updated');
+                } catch (calendarError) {
+                    console.error('❌ [Reserva] Error updating calendar event:', calendarError);
+                }
+            }
+        }
+
         return NextResponse.json({
             data: reservaActualizada,
             message: 'Reserva actualizada exitosamente',
@@ -240,6 +255,17 @@ export async function DELETE(
 
         // Enviar email de cancelación
         await sendCambioEstadoEmail(reservaActualizada, reserva.estado);
+
+        // Eliminar evento de Google Calendar
+        if (reserva.googleCalendarEventId) {
+            try {
+                const { deleteCalendarEvent } = await import('@/lib/google-calendar-service');
+                await deleteCalendarEvent(reserva.googleCalendarEventId);
+                console.log('✅ [Reserva] Google Calendar event deleted');
+            } catch (calendarError) {
+                console.error('❌ [Reserva] Error deleting calendar event:', calendarError);
+            }
+        }
 
         return NextResponse.json({
             data: reservaActualizada,

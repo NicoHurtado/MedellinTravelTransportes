@@ -93,10 +93,100 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         // Skip validation for hourly services on step 1 as they go to WhatsApp
         if (service.esPorHoras && step === 1) return true;
 
+        // Step 0: Service Info - Always valid (just informational)
+        if (step === 0) return true;
+
+        // Step 1: Trip Details
         if (step === 1) {
-            // ... existing step 1 validation
+            // Required: fecha, hora, municipio, numeroPasajeros, vehiculoId
+            if (!formData.fecha || !formData.hora || !formData.municipio) {
+                alert(t('reservas.error_campos_requeridos', language) || 'Por favor completa todos los campos obligatorios');
+                return false;
+            }
+
+            // If municipio is OTRO, otroMunicipio is required
+            if (formData.municipio === Municipio.OTRO && !formData.otroMunicipio) {
+                alert(language === 'es' ? 'Por favor especifica el municipio' : 'Please specify the municipality');
+                return false;
+            }
+
+            // Number of passengers must be greater than 0
+            if (formData.numeroPasajeros <= 0) {
+                alert(language === 'es' ? 'Por favor ingresa el número de pasajeros' : 'Please enter the number of passengers');
+                return false;
+            }
+
+            // Vehicle must be selected
+            if (!formData.vehiculoId) {
+                alert(language === 'es' ? 'Por favor selecciona un vehículo' : 'Please select a vehicle');
+                return false;
+            }
+
+            // For airport services, additional validations
+            if (service.esAeropuerto) {
+                if (!formData.aeropuertoTipo) {
+                    alert(language === 'es' ? 'Por favor selecciona la dirección del aeropuerto' : 'Please select airport direction');
+                    return false;
+                }
+                if (!formData.lugarRecogida) {
+                    alert(language === 'es' ? 'Por favor ingresa el lugar de recogida/destino' : 'Please enter pickup/destination location');
+                    return false;
+                }
+            } else {
+                // For non-airport services, lugarRecogida is required
+                if (!formData.lugarRecogida) {
+                    alert(language === 'es' ? 'Por favor ingresa el lugar de recogida' : 'Please enter pickup location');
+                    return false;
+                }
+            }
+
+            return true;
         }
-        // ... existing step 2 validation
+
+        // Step 2: Contact Info
+        if (step === 2) {
+            // Required: nombreCliente, whatsappCliente, emailCliente
+            if (!formData.nombreCliente || !formData.whatsappCliente || !formData.emailCliente) {
+                alert(t('reservas.error_campos_requeridos', language) || 'Por favor completa todos los campos obligatorios');
+                return false;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.emailCliente)) {
+                alert(language === 'es' ? 'Por favor ingresa un email válido' : 'Please enter a valid email');
+                return false;
+            }
+
+            // Validate WhatsApp (should be numbers only, at least 10 digits)
+            const whatsappClean = formData.whatsappCliente.replace(/\D/g, '');
+            if (whatsappClean.length < 10) {
+                alert(language === 'es' ? 'Por favor ingresa un número de WhatsApp válido (mínimo 10 dígitos)' : 'Please enter a valid WhatsApp number (minimum 10 digits)');
+                return false;
+            }
+
+            // Validate asistentes if any
+            if (formData.asistentes && formData.asistentes.length > 0) {
+                for (const asistente of formData.asistentes) {
+                    if (asistente.nombre || asistente.numeroDocumento) {
+                        // If any field is filled, all fields must be filled
+                        if (!asistente.nombre || !asistente.numeroDocumento) {
+                            alert(language === 'es' ? 'Por favor completa la información de todos los asistentes o elimínalos' : 'Please complete all assistant information or remove them');
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        // Step 3: Notes - Always valid (optional)
+        if (step === 3) return true;
+
+        // Step 4: Summary - Always valid (just confirmation)
+        if (step === 4) return true;
+
         return true;
     };
 

@@ -88,12 +88,11 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             .sort((a: any, b: any) => a.capacidadMaxima - b.capacidadMaxima)[0]
         : null;
 
-    // Auto-select recommended vehicle ONLY if no vehicle selected OR current selection is invalid (e.g. not in list)
-    // Actually, user wants to choose. Auto-selecting might be annoying if they change passengers and it jumps.
-    // But "recommended" implies we suggest it.
-    // Let's auto-select ONLY if no vehicle is currently selected.
+    // Auto-select recommended vehicle when passenger count changes
+    // This ensures the smallest compatible vehicle is always selected
     useEffect(() => {
-        if (recommendedVehicle && !formData.vehiculoId) {
+        if (recommendedVehicle && formData.numeroPasajeros > 0) {
+            // Always update to recommended vehicle when passengers change
             updateFormData({ vehiculoId: recommendedVehicle.id });
         }
     }, [formData.numeroPasajeros, recommendedVehicle?.id]);

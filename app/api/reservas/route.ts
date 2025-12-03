@@ -245,6 +245,24 @@ export async function POST(request: Request) {
             // Don't fail the reservation if email fails
         }
 
+        // Crear evento en Google Calendar
+        try {
+            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+            const eventId = await createCalendarEvent(reserva as any);
+
+            // Actualizar reserva con el eventId si se creó exitosamente
+            if (eventId) {
+                await prisma.reserva.update({
+                    where: { id: reserva.id },
+                    data: { googleCalendarEventId: eventId }
+                });
+                console.log('✅ [Reserva] Google Calendar event created and linked:', eventId);
+            }
+        } catch (calendarError) {
+            console.error('❌ [Reserva] Error creating calendar event:', calendarError);
+            // No fallar la reserva si el calendario falla
+        }
+
         return NextResponse.json(
             {
                 data: reserva,
