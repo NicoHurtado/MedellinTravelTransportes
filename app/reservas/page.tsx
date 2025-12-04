@@ -36,6 +36,7 @@ interface Aliado {
     id: string;
     nombre: string;
     codigo: string;
+    tipo: string;
 }
 
 export default function ReservasPage() {
@@ -367,6 +368,8 @@ export default function ReservasPage() {
                         setSelectedService(null);
                     }}
                     aliadoId={aliado?.id || null}
+                    aliadoTipo={aliado?.tipo || null}
+                    aliadoNombre={aliado?.nombre || null}
                     preciosPersonalizados={preciosPersonalizados}
                     tarifasMunicipios={aliado ? tarifasMunicipios : selectedService.tarifasMunicipios}
                 />

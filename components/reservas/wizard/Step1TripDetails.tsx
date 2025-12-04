@@ -18,9 +18,11 @@ interface Step1Props {
     onBack: () => void;
     preciosPersonalizados?: any;
     tarifasMunicipios?: any[];
+    aliadoTipo?: string | null;
+    aliadoNombre?: string | null;
 }
 
-export default function Step1TripDetails({ service, formData, updateFormData, onNext, onBack, preciosPersonalizados, tarifasMunicipios }: Step1Props) {
+export default function Step1TripDetails({ service, formData, updateFormData, onNext, onBack, preciosPersonalizados, tarifasMunicipios, aliadoTipo, aliadoNombre }: Step1Props) {
     const { language } = useLanguage();
     const [showNightSurcharge, setShowNightSurcharge] = useState(false);
     const [dynamicPrice, setDynamicPrice] = useState(0);
@@ -30,6 +32,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
     // 🔥 NEW: Use camposPersonalizados (JSONB) instead of configuracionFormulario
     const dynamicFields = service.camposPersonalizados || [];
+
+    // 🏨 Check if this is a hotel reservation
+    const isHotel = aliadoTipo === 'HOTEL';
+    const hotelName = aliadoNombre || '';
 
     console.log('🔧 Dynamic Fields Debug:', {
         serviceId: service.id,
@@ -49,6 +55,13 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             updateFormData({ datosDinamicos: initialData });
         }
     }, [dynamicFields.length]);
+
+    // 🏨 Auto-fill lugarRecogida for hotels
+    useEffect(() => {
+        if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
+            updateFormData({ lugarRecogida: hotelName });
+        }
+    }, [isHotel, hotelName]);
 
     // Get available vehicles
     const availableVehicles = (() => {
@@ -377,6 +390,13 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
+                            ) : isHotel ? (
+                                <input
+                                    type="text"
+                                    value={hotelName}
+                                    readOnly
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                                />
                             ) : (
                                 <input
                                     type="text"
@@ -397,6 +417,13 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                 <input
                                     type="text"
                                     value={t(`aeropuerto.${formData.aeropuertoNombre || AeropuertoNombre.JOSE_MARIA_CORDOVA}`, language)}
+                                    readOnly
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                                />
+                            ) : isHotel ? (
+                                <input
+                                    type="text"
+                                    value={hotelName}
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
@@ -430,6 +457,21 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Origen fijo para hoteles en servicios NO aeropuerto */}
+                {!service.esAeropuerto && isHotel && (
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('reservas.paso1_origen', language)} *
+                        </label>
+                        <input
+                            type="text"
+                            value={hotelName}
+                            readOnly
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                        />
+                    </div>
+                )}
+
                 {/* Destino (Auto-fill or Select) - Only show if NOT airport service */}
                 {service.destinoAutoFill && !service.esAeropuerto ? (
                     <div className="md:col-span-2">
@@ -445,8 +487,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service */}
-                {!service.esAeropuerto && (
+                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel */}
+                {!service.esAeropuerto && !isHotel && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_lugar_recogida', language)} *

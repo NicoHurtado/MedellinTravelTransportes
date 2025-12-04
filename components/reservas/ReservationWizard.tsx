@@ -43,14 +43,17 @@ interface ReservationWizardProps {
     isOpen: boolean;
     onClose: () => void;
     aliadoId?: string | null;
+    aliadoTipo?: string | null;
+    aliadoNombre?: string | null;
     preciosPersonalizados?: any;
     tarifasMunicipios?: any[];
     metodoPago?: 'BOLD' | 'EFECTIVO';
 }
 
-export default function ReservationWizard({ service, isOpen, onClose, aliadoId, preciosPersonalizados, tarifasMunicipios, metodoPago = 'BOLD' }: ReservationWizardProps) {
+export default function ReservationWizard({ service, isOpen, onClose, aliadoId, aliadoTipo, aliadoNombre, preciosPersonalizados, tarifasMunicipios, metodoPago = 'BOLD' }: ReservationWizardProps) {
     const { language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
+    const [maxStepReached, setMaxStepReached] = useState(0);
     const [formData, setFormData] = useState<ReservationFormData>({
         idioma: language.toUpperCase() === 'EN' ? Idioma.EN : Idioma.ES,
         fecha: null,
@@ -193,7 +196,9 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     const handleNext = () => {
         if (validateStep(currentStep)) {
             if (currentStep < 5) {
-                setCurrentStep(currentStep + 1);
+                const nextStep = currentStep + 1;
+                setCurrentStep(nextStep);
+                setMaxStepReached(prev => Math.max(prev, nextStep));
             }
         }
     };
@@ -260,18 +265,26 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     <div className="bg-white border-b px-8 py-4 rounded-t-2xl flex-shrink-0">
                         {/* ... existing progress bar code ... */}
                         <div className="flex items-center justify-center mb-3">
-                            {[0, 1, 2, 3, 4].map((step) => (
-                                <div key={step} className="flex items-center">
-                                    <div className={`relative w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold transition-all ${step <= currentStep ? 'bg-[#D6A75D] text-black shadow-md scale-110' : 'bg-gray-200 text-gray-500'
-                                        }`}>
-                                        {step + 1}
+                            {[0, 1, 2, 3, 4].map((step) => {
+                                const isClickable = step <= maxStepReached;
+                                return (
+                                    <div key={step} className="flex items-center">
+                                        <div
+                                            onClick={() => isClickable && setCurrentStep(step)}
+                                            className={`relative w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold transition-all ${step <= currentStep
+                                                    ? 'bg-[#D6A75D] text-black shadow-md scale-110'
+                                                    : 'bg-gray-200 text-gray-500'
+                                                } ${isClickable ? 'cursor-pointer hover:bg-[#C5964A] hover:text-black' : 'cursor-not-allowed'}`}
+                                        >
+                                            {step + 1}
+                                        </div>
+                                        {step < 4 && (
+                                            <div className={`h-1 w-8 md:w-16 mx-1 md:mx-2 rounded-full transition-all ${step < currentStep ? 'bg-[#D6A75D]' : 'bg-gray-200'
+                                                }`} />
+                                        )}
                                     </div>
-                                    {step < 4 && (
-                                        <div className={`h-1 w-8 md:w-16 mx-1 md:mx-2 rounded-full transition-all ${step < currentStep ? 'bg-[#D6A75D]' : 'bg-gray-200'
-                                            }`} />
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         <p className="text-sm text-gray-600 text-center font-medium">
                             {currentStep === 0 && t('reservas.paso0_titulo', language)}
@@ -310,6 +323,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                                     onBack={handleBack}
                                     preciosPersonalizados={preciosPersonalizados}
                                     tarifasMunicipios={tarifasMunicipios}
+                                    aliadoTipo={aliadoTipo}
+                                    aliadoNombre={aliadoNombre}
                                 />
                             )}
                             {currentStep === 2 && (

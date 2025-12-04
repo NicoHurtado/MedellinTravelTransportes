@@ -281,6 +281,8 @@ export default function HotelPublicPage() {
                         setSelectedService(null);
                     }}
                     aliadoId={aliado?.id || null}
+                    aliadoTipo={aliado?.tipo || null}
+                    aliadoNombre={aliado?.nombre || null}
                     preciosPersonalizados={preciosPersonalizados}
                     tarifasMunicipios={tarifasMunicipios}
                     metodoPago="EFECTIVO"
