@@ -42,7 +42,7 @@ export default function ConductoresPage() {
 
     const fetchConductores = async () => {
         try {
-            const res = await fetch('/api/conductores');
+            const res = await fetch('/api/conductores?activo=true');
             const data = await res.json();
             setConductores(data.data || []);
         } catch (error) {
@@ -85,11 +85,16 @@ export default function ConductoresPage() {
                 method: 'DELETE'
             });
 
+            const data = await res.json();
+
             if (res.ok) {
                 await fetchConductores();
+            } else {
+                alert(data.error || 'Error al eliminar el conductor');
             }
         } catch (error) {
             console.error('Error deleting conductor:', error);
+            alert('Error al eliminar el conductor');
         }
     };
 

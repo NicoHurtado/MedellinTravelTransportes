@@ -42,6 +42,12 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
     const [selectedEstado, setSelectedEstado] = useState<string>('');
     const [quotePrice, setQuotePrice] = useState<number>(0);
 
+    // Customer Edit States
+    const [nombreCliente, setNombreCliente] = useState('');
+    const [emailCliente, setEmailCliente] = useState('');
+    const [whatsappCliente, setWhatsappCliente] = useState('');
+    const [idioma, setIdioma] = useState('ES');
+
     useEffect(() => {
         if (status === 'unauthenticated') {
             router.push('/admin/login');
@@ -68,6 +74,12 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
             setSelectedEstado(dataReserva.estado);
             setQuotePrice(dataReserva.precioTotal || 0);
 
+            // Initialize customer edit states
+            setNombreCliente(dataReserva.nombreCliente || '');
+            setEmailCliente(dataReserva.emailCliente || '');
+            setWhatsappCliente(dataReserva.whatsappCliente || '');
+            setIdioma(dataReserva.idioma || 'ES');
+
             // Fetch Conductores
             const resConductores = await fetch('/api/conductores?activo=true');
             if (resConductores.ok) {
@@ -91,7 +103,11 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
             const body: any = {
                 estado: selectedEstado,
                 conductorId: selectedConductor || null,
-
+                // Customer data
+                nombreCliente,
+                emailCliente,
+                whatsappCliente,
+                idioma
             };
 
             // If updating price for quote
@@ -194,34 +210,47 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Nombre</label>
-                                    <p className="font-medium">{reserva.nombreCliente}</p>
+                                    <input
+                                        type="text"
+                                        value={nombreCliente}
+                                        onChange={(e) => setNombreCliente(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Email</label>
                                     <div className="flex items-center gap-2">
                                         <FiMail className="text-gray-400" />
-                                        <a href={`mailto:${reserva.emailCliente}`} className="text-blue-600 hover:underline">
-                                            {reserva.emailCliente}
-                                        </a>
+                                        <input
+                                            type="email"
+                                            value={emailCliente}
+                                            onChange={(e) => setEmailCliente(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">WhatsApp</label>
                                     <div className="flex items-center gap-2">
                                         <FiPhone className="text-gray-400" />
-                                        <a
-                                            href={`https://wa.me/${reserva.whatsappCliente.replace(/\D/g, '')}`}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-green-600 hover:underline"
-                                        >
-                                            {reserva.whatsappCliente}
-                                        </a>
+                                        <input
+                                            type="text"
+                                            value={whatsappCliente}
+                                            onChange={(e) => setWhatsappCliente(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Idioma</label>
-                                    <p className="font-medium">{reserva.idioma === 'ES' ? 'Español' : 'Inglés'}</p>
+                                    <select
+                                        value={idioma}
+                                        onChange={(e) => setIdioma(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                    >
+                                        <option value="ES">Español</option>
+                                        <option value="EN">Inglés</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

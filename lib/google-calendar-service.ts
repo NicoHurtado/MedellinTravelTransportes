@@ -188,7 +188,8 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
     // Crear fecha en formato ISO para Colombia (America/Bogota es UTC-5)
     // Construir la fecha y hora en formato ISO sin conversión de zona horaria
     const fechaInicio = new Date(year, month, day, horas, minutos, 0, 0);
-    const fechaFin = new Date(year, month, day, horas + 2, minutos, 0, 0); // 2 horas después
+    // El usuario quiere que sea a la misma hora (sin rango), así que fechaFin = fechaInicio
+    const fechaFin = new Date(year, month, day, horas, minutos, 0, 0);
 
     // Formatear en ISO pero manteniendo la zona horaria de Colombia
     const formatDateForColombia = (date: Date) => {
