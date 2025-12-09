@@ -108,29 +108,42 @@ export async function POST(request: Request) {
 
         // Calcular comisión de aliado si aplica
         let comisionAliado = 0;
-        if (body.esReservaAliado && body.aliadoId && body.vehiculoId) {
+        if (body.esReservaAliado && body.aliadoId) {
             try {
-                const servicioAliado = await prisma.servicioAliado.findUnique({
-                    where: {
-                        aliadoId_servicioId: {
-                            aliadoId: body.aliadoId,
-                            servicioId: body.servicioId
-                        }
-                    }
+                // Obtener el servicio para verificar el tipo
+                const servicio = await prisma.servicio.findUnique({
+                    where: { id: body.servicioId }
                 });
 
-                if (servicioAliado) {
-                    const precioVehiculo = await prisma.precioVehiculoAliado.findUnique({
+                // Comisión especial para Transporte Municipal: 10% del precio total
+                if (servicio?.tipo === 'TRANSPORTE_MUNICIPAL') {
+                    comisionAliado = precioTotal * 0.10; // 10% del precio total
+                    console.log('💰 [Transporte Municipal] Comisión 10%:', comisionAliado, 'de', precioTotal);
+                } 
+                // Comisión normal para otros servicios (basada en precio de vehículo)
+                else if (body.vehiculoId) {
+                    const servicioAliado = await prisma.servicioAliado.findUnique({
                         where: {
-                            servicioAliadoId_vehiculoId: {
-                                servicioAliadoId: servicioAliado.id,
-                                vehiculoId: body.vehiculoId
+                            aliadoId_servicioId: {
+                                aliadoId: body.aliadoId,
+                                servicioId: body.servicioId
                             }
                         }
                     });
 
-                    if (precioVehiculo) {
-                        comisionAliado = Number(precioVehiculo.comision);
+                    if (servicioAliado) {
+                        const precioVehiculo = await prisma.precioVehiculoAliado.findUnique({
+                            where: {
+                                servicioAliadoId_vehiculoId: {
+                                    servicioAliadoId: servicioAliado.id,
+                                    vehiculoId: body.vehiculoId
+                                }
+                            }
+                        });
+
+                        if (precioVehiculo) {
+                            comisionAliado = Number(precioVehiculo.comision);
+                        }
                     }
                 }
             } catch (e) {
