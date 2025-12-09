@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiMapPin, FiClock, FiChevronRight } from 'react-icons/fi';
+import { FiMapPin, FiClock, FiChevronRight, FiSearch } from 'react-icons/fi';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText } from '@/types/multi-language';
 
@@ -23,12 +23,29 @@ interface Step0SelectDestinationProps {
 export default function Step0SelectDestination({ onSelectDestination }: Step0SelectDestinationProps) {
     const { language } = useLanguage();
     const [viajes, setViajes] = useState<ViajeMunicipal[]>([]);
+    const [filteredViajes, setFilteredViajes] = useState<ViajeMunicipal[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchViajes();
     }, []);
+
+    useEffect(() => {
+        // Filter viajes based on search term
+        if (searchTerm.trim() === '') {
+            setFilteredViajes(viajes);
+        } else {
+            const filtered = viajes.filter((viaje) => {
+                const nombre = getLocalizedText(viaje.nombre, language).toLowerCase();
+                const descripcion = getLocalizedText(viaje.descripcion, language).toLowerCase();
+                const search = searchTerm.toLowerCase();
+                return nombre.includes(search) || descripcion.includes(search);
+            });
+            setFilteredViajes(filtered);
+        }
+    }, [searchTerm, viajes, language]);
 
     const fetchViajes = async () => {
         try {
@@ -37,6 +54,7 @@ export default function Step0SelectDestination({ onSelectDestination }: Step0Sel
             
             if (data.success) {
                 setViajes(data.data);
+                setFilteredViajes(data.data);
             }
         } catch (error) {
             console.error('Error fetching viajes:', error);
@@ -78,86 +96,107 @@ export default function Step0SelectDestination({ onSelectDestination }: Step0Sel
     }
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-4xl mx-auto">
+            {/* Header */}
             <div className="text-center mb-8">
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                     {language === 'es' ? '¿A dónde quieres viajar?' : 'Where do you want to go?'}
                 </h2>
                 <p className="text-gray-600">
                     {language === 'es' 
-                        ? 'Selecciona tu destino para continuar con la reserva' 
-                        : 'Select your destination to continue with the reservation'}
+                        ? 'Busca y selecciona tu destino para continuar con la reserva' 
+                        : 'Search and select your destination to continue with the reservation'}
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {viajes.map((viaje) => {
-                    const isSelected = selectedId === viaje.id;
+            {/* Search Bar */}
+            <div className="mb-6">
+                <div className="relative">
+                    <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder={language === 'es' ? 'Buscar municipio...' : 'Search municipality...'}
+                        className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#D6A75D] focus:border-[#D6A75D] outline-none transition-all"
+                    />
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                    {language === 'es' 
+                        ? `${filteredViajes.length} destino${filteredViajes.length !== 1 ? 's' : ''} disponible${filteredViajes.length !== 1 ? 's' : ''}`
+                        : `${filteredViajes.length} destination${filteredViajes.length !== 1 ? 's' : ''} available`}
+                </p>
+            </div>
 
-                    return (
-                        <button
-                            key={viaje.id}
-                            onClick={() => handleSelect(viaje.id)}
-                            className={`group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 ${
-                                isSelected ? 'ring-4 ring-[#D6A75D]' : ''
-                            }`}
-                        >
-                            {/* Imagen */}
-                            <div className="relative h-48 overflow-hidden">
-                                {viaje.imagen ? (
-                                    <img
-                                        src={viaje.imagen}
-                                        alt={getLocalizedText(viaje.nombre, language)}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                        <FiMapPin className="text-gray-400" size={48} />
-                                    </div>
-                                )}
-                                {/* Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                
-                                {/* Nombre del destino */}
-                                <div className="absolute bottom-0 left-0 right-0 p-4">
-                                    <h3 className="text-xl font-bold text-white">
-                                        {getLocalizedText(viaje.nombre, language)}
-                                    </h3>
-                                </div>
-                            </div>
-
-                            {/* Contenido */}
-                            <div className="p-4">
-                                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                    {getLocalizedText(viaje.descripcion, language)}
-                                </p>
-
-                                {/* Info */}
-                                <div className="flex items-center justify-between mb-3">
-                                    {viaje.duracion && (
-                                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                                            <FiClock size={16} />
-                                            <span>{viaje.duracion}</span>
+            {/* Lista de Destinos */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 max-h-[600px] overflow-y-auto">
+                {filteredViajes.length === 0 ? (
+                    <div className="text-center py-12 px-4">
+                        <FiMapPin className="mx-auto text-gray-300 mb-3" size={48} />
+                        <p className="text-gray-600">
+                            {language === 'es' 
+                                ? 'No se encontraron destinos con ese término de búsqueda' 
+                                : 'No destinations found with that search term'}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-gray-100">
+                        {filteredViajes.map((viaje) => {
+                            const isSelected = selectedId === viaje.id;
+                            
+                            return (
+                                <button
+                                    key={viaje.id}
+                                    onClick={() => handleSelect(viaje.id)}
+                                    className={`w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between group ${
+                                        isSelected ? 'bg-[#D6A75D]/10 border-l-4 border-[#D6A75D]' : ''
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-4 flex-1">
+                                        {/* Icono */}
+                                        <div className={`p-3 rounded-lg transition-colors ${
+                                            isSelected ? 'bg-[#D6A75D] text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-[#D6A75D]/20 group-hover:text-[#D6A75D]'
+                                        }`}>
+                                            <FiMapPin size={24} />
                                         </div>
-                                    )}
-                                </div>
 
-                                {/* Botón */}
-                                <div className="flex items-center justify-center gap-2 text-[#D6A75D] font-semibold group-hover:gap-3 transition-all">
-                                    <span>{language === 'es' ? 'Seleccionar' : 'Select'}</span>
-                                    <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </div>
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className={`font-bold text-lg mb-1 ${
+                                                isSelected ? 'text-[#D6A75D]' : 'text-gray-900'
+                                            }`}>
+                                                {getLocalizedText(viaje.nombre, language)}
+                                            </h3>
+                                            <p className="text-sm text-gray-600 line-clamp-1">
+                                                {getLocalizedText(viaje.descripcion, language)}
+                                            </p>
+                                            {viaje.duracion && (
+                                                <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                                    <FiClock size={12} />
+                                                    <span>{viaje.duracion}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
-                            {/* Selected indicator */}
-                            {isSelected && (
-                                <div className="absolute top-3 right-3 bg-[#D6A75D] text-black px-3 py-1 rounded-full text-sm font-bold">
-                                    ✓ {language === 'es' ? 'Seleccionado' : 'Selected'}
-                                </div>
-                            )}
-                        </button>
-                    );
-                })}
+                                    {/* Arrow o Check */}
+                                    <div className="ml-4">
+                                        {isSelected ? (
+                                            <div className="bg-[#D6A75D] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2">
+                                                ✓ {language === 'es' ? 'Seleccionado' : 'Selected'}
+                                            </div>
+                                        ) : (
+                                            <FiChevronRight 
+                                                className="text-gray-400 group-hover:text-[#D6A75D] group-hover:translate-x-1 transition-all" 
+                                                size={24} 
+                                            />
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

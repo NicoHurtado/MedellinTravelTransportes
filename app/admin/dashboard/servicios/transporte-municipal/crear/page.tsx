@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { FiArrowLeft, FiSave, FiPlus, FiX } from 'react-icons/fi';
 import Link from 'next/link';
 import DynamicFieldBuilder from '@/components/admin/DynamicFieldBuilder';
-import ImageUploader from '@/components/admin/ImageUploader';
 import { DynamicField } from '@/types/dynamic-fields';
 import { Municipio } from '@prisma/client';
 
@@ -37,7 +36,6 @@ export default function CrearViajeMunicipalPage() {
     const [nombreEN, setNombreEN] = useState('');
     const [descripcionES, setDescripcionES] = useState('');
     const [descripcionEN, setDescripcionEN] = useState('');
-    const [imagen, setImagen] = useState('');
     const [duracion, setDuracion] = useState('');
     
     // Qué Incluye
@@ -162,11 +160,6 @@ export default function CrearViajeMunicipalPage() {
             return;
         }
 
-        if (!imagen) {
-            alert('Por favor sube una imagen del destino');
-            return;
-        }
-
         if (vehiculosSeleccionados.length === 0) {
             alert('Por favor selecciona al menos un vehículo');
             return;
@@ -195,7 +188,7 @@ export default function CrearViajeMunicipalPage() {
                 },
                 
                 // Imagen y duración
-                imagen,
+                imagen: '/antioquia.jpg', // Imagen por defecto para todos los viajes municipales
                 duracion,
                 
                 // Precio base (usamos el menor precio de vehículo)
@@ -337,11 +330,6 @@ export default function CrearViajeMunicipalPage() {
                         </div>
                     </div>
 
-                    {/* Imagen */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-bold mb-4">Imagen del Destino *</h2>
-                        <ImageUploader onImageUploaded={setImagen} currentImageUrl={imagen} />
-                    </div>
 
                     {/* Qué Incluye */}
                     <div className="bg-white rounded-xl shadow-sm p-6">

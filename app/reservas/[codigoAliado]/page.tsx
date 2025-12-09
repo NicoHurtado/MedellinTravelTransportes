@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { FiClock, FiUsers, FiAlertCircle } from 'react-icons/fi';
+import { FiClock, FiUsers, FiAlertCircle, FiMapPin, FiChevronRight } from 'react-icons/fi';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
+import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import { useLanguage, t } from '@/lib/i18n';
@@ -50,6 +51,7 @@ export default function ReservaAliadoPage() {
     const [error, setError] = useState('');
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [wizardOpen, setWizardOpen] = useState(false);
+    const [municipalModalOpen, setMunicipalModalOpen] = useState(false);
 
     // Custom pricing state
     const [preciosPersonalizados, setPreciosPersonalizados] = useState<any>(null);
@@ -158,6 +160,23 @@ export default function ReservaAliadoPage() {
         setWizardOpen(true);
     };
 
+    const handleSelectMunicipalService = async (serviceId: string) => {
+        try {
+            const res = await fetch(`/api/servicios/${serviceId}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                openWizard(data.data);
+            }
+        } catch (error) {
+            console.error('Error loading service:', error);
+        }
+    };
+
+    // Separate municipal and regular services
+    const serviciosMunicipales = services.filter(s => s.tipo === 'TRANSPORTE_MUNICIPAL');
+    const serviciosRegulares = services.filter(s => s.tipo !== 'TRANSPORTE_MUNICIPAL');
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -209,7 +228,55 @@ export default function ReservaAliadoPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {services.map((service) => (
+                            {/* Tarjeta Transporte Municipal (si hay servicios municipales) */}
+                            {serviciosMunicipales.length > 0 && (
+                                <div
+                                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                    onClick={() => setMunicipalModalOpen(true)}
+                                >
+                                    <div className="relative h-56 overflow-hidden">
+                                        <Image
+                                            src="/antioquia.jpg"
+                                            alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    </div>
+
+                                    <div className="p-6">
+                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                            {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
+                                        </h3>
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                            {language === 'es' 
+                                                ? `${serviciosMunicipales.length} destinos disponibles` 
+                                                : `${serviciosMunicipales.length} destinations available`}
+                                        </p>
+
+                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                            <div className="flex items-center gap-1">
+                                                <FiMapPin className="text-[#D6A75D]" />
+                                                <span>{language === 'es' ? 'Múltiples destinos' : 'Multiple destinations'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <FiUsers className="text-[#D6A75D]" />
+                                                <span>{t('landing.privado', language)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end">
+                                            <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                                                {language === 'es' ? 'Ver Destinos' : 'View Destinations'}
+                                                <FiChevronRight />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Servicios Regulares */}
+                            {serviciosRegulares.map((service) => (
                                 <div
                                     key={service.id}
                                     className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
@@ -258,6 +325,14 @@ export default function ReservaAliadoPage() {
                 </div>
             </main>
             <Footer />
+
+            {/* Modal Transporte Municipal */}
+            <TransporteMunicipalModal
+                isOpen={municipalModalOpen}
+                onClose={() => setMunicipalModalOpen(false)}
+                onSelectService={handleSelectMunicipalService}
+                serviciosMunicipales={serviciosMunicipales}
+            />
 
             {/* Reservation Wizard Modal */}
             {selectedService && (

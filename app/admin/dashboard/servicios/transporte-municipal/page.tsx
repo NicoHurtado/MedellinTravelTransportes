@@ -160,97 +160,107 @@ export default function TransporteMunicipalPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {viajes.map((viaje) => (
-                        <div
-                            key={viaje.id}
-                            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-                        >
-                            {/* Imagen */}
-                            <div className="relative h-48 bg-gray-200">
-                                {viaje.imagen ? (
-                                    <img
-                                        src={viaje.imagen}
-                                        alt={getLocalizedText(viaje.nombre, 'ES')}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <FiMapPin className="text-gray-400" size={48} />
-                                    </div>
-                                )}
-                                {/* Badge Activo/Inactivo */}
-                                <div className="absolute top-3 right-3">
-                                    <span
-                                        className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                            viaje.activo
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-gray-500 text-white'
-                                        }`}
-                                    >
-                                        {viaje.activo ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Contenido */}
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                                    {getLocalizedText(viaje.nombre, 'ES')}
-                                </h3>
-                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                                    {getLocalizedText(viaje.descripcion, 'ES')}
-                                </p>
-
-                                {/* Info */}
-                                <div className="space-y-2 mb-4">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-600">Vehículos:</span>
-                                        <span className="font-medium">
-                                            {viaje.vehiculosPermitidos.length}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-600">Reservas:</span>
-                                        <span className="font-medium">{viaje._count.reservas}</span>
-                                    </div>
-                                </div>
-
-                                {/* Acciones */}
-                                <div className="flex gap-2">
-                                    <Link
-                                        href={`/admin/dashboard/servicios/${viaje.id}/editar`}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                                    >
-                                        <FiEdit2 size={16} />
-                                        Editar
-                                    </Link>
-                                    <button
-                                        onClick={() => handleToggleActive(viaje.id)}
-                                        className={`flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${
-                                            viaje.activo
-                                                ? 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                                                : 'bg-green-600 hover:bg-green-700 text-white'
-                                        }`}
-                                        title={viaje.activo ? 'Desactivar' : 'Activar'}
-                                    >
-                                        {viaje.activo ? (
-                                            <FiToggleLeft size={20} />
-                                        ) : (
-                                            <FiToggleRight size={20} />
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(viaje.id, viaje.nombre)}
-                                        className="flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                                        title="Eliminar"
-                                    >
-                                        <FiTrash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Destino
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Descripción
+                                    </th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Vehículos
+                                    </th>
+                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Estado
+                                    </th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                        Acciones
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {viajes.map((viaje) => (
+                                    <tr key={viaje.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-gray-100 rounded-lg">
+                                                    <FiMapPin className="text-gray-600" size={20} />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900">
+                                                        {getLocalizedText(viaje.nombre, 'ES')}
+                                                    </p>
+                                                    {getLocalizedText(viaje.nombre, 'EN') !== getLocalizedText(viaje.nombre, 'ES') && (
+                                                        <p className="text-xs text-gray-500">
+                                                            {getLocalizedText(viaje.nombre, 'EN')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <p className="text-sm text-gray-600 line-clamp-2 max-w-md">
+                                                {getLocalizedText(viaje.descripcion, 'ES')}
+                                            </p>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="inline-flex items-center justify-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                                {viaje.vehiculosPermitidos.length}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span
+                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                                    viaje.activo
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-gray-100 text-gray-700'
+                                                }`}
+                                            >
+                                                {viaje.activo ? 'Activo' : 'Inactivo'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Link
+                                                    href={`/admin/dashboard/servicios/${viaje.id}/editar`}
+                                                    className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <FiEdit2 size={18} />
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleToggleActive(viaje.id)}
+                                                    className={`p-2 rounded-lg transition-colors ${
+                                                        viaje.activo
+                                                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                                                            : 'bg-green-100 hover:bg-green-200 text-green-600'
+                                                    }`}
+                                                    title={viaje.activo ? 'Desactivar' : 'Activar'}
+                                                >
+                                                    {viaje.activo ? (
+                                                        <FiToggleLeft size={18} />
+                                                    ) : (
+                                                        <FiToggleRight size={18} />
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(viaje.id, viaje.nombre)}
+                                                    className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    <FiTrash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
