@@ -19,10 +19,17 @@ export async function GET(request: Request) {
         const activoParam = searchParams.get('activo');
         const activo = activoParam === null ? true : activoParam === 'true';
 
+        // Filtro por tipo (opcional)
+        const tipo = searchParams.get('tipo');
+
+        // Build where clause
+        const where: any = { activo };
+        if (tipo) {
+            where.tipo = tipo;
+        }
+
         const servicios = await prisma.servicio.findMany({
-            where: {
-                activo,
-            },
+            where,
             include: {
                 adicionales: true,
                 tarifasMunicipios: true,
@@ -39,7 +46,7 @@ export async function GET(request: Request) {
             },
         });
 
-        return NextResponse.json({ data: servicios });
+        return NextResponse.json({ data: servicios, success: true });
     } catch (error) {
         console.error('Error fetching servicios:', error);
         return NextResponse.json(

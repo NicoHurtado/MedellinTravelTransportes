@@ -63,9 +63,10 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
     const fetchData = async () => {
         try {
             // Fetch Reserva
-            const resReserva = await fetch(`/api/reservas/${id}`);
+            const resReserva = await fetch(`/api/reservas/by-id/${id}`);
             if (!resReserva.ok) throw new Error('Error fetching reserva');
             const dataReserva = await resReserva.json();
+
             setReserva(dataReserva);
 
             // Initialize form states
@@ -116,7 +117,7 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                 body.precioBase = quotePrice; // Assuming base price update for simplicity
             }
 
-            const res = await fetch(`/api/reservas/${id}`, {
+            const res = await fetch(`/api/reservas/by-id/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
@@ -363,10 +364,133 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                         <span className="font-medium">${Number(reserva.precioBase).toLocaleString('es-CO')}</span>
                                     </div>
                                     {reserva.precioAdicionales > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Adicionales</span>
-                                            <span className="font-medium">${Number(reserva.precioAdicionales).toLocaleString('es-CO')}</span>
-                                        </div>
+                                        <>
+                                            <div className="flex justify-between font-semibold text-gray-700 border-t pt-2 mt-1">
+                                                <span>Adicionales</span>
+                                                <span>${Number(reserva.precioAdicionales).toLocaleString('es-CO')}</span>
+                                            </div>
+                                            {/* Desglose Detallado de Adicionales */}
+                                            <div className="pl-4 border-l-2 border-blue-200 ml-2 my-2 space-y-2 bg-blue-50 p-3 rounded-r-lg">
+                                                {(() => {
+                                                    const items: JSX.Element[] = [];
+
+                                                    // 1. Dynamic Fields (Campos Personalizados del Servicio)
+                                                    try {
+                                                        const dynamicFields = reserva.servicio?.camposPersonalizadosBuffer
+                                                            ? (Array.isArray(reserva.servicio.camposPersonalizadosBuffer)
+                                                                ? reserva.servicio.camposPersonalizadosBuffer
+                                                                : JSON.parse(reserva.servicio.camposPersonalizadosBuffer))
+                                                            : (reserva.servicio?.camposPersonalizados
+                                                                ? (Array.isArray(reserva.servicio.camposPersonalizados)
+                                                                    ? reserva.servicio.camposPersonalizados
+                                                                    : JSON.parse(reserva.servicio.camposPersonalizados as string))
+                                                                : []);
+
+                                                        if (dynamicFields.length && reserva.datosDinamicos) {
+                                                            dynamicFields.forEach((field: any) => {
+                                                                // Get the field key - different formats supported
+                                                                const fieldKey = field.clave || field.key || field.id || field.name;
+                                                                if (!fieldKey) return;
+
+                                                                // Get user's value for this field
+                                                                const value = reserva.datosDinamicos[fieldKey];
+                                                                if (value === undefined || value === null) return;
+
+                                                                // Get field configuration
+                                                                const tipo = field.tipo ? field.tipo.toUpperCase() : '';
+                                                                const label = field.etiqueta?.es || field.label || fieldKey;
+                                                                const tienePrecio = field.tienePrecio !== false; // Default true
+                                                                
+                                                                if (!tienePrecio) return;
+
+                                                                let itemPrice = 0;
+                                                                let displayValue = '';
+
+                                                                // Calculate price based on field type
+                                                                if (tipo === 'SWITCH' && value === true) {
+                                                                    const precio = field.precio || field.precioUnitario || 0;
+                                                                    itemPrice = Number(precio);
+                                                                    displayValue = '1 unidad';
+                                                                } else if (tipo === 'COUNTER' && Number(value) > 0) {
+                                                                    const precioUnitario = field.precioUnitario || 0;
+                                                                    const cantidad = Number(value);
+                                                                    itemPrice = cantidad * Number(precioUnitario);
+                                                                    displayValue = `${cantidad} × $${Number(precioUnitario).toLocaleString('es-CO')}`;
+                                                                } else if (tipo === 'SELECT' && field.opciones) {
+                                                                    const opcionSeleccionada = field.opciones.find(
+                                                                        (opt: any) => opt.valor === value
+                                                                    );
+                                                                    if (opcionSeleccionada?.precio) {
+                                                                        itemPrice = Number(opcionSeleccionada.precio);
+                                                                        displayValue = opcionSeleccionada.etiqueta?.es || opcionSeleccionada.label || value;
+                                                                    }
+                                                                }
+
+                                                                if (itemPrice > 0) {
+                                                                    items.push(
+                                                                        <div key={`dyn-${fieldKey}`} className="flex justify-between items-center">
+                                                                            <div className="flex-1">
+                                                                                <p className="font-medium text-gray-700">{label}</p>
+                                                                                <p className="text-xs text-gray-500">{displayValue}</p>
+                                                                            </div>
+                                                                            <span className="font-semibold text-blue-700">
+                                                                                ${itemPrice.toLocaleString('es-CO')}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            });
+                                                        }
+                                                    } catch (e) {
+                                                        console.error('Error parsing dynamic fields breakdown:', e);
+                                                    }
+
+                                                    // 2. Adicionales Seleccionados (Sistema Relacional)
+                                                    if (reserva.adicionalesSeleccionados && Array.isArray(reserva.adicionalesSeleccionados)) {
+                                                        reserva.adicionalesSeleccionados.forEach((sel: any) => {
+                                                            const nombre = sel.adicional?.nombre || 'Adicional';
+                                                            const cantidad = sel.cantidad || 1;
+                                                            const precioUnitario = sel.precioUnitario || sel.adicional?.precio || 0;
+                                                            const precioTotal = Number(precioUnitario) * Number(cantidad);
+
+                                                            if (precioTotal > 0) {
+                                                                items.push(
+                                                                    <div key={`rel-${sel.id || nombre}`} className="flex justify-between items-center">
+                                                                        <div className="flex-1">
+                                                                            <p className="font-medium text-gray-700">{nombre}</p>
+                                                                            <p className="text-xs text-gray-500">
+                                                                                {cantidad} × ${Number(precioUnitario).toLocaleString('es-CO')}
+                                                                            </p>
+                                                                        </div>
+                                                                        <span className="font-semibold text-blue-700">
+                                                                            ${precioTotal.toLocaleString('es-CO')}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        });
+                                                    }
+
+                                                    if (items.length === 0) {
+                                                        return (
+                                                            <div className="text-sm text-gray-500 italic">
+                                                                No se encontró el desglose de adicionales
+                                                                <div className="text-xs mt-1 font-mono bg-white p-2 rounded">
+                                                                    Debug: {JSON.stringify({
+                                                                        hasDatosDinamicos: !!reserva.datosDinamicos,
+                                                                        datosDinamicos: reserva.datosDinamicos,
+                                                                        hasFields: !!reserva.servicio?.camposPersonalizados,
+                                                                        fieldsType: typeof reserva.servicio?.camposPersonalizados
+                                                                    }, null, 2)}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return <>{items}</>;
+                                                })()}
+                                            </div>
+                                        </>
                                     )}
                                     {reserva.recargoNocturno > 0 && (
                                         <div className="flex justify-between">

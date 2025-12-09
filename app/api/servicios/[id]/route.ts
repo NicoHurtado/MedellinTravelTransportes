@@ -21,9 +21,15 @@ export async function GET(
             where: { id },
             include: {
                 adicionales: true,
+                tarifasMunicipios: true,
                 tarifasAliados: {
                     include: {
                         aliado: true,
+                    },
+                },
+                vehiculosPermitidos: {
+                    include: {
+                        vehiculo: true,
                     },
                 },
             },
@@ -36,7 +42,7 @@ export async function GET(
             );
         }
 
-        return NextResponse.json({ data: servicio });
+        return NextResponse.json({ success: true, data: servicio });
     } catch (error) {
         console.error('Error fetching servicio:', error);
         return NextResponse.json(

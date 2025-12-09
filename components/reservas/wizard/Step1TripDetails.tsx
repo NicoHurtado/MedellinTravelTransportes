@@ -248,6 +248,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         window.open(`https://wa.me/573175177409?text=${message}`, '_blank');
     };
 
+    // Check if this is municipal transport
+    const isTransporteMunicipal = service.tipo === 'TRANSPORTE_MUNICIPAL';
+
     return (
         <div className="space-y-6">
             <div>
@@ -256,6 +259,44 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     {t('landing.paso2_titulo', language)}
                 </p>
             </div>
+
+            {/* 🚍 TRANSPORTE MUNICIPAL SECTION */}
+            {isTransporteMunicipal && (
+                <div className="space-y-4 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                    <h3 className="font-bold text-lg text-green-900 flex items-center gap-2">
+                        🚍 {language === 'es' ? 'Información del Viaje' : 'Trip Information'}
+                    </h3>
+
+                    {/* Destino (readonly - ya seleccionado) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {language === 'es' ? 'Destino' : 'Destination'}
+                        </label>
+                        <div className="px-4 py-3 bg-white border-2 border-green-300 rounded-lg font-semibold text-gray-900">
+                            {service.destinoAutoFill || service.nombre}
+                        </div>
+                    </div>
+
+                    {/* Dirección de Origen (texto libre) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {language === 'es' ? 'Dirección de Origen' : 'Origin Address'} *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.lugarRecogida || ''}
+                            onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
+                            placeholder={language === 'es' ? 'Ej: Calle 10 # 20-30, El Poblado' : 'Ex: Street 10 # 20-30, El Poblado'}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {language === 'es' 
+                                ? 'Ingresa la dirección completa desde donde te recogeremos' 
+                                : 'Enter the complete address where we will pick you up'}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* 🔥 AIRPORT SECTION - MOVED TO TOP */}
             {service.esAeropuerto && (
@@ -458,7 +499,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Origen fijo para hoteles en servicios NO aeropuerto */}
-                {!service.esAeropuerto && isHotel && (
+                {!service.esAeropuerto && !isTransporteMunicipal && isHotel && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_origen', language)} *
@@ -472,8 +513,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 )}
 
-                {/* Destino (Auto-fill or Select) - Only show if NOT airport service */}
-                {service.destinoAutoFill && !service.esAeropuerto ? (
+                {/* Destino (Auto-fill or Select) - Only show if NOT airport service AND NOT municipal transport */}
+                {service.destinoAutoFill && !service.esAeropuerto && !isTransporteMunicipal ? (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {language === 'es' ? 'Destino' : 'Destination'}
@@ -487,8 +528,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel */}
-                {!service.esAeropuerto && !isHotel && (
+                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport */}
+                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_lugar_recogida', language)} *
@@ -538,8 +579,6 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                             <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                 {[
                                     Municipio.MEDELLIN,
-                                    Municipio.POBLADO,
-                                    Municipio.LAURELES,
                                     Municipio.ENVIGADO,
                                     Municipio.SABANETA,
                                     Municipio.ITAGUI,

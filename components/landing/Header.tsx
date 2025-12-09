@@ -49,6 +49,9 @@ export default function Header() {
                         <Link href="/#servicios" className="text-white/90 hover:text-[#D6A75D] transition-colors text-sm font-medium">
                             {t('header.servicios', language)}
                         </Link>
+                        <Link href="/reservas/transporte-municipal" className="text-white/90 hover:text-[#D6A75D] transition-colors text-sm font-medium">
+                            {t('header.transporteMunicipal', language)}
+                        </Link>
                         <Link href="/#como-funciona" className="text-white/90 hover:text-[#D6A75D] transition-colors text-sm font-medium">
                             {t('header.comoFunciona', language)}
                         </Link>
@@ -93,6 +96,13 @@ export default function Header() {
                     className="text-2xl font-bold text-white hover:text-[#D6A75D] transition-colors"
                 >
                     {t('header.servicios', language)}
+                </Link>
+                <Link
+                    href="/reservas/transporte-municipal"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-2xl font-bold text-white hover:text-[#D6A75D] transition-colors"
+                >
+                    {t('header.transporteMunicipal', language)}
                 </Link>
                 <Link
                     href="/#como-funciona"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { FiClock, FiUsers, FiLogOut } from 'react-icons/fi';
+import { FiClock, FiUsers, FiLogOut, FiMapPin, FiChevronRight } from 'react-icons/fi';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
@@ -300,7 +300,58 @@ export default function ReservasPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {services.map((service) => (
+                            {/* Tarjeta Especial: Transporte Municipal */}
+                            <div
+                                className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                onClick={() => window.location.href = '/reservas/transporte-municipal'}
+                            >
+                                <div className="relative h-56 overflow-hidden">
+                                    <Image
+                                        src="/antioquia.jpg"
+                                        alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
+                                        fill
+                                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div className="absolute top-4 right-4">
+                                        <span className="px-3 py-1 bg-[#D6A75D] text-black rounded-full text-xs font-bold">
+                                            {language === 'es' ? 'NUEVO' : 'NEW'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                        {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
+                                    </h3>
+                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                        {language === 'es' 
+                                            ? 'Viaja cómodamente a diferentes municipios de Antioquia. Fredonia, Santa Elena, Jardín y más destinos.' 
+                                            : 'Travel comfortably to different municipalities of Antioquia. Fredonia, Santa Elena, Jardín and more destinations.'}
+                                    </p>
+
+                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                        <div className="flex items-center gap-1">
+                                            <FiMapPin className="text-[#D6A75D]" />
+                                            <span>{language === 'es' ? 'Múltiples destinos' : 'Multiple destinations'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <FiUsers className="text-[#D6A75D]" />
+                                            <span>{t('landing.privado', language)}</span>
+                                        </div>
+                                    </div>
+
+                                    <button className="w-full bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
+                                        {language === 'es' ? 'Ver Destinos' : 'View Destinations'}
+                                        <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Servicios Regulares (sin transporte municipal) */}
+                            {services
+                                .filter(service => service.tipo !== 'TRANSPORTE_MUNICIPAL')
+                                .map((service) => (
                                 <div
                                     key={service.id}
                                     className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"

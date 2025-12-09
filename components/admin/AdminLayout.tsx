@@ -15,7 +15,8 @@ import {
     FiLogOut,
     FiMenu,
     FiX,
-    FiStar
+    FiStar,
+    FiMapPin
 } from 'react-icons/fi';
 import { useState } from 'react';
 
@@ -37,6 +38,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const resources = [
         { name: 'Servicios', href: '/admin/dashboard/servicios', icon: FiPackage },
+        { name: 'Transporte Municipal', href: '/admin/dashboard/servicios/transporte-municipal', icon: FiMapPin },
         { name: 'Aliados', href: '/admin/dashboard/aliados', icon: FiUsers },
         { name: 'Conductores', href: '/admin/dashboard/conductores', icon: FiUser },
         { name: 'Vehículos', href: '/admin/dashboard/vehiculos', icon: FiTruck },

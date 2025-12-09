@@ -13,10 +13,8 @@ interface MunicipalityPricingEditorProps {
 }
 
 const MUNICIPIOS = [
-    { value: 'POBLADO' as Municipio, label: 'Poblado' },
     { value: 'ENVIGADO' as Municipio, label: 'Envigado' },
     { value: 'SABANETA' as Municipio, label: 'Sabaneta' },
-    { value: 'LAURELES' as Municipio, label: 'Laureles' },
     { value: 'ITAGUI' as Municipio, label: 'Itagüí' },
     { value: 'BELLO' as Municipio, label: 'Bello' },
     { value: 'MEDELLIN' as Municipio, label: 'Medellín' },

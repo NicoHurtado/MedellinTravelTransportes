@@ -42,10 +42,8 @@ interface ConfiguracionPreciosProps {
 }
 
 const MUNICIPIOS = [
-    { value: 'POBLADO', label: 'Poblado' },
     { value: 'ENVIGADO', label: 'Envigado' },
     { value: 'SABANETA', label: 'Sabaneta' },
-    { value: 'LAURELES', label: 'Laureles' },
     { value: 'ITAGUI', label: 'Itagüí' },
     { value: 'BELLO', label: 'Bello' },
     { value: 'MEDELLIN', label: 'Medellín' },
