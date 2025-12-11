@@ -9,6 +9,7 @@ import Image from 'next/image';
 import DynamicFields from './DynamicFields';
 import { DynamicFieldValues } from '@/types/dynamic-fields';
 import { useLanguage, t } from '@/lib/i18n';
+import { DateInput, TimeInput } from '@/components/ui';
 
 interface Step1Props {
     service: any;
@@ -683,18 +684,18 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         {t('tracking.fecha', language)} *
                     </label>
-                    <input
-                        type="date"
+                    <DateInput
                         value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
-                        onChange={(e) => {
-                            if (e.target.value) {
-                                const [year, month, day] = e.target.value.split('-').map(Number);
+                        onChange={(value) => {
+                            if (value) {
+                                const [year, month, day] = value.split('-').map(Number);
                                 updateFormData({ fecha: new Date(Date.UTC(year, month - 1, day, 12, 0, 0)) });
                             } else {
                                 updateFormData({ fecha: null });
                             }
                         }}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        required
                     />
                 </div>
 
@@ -703,11 +704,11 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         {t('tracking.hora', language)} *
                     </label>
-                    <input
-                        type="time"
+                    <TimeInput
                         value={formData.hora}
-                        onChange={(e) => updateFormData({ hora: e.target.value })}
+                        onChange={(value) => updateFormData({ hora: value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        required
                     />
                     {showNightSurcharge && (
                         <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">

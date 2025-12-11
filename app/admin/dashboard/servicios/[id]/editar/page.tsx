@@ -10,6 +10,7 @@ import MunicipalityPricingEditor from '@/components/admin/MunicipalityPricingEdi
 import { DynamicField } from '@/types/dynamic-fields';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { Municipio } from '@prisma/client';
+import { TimeInput } from '@/components/ui';
 
 interface Vehiculo {
     id: string;
@@ -551,10 +552,9 @@ export default function EditarServicioPage() {
                                 <label className="block text-sm font-medium mb-2">
                                     Hora inicio
                                 </label>
-                                <input
-                                    type="time"
+                                <TimeInput
                                     value={recargoNocturnoInicio}
-                                    onChange={(e) => setRecargoNocturnoInicio(e.target.value)}
+                                    onChange={(value) => setRecargoNocturnoInicio(value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
                                 />
                             </div>
@@ -562,10 +562,9 @@ export default function EditarServicioPage() {
                                 <label className="block text-sm font-medium mb-2">
                                     Hora fin
                                 </label>
-                                <input
-                                    type="time"
+                                <TimeInput
                                     value={recargoNocturnoFin}
-                                    onChange={(e) => setRecargoNocturnoFin(e.target.value)}
+                                    onChange={(value) => setRecargoNocturnoFin(value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
                                 />
                             </div>

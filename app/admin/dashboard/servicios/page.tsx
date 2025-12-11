@@ -47,6 +47,8 @@ export default function ServiciosPage() {
                 if (tipoFilter) params.append('tipo', tipoFilter);
                 if (activoFilter) params.append('activo', activoFilter);
 
+                // Agregar limit alto para traer todos los servicios
+                params.append('limit', '1000');
                 const res = await fetch(`/api/admin/servicios?${params.toString()}`);
                 const data = await res.json();
 
@@ -112,6 +114,7 @@ export default function ServiciosPage() {
 
     const getTipoLabel = (tipo: string) => {
         const labels: Record<string, string> = {
+            TRANSPORTE_MUNICIPAL: 'Transporte Municipal',
             TRANSPORTE_AEROPUERTO: 'Aeropuerto',
             CITY_TOUR: 'City Tour',
             TOUR_GUATAPE: 'Guatapé',
@@ -164,6 +167,7 @@ export default function ServiciosPage() {
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
                     >
                         <option value="">Todos los tipos</option>
+                        <option value="TRANSPORTE_MUNICIPAL">Transporte Municipal</option>
                         <option value="TRANSPORTE_AEROPUERTO">Aeropuerto</option>
                         <option value="CITY_TOUR">City Tour</option>
                         <option value="TOUR_GUATAPE">Guatapé</option>

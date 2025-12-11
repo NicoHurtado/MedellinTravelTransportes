@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { FiX } from 'react-icons/fi';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
+import { DateInput } from '@/components/ui';
 
 interface Reserva {
     id: string;
@@ -184,10 +185,9 @@ function MisReservasContent() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Fecha Inicio
                                     </label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         value={fechaDesde}
-                                        onChange={(e) => setFechaDesde(e.target.value)}
+                                        onChange={(value) => setFechaDesde(value)}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                                     />
                                 </div>
@@ -195,10 +195,9 @@ function MisReservasContent() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Fecha Fin
                                     </label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         value={fechaHasta}
-                                        onChange={(e) => setFechaHasta(e.target.value)}
+                                        onChange={(value) => setFechaHasta(value)}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                                     />
                                 </div>

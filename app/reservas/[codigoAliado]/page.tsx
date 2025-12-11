@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { FiClock, FiUsers, FiAlertCircle, FiMapPin, FiChevronRight } from 'react-icons/fi';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
-import Header from '@/components/landing/Header';
-import Footer from '@/components/landing/Footer';
+import AllyHeader from '@/components/landing/AllyHeader';
+import AllyFooter from '@/components/landing/AllyFooter';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 
@@ -207,7 +207,7 @@ export default function ReservaAliadoPage() {
 
     return (
         <>
-            <Header />
+            <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo} />
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     {/* Partner Header */}
@@ -324,7 +324,7 @@ export default function ReservaAliadoPage() {
                     )}
                 </div>
             </main>
-            <Footer />
+            <AllyFooter />
 
             {/* Modal Transporte Municipal */}
             <TransporteMunicipalModal

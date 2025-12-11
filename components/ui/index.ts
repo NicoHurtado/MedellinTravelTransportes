@@ -7,3 +7,6 @@ export { Card, CardHeader, CardTitle, CardContent, CardFooter } from './Card';
 export { Input, Textarea } from './Input';
 
 export { Modal, ModalFooter } from './Modal';
+
+export { default as DateInput } from './DateInput';
+export { default as TimeInput } from './TimeInput';

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiPlus, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiMapPin } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiMapPin, FiCheckCircle, FiXCircle, FiSearch } from 'react-icons/fi';
 import Link from 'next/link';
 import { getLocalizedText } from '@/types/multi-language';
 
@@ -30,6 +30,7 @@ export default function TransporteMunicipalPage() {
     const router = useRouter();
     const [viajes, setViajes] = useState<ViajeMunicipal[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         fetchViajes();
@@ -38,7 +39,8 @@ export default function TransporteMunicipalPage() {
     const fetchViajes = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/admin/servicios?tipo=TRANSPORTE_MUNICIPAL');
+            // Traer todos los servicios municipales sin límite
+            const res = await fetch('/api/admin/servicios?tipo=TRANSPORTE_MUNICIPAL&limit=1000');
             const data = await res.json();
 
             if (data.success) {
@@ -124,6 +126,28 @@ export default function TransporteMunicipalPage() {
                 </Link>
             </div>
 
+            {/* Buscador */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+                <div className="relative">
+                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por destino..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent transition-all"
+                    />
+                </div>
+                {searchTerm && (
+                    <p className="mt-2 text-sm text-gray-600">
+                        Mostrando {viajes.filter((v) => 
+                            getLocalizedText(v.nombre, 'ES').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            getLocalizedText(v.descripcion, 'ES').toLowerCase().includes(searchTerm.toLowerCase())
+                        ).length} de {viajes.length} resultados
+                    </p>
+                )}
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -142,24 +166,55 @@ export default function TransporteMunicipalPage() {
             </div>
 
             {/* Lista de Viajes */}
-            {viajes.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                    <FiMapPin className="mx-auto text-gray-400 mb-4" size={48} />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        No hay viajes municipales creados
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                        Crea tu primer viaje municipal para empezar a recibir reservas
-                    </p>
-                    <Link
-                        href="/admin/dashboard/servicios/transporte-municipal/crear"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold rounded-lg transition-colors"
-                    >
-                        <FiPlus size={20} />
-                        Crear Primer Viaje
-                    </Link>
-                </div>
-            ) : (
+            {(() => {
+                // Filtrar viajes según el término de búsqueda
+                const filteredViajes = viajes.filter((v) =>
+                    getLocalizedText(v.nombre, 'ES').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    getLocalizedText(v.descripcion, 'ES').toLowerCase().includes(searchTerm.toLowerCase())
+                );
+
+                if (viajes.length === 0) {
+                    return (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                            <FiMapPin className="mx-auto text-gray-400 mb-4" size={48} />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                No hay viajes municipales creados
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Crea tu primer viaje municipal para empezar a recibir reservas
+                            </p>
+                            <Link
+                                href="/admin/dashboard/servicios/transporte-municipal/crear"
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold rounded-lg transition-colors"
+                            >
+                                <FiPlus size={20} />
+                                Crear Primer Viaje
+                            </Link>
+                        </div>
+                    );
+                }
+
+                if (filteredViajes.length === 0) {
+                    return (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                            <FiSearch className="mx-auto text-gray-400 mb-4" size={48} />
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                No se encontraron resultados
+                            </h3>
+                            <p className="text-gray-600 mb-4">
+                                No hay viajes que coincidan con "{searchTerm}"
+                            </p>
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="px-6 py-3 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold rounded-lg transition-colors"
+                            >
+                                Limpiar búsqueda
+                            </button>
+                        </div>
+                    );
+                }
+
+                return (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -183,7 +238,7 @@ export default function TransporteMunicipalPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {viajes.map((viaje) => (
+                                {filteredViajes.map((viaje) => (
                                     <tr key={viaje.id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -214,13 +269,23 @@ export default function TransporteMunicipalPage() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
                                                     viaje.activo
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-gray-100 text-gray-700'
+                                                        ? 'bg-green-100 text-green-700 border border-green-300'
+                                                        : 'bg-red-100 text-red-700 border border-red-300'
                                                 }`}
                                             >
-                                                {viaje.activo ? 'Activo' : 'Inactivo'}
+                                                {viaje.activo ? (
+                                                    <>
+                                                        <FiCheckCircle size={14} className="text-green-600" />
+                                                        Activo
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FiXCircle size={14} className="text-red-600" />
+                                                        Inactivo
+                                                    </>
+                                                )}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -236,15 +301,15 @@ export default function TransporteMunicipalPage() {
                                                     onClick={() => handleToggleActive(viaje.id)}
                                                     className={`p-2 rounded-lg transition-colors ${
                                                         viaje.activo
-                                                            ? 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                                                            : 'bg-green-100 hover:bg-green-200 text-green-600'
+                                                            ? 'bg-green-100 hover:bg-green-200 text-green-600'
+                                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
                                                     }`}
                                                     title={viaje.activo ? 'Desactivar' : 'Activar'}
                                                 >
                                                     {viaje.activo ? (
-                                                        <FiToggleLeft size={18} />
+                                                        <FiToggleRight size={18} className="text-green-600" />
                                                     ) : (
-                                                        <FiToggleRight size={18} />
+                                                        <FiToggleLeft size={18} className="text-gray-600" />
                                                     )}
                                                 </button>
                                                 <button
@@ -262,7 +327,8 @@ export default function TransporteMunicipalPage() {
                         </table>
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </div>
     );
 }
