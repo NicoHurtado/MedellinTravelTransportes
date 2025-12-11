@@ -55,14 +55,14 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             // The DynamicFieldRenderer will handle defaults
             updateFormData({ datosDinamicos: initialData });
         }
-    }, [dynamicFields.length]);
+    }, [dynamicFields.length, formData.datosDinamicos, updateFormData]);
 
     // 🏨 Auto-fill lugarRecogida for hotels
     useEffect(() => {
         if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
             updateFormData({ lugarRecogida: hotelName });
         }
-    }, [isHotel, hotelName]);
+    }, [isHotel, hotelName, formData.lugarRecogida, updateFormData]);
 
     // Get available vehicles
     const availableVehicles = (() => {
@@ -109,7 +109,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             // Always update to recommended vehicle when passengers change
             updateFormData({ vehiculoId: recommendedVehicle.id });
         }
-    }, [formData.numeroPasajeros, recommendedVehicle?.id]);
+    }, [formData.numeroPasajeros, recommendedVehicle, updateFormData]);
 
 
 
@@ -229,7 +229,25 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             precioAdicionales: dynamicPrice, // Solo guardar el precio dinámico
             precioTotal: totalConDinamico,
         });
-    }, [formData.hora, formData.municipio, dynamicPrice, formData.datosDinamicos, formData.vehiculoId, formData.numeroPasajeros, availableVehicles]); // Removido precioAdicionales de dependencias
+    }, [
+        formData.hora, 
+        formData.municipio, 
+        dynamicPrice, 
+        formData.datosDinamicos, 
+        formData.vehiculoId, 
+        formData.numeroPasajeros, 
+        availableVehicles,
+        preciosPersonalizados,
+        tarifasMunicipios,
+        service.aplicaRecargoNocturno,
+        service.montoRecargoNocturno,
+        service.recargoNocturnoInicio,
+        service.recargoNocturnoFin,
+        service.precioBase,
+        service.id,
+        service.nombre,
+        updateFormData
+    ]);
 
 
     const isValid = () => {

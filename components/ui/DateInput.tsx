@@ -136,3 +136,4 @@ export default function DateInput({ value, onChange, className = '', placeholder
         </>
     );
 }
+

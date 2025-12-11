@@ -2,6 +2,7 @@ import { ReservationFormData } from '@/types/reservation';
 import { formatPrice } from '@/lib/pricing';
 import { FormField } from '@/components/admin/FormBuilder';
 import { useLanguage, t } from '@/lib/i18n';
+import Image from 'next/image';
 
 interface Step4Props {
     service: any;
@@ -104,10 +105,11 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                                 <div className="col-span-2 flex items-center gap-4 bg-white p-3 rounded-lg border border-gray-200 mt-2">
                                     <div className="relative w-20 h-14 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                         {selectedVehicle.imagen ? (
-                                            <img
+                                            <Image
                                                 src={selectedVehicle.imagen}
                                                 alt={selectedVehicle.nombre}
-                                                className="object-cover w-full h-full"
+                                                fill
+                                                className="object-cover"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">

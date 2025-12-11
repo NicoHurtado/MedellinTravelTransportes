@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiX, FiCalendar, FiSearch, FiDownload } from 'react-icons/fi';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,13 +35,7 @@ export default function AllyReservationsModal({ isOpen, onClose, aliadoId }: All
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    useEffect(() => {
-        if (isOpen && aliadoId) {
-            fetchReservations();
-        }
-    }, [isOpen, aliadoId]);
-
-    const fetchReservations = async () => {
+    const fetchReservations = useCallback(async () => {
         setLoading(true);
         try {
             let url = `/api/aliados/${aliadoId}/reservas`;
@@ -64,7 +58,13 @@ export default function AllyReservationsModal({ isOpen, onClose, aliadoId }: All
         } finally {
             setLoading(false);
         }
-    };
+    }, [aliadoId, startDate, endDate]);
+
+    useEffect(() => {
+        if (isOpen && aliadoId) {
+            fetchReservations();
+        }
+    }, [isOpen, aliadoId, fetchReservations]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

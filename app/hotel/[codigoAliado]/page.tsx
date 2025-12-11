@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { FiClock, FiUsers, FiAlertCircle, FiMapPin, FiChevronRight } from 'react-icons/fi';
@@ -57,13 +57,7 @@ export default function HotelPublicPage() {
     const [preciosPersonalizados, setPreciosPersonalizados] = useState<any>(null);
     const [tarifasMunicipios, setTarifasMunicipios] = useState<any[]>([]);
 
-    useEffect(() => {
-        if (codigoAliado) {
-            validateAliado(codigoAliado as string);
-        }
-    }, [codigoAliado]);
-
-    const validateAliado = async (codigo: string) => {
+    const validateAliado = useCallback(async (codigo: string) => {
         try {
             // 1. Validate Ally
             const res = await fetch('/api/public/aliados/validar', {
@@ -99,7 +93,13 @@ export default function HotelPublicPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        if (codigoAliado) {
+            validateAliado(codigoAliado as string);
+        }
+    }, [codigoAliado, validateAliado]);
 
     const fetchAliadoConfig = async (aliadoId: string) => {
         try {

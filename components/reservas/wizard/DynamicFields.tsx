@@ -141,7 +141,7 @@ export default function DynamicFields({
                 onPriceChange(total);
             }
         }
-    }, [values, validatedFields]);
+    }, [values, validatedFields, dynamicPrice, onPriceChange]);
 
     // Render
     if (!validatedFields || validatedFields.length === 0) {
@@ -172,6 +172,7 @@ export default function DynamicFields({
         </div>
     );
 }
+
 
 
 

@@ -71,13 +71,14 @@ export const BoldButton = ({
         containerRef.current.appendChild(script);
 
         // Cleanup: React 18 a veces renderiza doble en dev, esto asegura limpieza
+        const currentContainer = containerRef.current;
         return () => {
             console.log('🔵 [BOLD COMPONENT] Cleanup for Order:', orderId);
-            if (containerRef.current) {
-                containerRef.current.innerHTML = '';
+            if (currentContainer) {
+                currentContainer.innerHTML = '';
             }
         };
-    }, [orderId, amount, integritySignature, apiKey, redirectionUrl]); // Solo recargar si cambian datos críticos
+    }, [orderId, amount, integritySignature, apiKey, redirectionUrl, currency, description, customerData]); // Solo recargar si cambian datos críticos
 
     return (
         <div

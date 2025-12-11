@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FiX } from 'react-icons/fi';
 import Header from '@/components/landing/Header';
@@ -52,13 +52,7 @@ function MisReservasContent() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
 
-    useEffect(() => {
-        if (aliadoId) {
-            fetchReservas();
-        }
-    }, [aliadoId]);
-
-    const fetchReservas = async () => {
+    const fetchReservas = useCallback(async () => {
         try {
             const res = await fetch(`/api/aliados/${aliadoId}/reservas`);
             const data = await res.json();
@@ -68,7 +62,13 @@ function MisReservasContent() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [aliadoId]);
+
+    useEffect(() => {
+        if (aliadoId) {
+            fetchReservas();
+        }
+    }, [aliadoId, fetchReservas]);
 
     const getEstadoColor = (estado: string) => {
         const colors: any = {

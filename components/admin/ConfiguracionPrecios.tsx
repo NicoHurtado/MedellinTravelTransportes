@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Input } from '@/components/ui';
 import { FiCheck, FiX, FiChevronDown, FiChevronUp, FiDollarSign } from 'react-icons/fi';
 import { getLocalizedText } from '@/types/multi-language';
@@ -60,11 +60,7 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
-        fetchData();
-    }, [aliadoId]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             // Fetch servicios
             const resServicios = await fetch('/api/servicios');
@@ -114,7 +110,11 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
         } finally {
             setLoading(false);
         }
-    };
+    }, [aliadoId]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const toggleServicio = (servicioId: string) => {
         const config = configuraciones.get(servicioId) || {

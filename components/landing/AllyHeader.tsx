@@ -42,3 +42,4 @@ export default function AllyHeader({ allyName, allyType }: AllyHeaderProps) {
         </header>
     );
 }
+

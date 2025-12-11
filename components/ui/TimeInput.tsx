@@ -119,3 +119,4 @@ export default function TimeInput({ value, onChange, className = '', placeholder
         </>
     );
 }
+

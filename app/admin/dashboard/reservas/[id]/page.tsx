@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
@@ -54,13 +54,7 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
         }
     }, [status, router]);
 
-    useEffect(() => {
-        if (status === 'authenticated') {
-            fetchData();
-        }
-    }, [status, id]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             // Fetch Reserva
             const resReserva = await fetch(`/api/reservas/by-id/${id}`);
@@ -96,7 +90,13 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            fetchData();
+        }
+    }, [status, fetchData]);
 
     const handleSave = async () => {
         setSaving(true);

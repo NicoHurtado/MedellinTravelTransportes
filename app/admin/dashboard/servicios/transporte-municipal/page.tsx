@@ -202,7 +202,7 @@ export default function TransporteMunicipalPage() {
                                 No se encontraron resultados
                             </h3>
                             <p className="text-gray-600 mb-4">
-                                No hay viajes que coincidan con "{searchTerm}"
+                                No hay viajes que coincidan con &quot;{searchTerm}&quot;
                             </p>
                             <button
                                 onClick={() => setSearchTerm('')}
