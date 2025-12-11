@@ -43,6 +43,9 @@ function MisReservasContent() {
     const [loading, setLoading] = useState(true);
     const [selectedReserva, setSelectedReserva] = useState<Reserva | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [canceling, setCanceling] = useState(false);
+    const [cancelError, setCancelError] = useState<string | null>(null);
 
     // Filters
     const [fechaDesde, setFechaDesde] = useState('');
@@ -99,6 +102,88 @@ function MisReservasContent() {
     const viewDetails = (reserva: Reserva) => {
         setSelectedReserva(reserva);
         setShowDetailsModal(true);
+        setCancelError(null);
+    };
+
+    const canCancelReservation = (reserva: Reserva) => {
+        // Can't cancel if already cancelled or completed
+        if (reserva.estado === 'CANCELADA' || reserva.estado === 'COMPLETADA') {
+            return { canCancel: false, reason: 'Estado no permite cancelación' };
+        }
+
+        // Check if within 24 hours
+        const reservationDateTime = new Date(reserva.fecha);
+        const [hours, minutes] = reserva.hora.split(':');
+        reservationDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        
+        const now = new Date();
+        const hoursUntilReservation = (reservationDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        if (hoursUntilReservation < 24 && hoursUntilReservation > 0) {
+            return { 
+                canCancel: false, 
+                reason: `No se puede cancelar una reserva dentro de las 24 horas previas al servicio. Faltan ${Math.round(hoursUntilReservation * 10) / 10} horas para tu servicio.`,
+                hoursRemaining: hoursUntilReservation
+            };
+        }
+
+        return { canCancel: true, reason: null };
+    };
+
+    const handleCancelClick = () => {
+        if (!selectedReserva) return;
+        
+        const cancelCheck = canCancelReservation(selectedReserva);
+        if (!cancelCheck.canCancel) {
+            setCancelError(cancelCheck.reason || 'No se puede cancelar esta reserva');
+            return;
+        }
+
+        setShowCancelModal(true);
+    };
+
+    const handleCancelConfirm = async () => {
+        if (!selectedReserva || !aliadoId) return;
+
+        setCanceling(true);
+        setCancelError(null);
+
+        try {
+            const response = await fetch(`/api/reservas/by-id/${selectedReserva.id}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ aliadoId }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al cancelar la reserva');
+            }
+
+            // Update local state
+            setReservas(prevReservas => 
+                prevReservas.map(r => 
+                    r.id === selectedReserva.id 
+                        ? { ...r, estado: 'CANCELADA' }
+                        : r
+                )
+            );
+
+            setSelectedReserva({ ...selectedReserva, estado: 'CANCELADA' });
+            setShowCancelModal(false);
+            
+            // Show success message
+            alert('Reserva cancelada exitosamente');
+        } catch (error) {
+            console.error('Error canceling reservation:', error);
+            setCancelError(error instanceof Error ? error.message : 'Error al cancelar la reserva');
+            setShowCancelModal(false);
+        } finally {
+            setCanceling(false);
+        }
     };
 
     // Filter reservations by date range
@@ -493,12 +578,104 @@ function MisReservasContent() {
                             )}
                         </div>
 
-                        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6">
+                        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 space-y-3">
+                            {/* 24 Hours Warning - Show before any action */}
+                            {selectedReserva.estado !== 'CANCELADA' && selectedReserva.estado !== 'COMPLETADA' && (() => {
+                                const cancelCheck = canCancelReservation(selectedReserva);
+                                if (!cancelCheck.canCancel && cancelCheck.hoursRemaining !== undefined) {
+                                    return (
+                                        <div className="bg-yellow-50 border-2 border-yellow-400 text-yellow-900 px-4 py-3 rounded-lg">
+                                            <div className="flex items-start">
+                                                <svg className="h-5 w-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                                <div>
+                                                    <p className="font-bold text-sm mb-1">⏰ Reserva Próxima</p>
+                                                    <p className="text-sm">
+                                                        Esta reserva está programada para dentro de <strong>{Math.round(cancelCheck.hoursRemaining * 10) / 10} horas</strong>.
+                                                    </p>
+                                                    <p className="text-sm mt-2 font-semibold">
+                                                        ⚠️ No se puede cancelar reservas dentro de las 24 horas previas al servicio.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
+                            {/* Cancel Error Message */}
+                            {cancelError && (
+                                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                                    {cancelError}
+                                </div>
+                            )}
+
+                            {/* Cancel Button - Only show if not cancelled or completed */}
+                            {selectedReserva.estado !== 'CANCELADA' && selectedReserva.estado !== 'COMPLETADA' && (() => {
+                                const cancelCheck = canCancelReservation(selectedReserva);
+                                return (
+                                    <button
+                                        onClick={handleCancelClick}
+                                        disabled={canceling || !cancelCheck.canCancel}
+                                        className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {canceling ? 'Cancelando...' : 'Cancelar Reserva'}
+                                    </button>
+                                );
+                            })()}
+
+                            {/* Close Button */}
                             <button
                                 onClick={() => setShowDetailsModal(false)}
                                 className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-colors"
                             >
                                 Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Confirmation Modal */}
+            {showCancelModal && selectedReserva && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                ¿Confirmar Cancelación?
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                                Estás a punto de cancelar la reserva:
+                            </p>
+                            <p className="text-lg font-mono font-bold text-[#D6A75D] mb-4">
+                                {selectedReserva.codigo}
+                            </p>
+                            <p className="text-sm text-gray-600 mb-6">
+                                Esta acción no se puede deshacer. El cliente será notificado por correo electrónico.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={canceling}
+                                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                No, Volver
+                            </button>
+                            <button
+                                onClick={handleCancelConfirm}
+                                disabled={canceling}
+                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                {canceling ? 'Cancelando...' : 'Sí, Cancelar'}
                             </button>
                         </div>
                     </div>
