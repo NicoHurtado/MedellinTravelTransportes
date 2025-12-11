@@ -32,12 +32,13 @@ export default function DateInput({ value, onChange, className = '', placeholder
         // Convertir el valor ISO a formato dd/mm/yyyy para display
         if (value && !isMobile) {
             try {
-                const date = new Date(value);
-                if (!isNaN(date.getTime())) {
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = date.getFullYear();
+                // Parsear directamente desde el string ISO (yyyy-mm-dd) sin crear objeto Date
+                // para evitar problemas de zona horaria
+                if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const [year, month, day] = value.split('-');
                     setDisplayValue(`${day}/${month}/${year}`);
+                } else {
+                    setDisplayValue('');
                 }
             } catch (e) {
                 setDisplayValue('');
