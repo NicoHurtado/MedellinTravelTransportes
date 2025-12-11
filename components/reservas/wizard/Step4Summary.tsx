@@ -145,6 +145,16 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                         <p className="font-medium">{formData.hora}</p>
                     </div>
 
+                    {/* Cantidad de Horas - Only for hourly services */}
+                    {service.esPorHoras && formData.cantidadHoras && (
+                        <div>
+                            <span className="text-gray-600">{language === 'es' ? 'Duración' : 'Duration'}:</span>
+                            <p className="font-medium">
+                                {formData.cantidadHoras} {language === 'es' ? 'horas' : 'hours'}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Origen */}
                     <div>
                         <span className="text-gray-600">
@@ -251,7 +261,15 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             <span>
                                 {(() => {
                                     const selectedVehicle = service.vehiculosPermitidos?.find((v: any) => v.vehiculo.id === formData.vehiculoId)?.vehiculo;
-                                    return selectedVehicle ? selectedVehicle.nombre : t('reservas.paso4_precio_base', language);
+                                    const vehicleName = selectedVehicle ? selectedVehicle.nombre : t('reservas.paso4_precio_base', language);
+                                    
+                                    if (service.esPorHoras && formData.cantidadHoras) {
+                                        const selectedVehicleData = service.vehiculosPermitidos?.find((v: any) => v.vehiculo.id === formData.vehiculoId);
+                                        const precioHora = selectedVehicleData ? Number(selectedVehicleData.precio) : 0;
+                                        return `${vehicleName} (${formatPrice(precioHora)} × ${formData.cantidadHoras} ${language === 'es' ? 'horas' : 'hours'})`;
+                                    }
+                                    
+                                    return vehicleName;
                                 })()}
                             </span>
                             <span className="font-medium">{formatPrice(formData.precioBase)}</span>
@@ -320,6 +338,15 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Payment method notice for hourly services */}
+            {service.esPorHoras && formData.municipio !== 'OTRO' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                        <strong>💰 {language === 'es' ? 'Método de Pago' : 'Payment Method'}:</strong> {language === 'es' ? 'El pago de este servicio se realiza en efectivo al finalizar el recorrido.' : 'Payment for this service is made in cash at the end of the trip.'}
+                    </p>
                 </div>
             )}
 

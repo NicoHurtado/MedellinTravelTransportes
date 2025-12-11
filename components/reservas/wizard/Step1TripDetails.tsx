@@ -159,7 +159,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
         // Get vehicle price
         const selectedVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
-        const vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
+        let vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
+
+        // For hourly services, multiply by hours
+        if (service.esPorHoras && formData.cantidadHoras) {
+            vehiclePrice = vehiclePrice * formData.cantidadHoras;
+        }
 
         // Apply custom vehicle price if available
         // Apply custom vehicle price if available
@@ -232,6 +237,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     }, [
         formData.hora, 
         formData.municipio, 
+        formData.cantidadHoras,
         dynamicPrice, 
         formData.datosDinamicos, 
         formData.vehiculoId, 
@@ -244,6 +250,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         service.recargoNocturnoInicio,
         service.recargoNocturnoFin,
         service.precioBase,
+        service.esPorHoras,
         service.id,
         service.nombre,
         updateFormData
@@ -756,11 +763,47 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     />
                 </div>
 
+                {/* Cantidad de Horas - Only for hourly services */}
+                {service.esPorHoras && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
+                        </label>
+                        <input
+                            type="number"
+                            min="4"
+                            max="24"
+                            value={formData.cantidadHoras || 4}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (val >= 4) {
+                                    updateFormData({ cantidadHoras: val });
+                                }
+                            }}
+                            placeholder="4"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {language === 'es' ? 'Mínimo 4 horas' : 'Minimum 4 hours'}
+                        </p>
+                    </div>
+                )}
+
                 {/* Vehicle Selection */}
                 <div className="md:col-span-2 space-y-3">
                     <label className="block text-sm font-medium text-gray-700">
                         {t('reservas.paso1_vehiculo', language)} *
                     </label>
+                    {service.esPorHoras && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+                            <FiAlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-blue-800">
+                                {language === 'es' 
+                                    ? 'Los precios mostrados son por hora de servicio.' 
+                                    : 'Prices shown are per hour of service.'}
+                            </p>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {availableVehicles.map((vehiculo: any) => {
                             const isSelected = formData.vehiculoId === vehiculo.id;
@@ -811,6 +854,11 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                             </div>
                                             <p className="text-[#D6A75D] font-bold mt-2">
                                                 ${Number(vehiculo.precio).toLocaleString()}
+                                                {service.esPorHoras && (
+                                                    <span className="text-xs text-gray-600 font-normal ml-1">
+                                                        / {language === 'es' ? 'hora' : 'hour'}
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     </div>

@@ -284,6 +284,16 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                         <p className="font-medium">{reserva.numeroPasajeros}</p>
                                     </div>
                                 </div>
+                                {/* Cantidad de Horas - Only for hourly services */}
+                                {reserva.cantidadHoras && (
+                                    <div>
+                                        <label className="block text-sm text-gray-500 mb-1">Duración</label>
+                                        <div className="flex items-center gap-2">
+                                            <FiClock className="text-gray-400" />
+                                            <p className="font-medium">{reserva.cantidadHoras} horas</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Municipio</label>
                                     <p className="font-medium">{reserva.municipio}</p>

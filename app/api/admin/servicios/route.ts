@@ -24,13 +24,7 @@ export async function GET(req: NextRequest) {
         // Build where clause
         const where: any = {};
 
-        if (search) {
-            where.OR = [
-                { nombre: { contains: search, mode: 'insensitive' } },
-                { descripcion: { contains: search, mode: 'insensitive' } },
-            ];
-        }
-
+        // No podemos usar contains en campos JSON, así que filtramos después
         if (tipo) {
             where.tipo = tipo;
         }
@@ -40,28 +34,44 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch services
-        const [servicios, total] = await Promise.all([
-            prisma.servicio.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    vehiculosPermitidos: {
-                        include: {
-                            vehiculo: true,
-                        },
+        let servicios = await prisma.servicio.findMany({
+            where,
+            skip: search ? undefined : skip, // Si hay búsqueda, no paginamos aún
+            take: search ? undefined : limit,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                vehiculosPermitidos: {
+                    include: {
+                        vehiculo: true,
                     },
-                    _count: {
-                        select: {
-                            reservas: true,
-                        },
-                    },
-                    tarifasMunicipios: true,
                 },
-            }),
-            prisma.servicio.count({ where }),
-        ]);
+                _count: {
+                    select: {
+                        reservas: true,
+                    },
+                },
+                tarifasMunicipios: true,
+            },
+        });
+
+        // Filtrar por búsqueda en memoria (ya que nombre es JSON)
+        // Busca SOLO en los nombres de los servicios
+        if (search) {
+            const searchLower = search.toLowerCase();
+            servicios = servicios.filter((servicio: any) => {
+                const nombreEs = (servicio.nombre as any)?.es?.toLowerCase() || '';
+                const nombreEn = (servicio.nombre as any)?.en?.toLowerCase() || '';
+                
+                return nombreEs.includes(searchLower) || nombreEn.includes(searchLower);
+            });
+        }
+
+        const total = servicios.length;
+
+        // Aplicar paginación después del filtro
+        if (search) {
+            servicios = servicios.slice(skip, skip + limit);
+        }
 
         return NextResponse.json({
             success: true,

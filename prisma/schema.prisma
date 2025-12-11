@@ -259,6 +259,7 @@ model Reserva {
   cantidadAlmuerzos     Int               @default(0)
   cantidadMotos         Int               @default(0)
   cantidadParticipantes Int               @default(0)
+  cantidadHoras         Int?              // Para servicios por horas
 
   // Precios y Pagos
   precioBase        Decimal  @db.Decimal(10, 2)

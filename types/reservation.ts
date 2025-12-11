@@ -25,6 +25,7 @@ export interface ReservationFormData {
     cantidadAlmuerzos?: number;
     cantidadMotos?: number;
     cantidadParticipantes?: number;
+    cantidadHoras?: number; // Para servicios por horas
 
     // Step 2: Contact Info
     nombreCliente: string;

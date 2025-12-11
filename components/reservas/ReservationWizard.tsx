@@ -9,7 +9,6 @@ import Step2ContactInfo from './wizard/Step2ContactInfo';
 import Step3Notes from './wizard/Step3Notes';
 import Step4Summary from './wizard/Step4Summary';
 import Step5Confirmation from './wizard/Step5Confirmation';
-import StepWhatsAppContact from './wizard/StepWhatsAppContact';
 import { ReservationFormData } from '@/types/reservation';
 import { Idioma, Municipio, TipoDocumento, AeropuertoNombre } from '@prisma/client';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
@@ -72,6 +71,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         precioTotal: Number(service.precioBase),
         datosDinamicos: {},
         aeropuertoNombre: AeropuertoNombre.JOSE_MARIA_CORDOVA, // Default airport
+        cantidadHoras: service.esPorHoras ? 4 : undefined, // Default 4 hours for hourly services
     });
     const [reservationCode, setReservationCode] = useState<string>('');
     const [loading, setLoading] = useState(false);
@@ -93,9 +93,6 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     if (!isOpen) return null;
 
     const validateStep = (step: number): boolean => {
-        // Skip validation for hourly services on step 1 as they go to WhatsApp
-        if (service.esPorHoras && step === 1) return true;
-
         // Step 0: Service Info - Always valid (just informational)
         if (step === 0) return true;
 
@@ -123,6 +120,14 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
             if (!formData.vehiculoId) {
                 alert(language === 'es' ? 'Por favor selecciona un vehículo' : 'Please select a vehicle');
                 return false;
+            }
+
+            // For hourly services, validate hours
+            if (service.esPorHoras) {
+                if (!formData.cantidadHoras || formData.cantidadHoras < 4) {
+                    alert(language === 'es' ? 'Por favor ingresa una cantidad válida de horas (mínimo 4)' : 'Please enter a valid number of hours (minimum 4)');
+                    return false;
+                }
             }
 
             // For airport services, additional validations
@@ -221,6 +226,9 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     const handleConfirmReservation = async () => {
         setLoading(true);
         try {
+            // For hourly services, force cash payment
+            const paymentMethod = service.esPorHoras ? 'EFECTIVO' : metodoPago;
+            
             const res = await fetch('/api/reservas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -229,7 +237,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     servicioId: service.id,
                     aliadoId: aliadoId || null,
                     esReservaAliado: !!aliadoId,
-                    metodoPago: metodoPago,
+                    metodoPago: paymentMethod,
                 }),
             });
 
@@ -260,8 +268,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     <FiX size={24} />
                 </button>
 
-                {/* Progress indicator - Hide for hourly services if on step 1 */}
-                {!service.esPorHoras && currentStep < 5 && (
+                {/* Progress indicator */}
+                {currentStep < 5 && (
                     <div className="bg-white border-b px-8 py-4 rounded-t-2xl flex-shrink-0">
                         {/* ... existing progress bar code ... */}
                         <div className="flex items-center justify-center mb-3">
@@ -306,65 +314,55 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                         />
                     )}
 
-                    {/* Hourly Service Flow: Step 1 is WhatsApp Contact */}
-                    {currentStep === 1 && service.esPorHoras ? (
-                        <StepWhatsAppContact
-                            serviceName={processedService.nombre}
+                    {currentStep === 1 && (
+                        <Step1TripDetails
+                            service={{ ...service, nombre: processedService.nombre }}
+                            formData={formData}
+                            updateFormData={updateFormData}
+                            onNext={handleNext}
+                            onBack={handleBack}
+                            preciosPersonalizados={preciosPersonalizados}
+                            tarifasMunicipios={tarifasMunicipios}
+                            aliadoTipo={aliadoTipo}
+                            aliadoNombre={aliadoNombre}
+                        />
+                    )}
+                    {currentStep === 2 && (
+                        <Step2ContactInfo
+                            formData={formData}
+                            updateFormData={updateFormData}
+                            onNext={handleNext}
                             onBack={handleBack}
                         />
-                    ) : (
-                        <>
-                            {currentStep === 1 && (
-                                <Step1TripDetails
-                                    service={{ ...service, nombre: processedService.nombre }}
-                                    formData={formData}
-                                    updateFormData={updateFormData}
-                                    onNext={handleNext}
-                                    onBack={handleBack}
-                                    preciosPersonalizados={preciosPersonalizados}
-                                    tarifasMunicipios={tarifasMunicipios}
-                                    aliadoTipo={aliadoTipo}
-                                    aliadoNombre={aliadoNombre}
-                                />
-                            )}
-                            {currentStep === 2 && (
-                                <Step2ContactInfo
-                                    formData={formData}
-                                    updateFormData={updateFormData}
-                                    onNext={handleNext}
-                                    onBack={handleBack}
-                                />
-                            )}
-                            {currentStep === 3 && (
-                                <Step3Notes
-                                    formData={formData}
-                                    updateFormData={updateFormData}
-                                    onNext={handleNext}
-                                    onBack={handleBack}
-                                />
-                            )}
-                            {currentStep === 4 && (
-                                <Step4Summary
-                                    service={processedService}
-                                    formData={formData}
-                                    onConfirm={handleConfirmReservation}
-                                    onBack={handleBack}
-                                    loading={loading}
-                                />
-                            )}
-                            {currentStep === 5 && (
-                                <Step5Confirmation
-                                    reservationCode={reservationCode}
-                                    isAlly={!!aliadoId}
-                                    onClose={handleClose}
-                                />
-                            )}
-                        </>
+                    )}
+                    {currentStep === 3 && (
+                        <Step3Notes
+                            formData={formData}
+                            updateFormData={updateFormData}
+                            onNext={handleNext}
+                            onBack={handleBack}
+                        />
+                    )}
+                    {currentStep === 4 && (
+                        <Step4Summary
+                            service={processedService}
+                            formData={formData}
+                            onConfirm={handleConfirmReservation}
+                            onBack={handleBack}
+                            loading={loading}
+                        />
+                    )}
+                    {currentStep === 5 && (
+                        <Step5Confirmation
+                            reservationCode={reservationCode}
+                            isAlly={!!aliadoId}
+                            onClose={handleClose}
+                        />
                     )}
                 </div>
 
-                {/* Sticky Footer with Navigation Buttons - Hide for hourly services on Step 1 */}
-                {currentStep < 5 && !(service.esPorHoras && currentStep === 1) && (
+                {/* Sticky Footer with Navigation Buttons */}
+                {currentStep < 5 && (
                     <div className="border-t bg-white px-8 py-4 rounded-b-2xl flex-shrink-0 flex flex-col gap-3">
                         {/* Price Indicator (Only Step 1) */}
                         {currentStep === 1 && formData.municipio !== Municipio.OTRO && (
