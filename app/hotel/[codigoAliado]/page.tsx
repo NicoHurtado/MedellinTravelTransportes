@@ -157,7 +157,7 @@ export default function HotelPublicPage() {
                     ...sa.servicio,
                     vehiculosPermitidos: sa.servicio.vehiculosPermitidos
                 }))
-                .sort((a, b) => {
+                .sort((a: Service, b: Service) => {
                     // Airport services first
                     if (a.esAeropuerto && !b.esAeropuerto) return -1;
                     if (!a.esAeropuerto && b.esAeropuerto) return 1;

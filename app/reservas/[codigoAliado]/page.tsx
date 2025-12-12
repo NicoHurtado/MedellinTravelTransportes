@@ -148,7 +148,7 @@ export default function ReservaAliadoPage() {
                     console.log(`Service ${sa.servicio.nombre} mapped vehicles:`, mapped.vehiculosPermitidos);
                     return mapped;
                 })
-                .sort((a, b) => {
+                .sort((a: Service, b: Service) => {
                     // Airport services first
                     if (a.esAeropuerto && !b.esAeropuerto) return -1;
                     if (!a.esAeropuerto && b.esAeropuerto) return 1;

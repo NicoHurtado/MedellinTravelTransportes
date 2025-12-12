@@ -84,6 +84,7 @@ export default function ImageUpload({ value, onChange, label = 'Imagen' }: Image
 
             {preview ? (
                 <div className="relative inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={preview}
                         alt="Preview"

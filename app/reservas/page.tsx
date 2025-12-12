@@ -99,7 +99,7 @@ export default function ReservasPage() {
                             vehiculosPermitidos: sa.servicio.vehiculosPermitidos
                         };
                     })
-                    .sort((a, b) => {
+                    .sort((a: Service, b: Service) => {
                         // Airport services first
                         if (a.esAeropuerto && !b.esAeropuerto) return -1;
                         if (!a.esAeropuerto && b.esAeropuerto) return 1;
@@ -112,7 +112,7 @@ export default function ReservasPage() {
                     console.log('[Public] First service vehicles:', data.data[0].vehiculosPermitidos);
                 }
                 // Sort services: airport first
-                const sortedServices = (data.data || []).sort((a: any, b: any) => {
+                const sortedServices = (data.data || []).sort((a: Service, b: Service) => {
                     if (a.esAeropuerto && !b.esAeropuerto) return -1;
                     if (!a.esAeropuerto && b.esAeropuerto) return 1;
                     return 0;
