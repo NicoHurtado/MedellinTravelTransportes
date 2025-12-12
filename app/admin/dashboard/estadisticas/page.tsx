@@ -76,8 +76,8 @@ export default function EstadisticasPage() {
         })
         .reduce((sum, r) => sum + Number(r.precioTotal || 0), 0);
 
-    // Pagos en efectivo por hoteles (reservas de aliados confirmadas)
-    // Incluye: Solo Hoteles (que pagan en efectivo/cuenta cobro)
+    // Pagos en efectivo por hoteles y agencias (reservas de aliados confirmadas)
+    // Incluye: Solo Hoteles y Agencias (que pagan en efectivo/cuenta cobro)
     const pagosEfectivoHoteles = filteredReservas
         .filter(r => {
             const isValidState =
@@ -86,13 +86,13 @@ export default function EstadisticasPage() {
                 r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
                 r.estado === 'COMPLETADA';
 
-            const isHotel = r.esReservaAliado && r.aliado?.tipo === 'HOTEL';
+            const isHotelOrAgencia = r.esReservaAliado && (r.aliado?.tipo === 'HOTEL' || r.aliado?.tipo === 'AGENCIA');
 
-            return isValidState && isHotel;
+            return isValidState && isHotelOrAgencia;
         })
         .reduce((sum, r) => sum + Number(r.precioTotal || 0), 0);
 
-    // Comisiones de hoteles
+    // Comisiones de hoteles y agencias
     const comisionesHotel = filteredReservas
         .filter(r => {
             const isValidState =
@@ -101,9 +101,9 @@ export default function EstadisticasPage() {
                 r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
                 r.estado === 'COMPLETADA';
 
-            const isHotel = r.esReservaAliado && r.aliado?.tipo === 'HOTEL';
+            const isHotelOrAgencia = r.esReservaAliado && (r.aliado?.tipo === 'HOTEL' || r.aliado?.tipo === 'AGENCIA');
 
-            return isValidState && isHotel;
+            return isValidState && isHotelOrAgencia;
         })
         .reduce((sum, r) => sum + Number(r.comisionAliado || 0), 0);
 
@@ -246,7 +246,7 @@ export default function EstadisticasPage() {
                             <div>
                                 <p className="text-sm font-medium text-gray-600 mb-1">Reservas Aliados</p>
                                 <p className="text-3xl font-bold text-gray-900">{reservasAliados}</p>
-                                <p className="text-xs text-gray-500 mt-1">Hoteles/Airbnbs</p>
+                                <p className="text-xs text-gray-500 mt-1">Hoteles/Agencias/Airbnbs</p>
                             </div>
                             <div className="bg-purple-50 text-purple-600 p-3 rounded-lg">
                                 <FiUsers size={24} />
@@ -285,7 +285,7 @@ export default function EstadisticasPage() {
                             <div>
                                 <p className="text-sm font-medium text-gray-600 mb-1">Pagos Efectivo</p>
                                 <p className="text-2xl font-bold text-gray-900">${pagosEfectivoHoteles.toLocaleString('es-CO')}</p>
-                                <p className="text-xs text-gray-500 mt-1">Hoteles</p>
+                                <p className="text-xs text-gray-500 mt-1">Hoteles/Agencias</p>
                             </div>
                             <div className="bg-orange-50 text-orange-600 p-3 rounded-lg">
                                 <FiDollarSign size={24} />
@@ -299,9 +299,9 @@ export default function EstadisticasPage() {
                     <Card>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600 mb-1">Comisiones Hotel</p>
+                                <p className="text-sm font-medium text-gray-600 mb-1">Comisiones Hoteles/Agencias</p>
                                 <p className="text-2xl font-bold text-gray-900">${comisionesHotel.toLocaleString('es-CO')}</p>
-                                <p className="text-xs text-gray-500 mt-1">Total comisiones hoteles</p>
+                                <p className="text-xs text-gray-500 mt-1">Total comisiones hoteles y agencias</p>
                             </div>
                             <div className="bg-indigo-50 text-indigo-600 p-3 rounded-lg">
                                 <FiDollarSign size={24} />

@@ -17,6 +17,7 @@ datasource db {
 enum TipoAliado {
   HOTEL
   AIRBNB
+  AGENCIA
 }
 
 enum TipoServicio {

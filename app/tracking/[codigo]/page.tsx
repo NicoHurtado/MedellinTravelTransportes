@@ -261,7 +261,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     const metodoPago = reserva.metodoPago || 'BOLD';
     const isEfectivo = metodoPago === 'EFECTIVO';
 
-    const isHotelAlly = reserva.esReservaAliado && reserva.aliado?.tipo === 'HOTEL';
+    const isHotelAlly = reserva.esReservaAliado && (reserva.aliado?.tipo === 'HOTEL' || reserva.aliado?.tipo === 'AGENCIA');
 
     let currentState = TIMELINE_STATES[reserva.estado as EstadoReserva];
     // Custom override for Cash Payments

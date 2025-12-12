@@ -34,9 +34,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     // 🔥 NEW: Use camposPersonalizados (JSONB) instead of configuracionFormulario
     const dynamicFields = service.camposPersonalizados || [];
 
-    // 🏨 Check if this is a hotel reservation
-    const isHotel = aliadoTipo === 'HOTEL';
-    const hotelName = aliadoNombre || '';
+    // 🏨 Check if this is a hotel or agency reservation
+    const isHotelOrAgencia = aliadoTipo === 'HOTEL' || aliadoTipo === 'AGENCIA';
+    const aliadoNameForPickup = aliadoNombre || '';
 
     console.log('🔧 Dynamic Fields Debug:', {
         serviceId: service.id,
@@ -57,12 +57,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         }
     }, [dynamicFields.length, formData.datosDinamicos, updateFormData]);
 
-    // 🏨 Auto-fill lugarRecogida for hotels
+    // 🏨 Auto-fill lugarRecogida for hotels and agencies
     useEffect(() => {
-        if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
-            updateFormData({ lugarRecogida: hotelName });
+        if (isHotelOrAgencia && aliadoNameForPickup && formData.lugarRecogida !== aliadoNameForPickup) {
+            updateFormData({ lugarRecogida: aliadoNameForPickup });
         }
-    }, [isHotel, hotelName, formData.lugarRecogida, updateFormData]);
+    }, [isHotelOrAgencia, aliadoNameForPickup, formData.lugarRecogida, updateFormData]);
 
     // Get available vehicles
     const availableVehicles = (() => {
@@ -457,10 +457,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
-                            ) : isHotel ? (
+                            ) : isHotelOrAgencia ? (
                                 <input
                                     type="text"
-                                    value={hotelName}
+                                    value={aliadoNameForPickup}
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
@@ -487,10 +487,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
-                            ) : isHotel ? (
+                            ) : isHotelOrAgencia ? (
                                 <input
                                     type="text"
-                                    value={hotelName}
+                                    value={aliadoNameForPickup}
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
@@ -525,15 +525,15 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Origen fijo para hoteles en servicios NO aeropuerto */}
-                {!service.esAeropuerto && !isTransporteMunicipal && isHotel && (
+                {/* Origen fijo para hoteles/agencias en servicios NO aeropuerto */}
+                {!service.esAeropuerto && !isTransporteMunicipal && isHotelOrAgencia && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_origen', language)} *
                         </label>
                         <input
                             type="text"
-                            value={hotelName}
+                            value={aliadoNameForPickup}
                             readOnly
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                         />
@@ -555,8 +555,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport */}
-                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && (
+                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel/agencia AND NOT municipal transport */}
+                {!service.esAeropuerto && !isHotelOrAgencia && !isTransporteMunicipal && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_lugar_recogida', language)} *

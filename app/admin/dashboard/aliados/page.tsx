@@ -9,7 +9,7 @@ import ConfiguracionPrecios from '@/components/admin/ConfiguracionPrecios';
 interface Aliado {
     id: string;
     nombre: string;
-    tipo: 'HOTEL' | 'AIRBNB';
+    tipo: 'HOTEL' | 'AIRBNB' | 'AGENCIA';
     codigo: string;
     email: string;
     contacto: string;
@@ -30,7 +30,7 @@ export default function AliadosPage() {
     const [copiedCodigo, setCopiedCodigo] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         nombre: '',
-        tipo: 'HOTEL' as 'HOTEL' | 'AIRBNB',
+        tipo: 'HOTEL' as 'HOTEL' | 'AIRBNB' | 'AGENCIA',
         email: '',
         contacto: '',
         activo: true
@@ -129,8 +129,9 @@ export default function AliadosPage() {
         setTimeout(() => setCopiedCodigo(null), 2000);
     };
 
-    const copyLink = (codigo: string, tipo: 'HOTEL' | 'AIRBNB') => {
-        const path = tipo === 'HOTEL' ? 'hotel' : 'reservas';
+    const copyLink = (codigo: string, tipo: 'HOTEL' | 'AIRBNB' | 'AGENCIA') => {
+        // Hotel y Agencia usan '/hotel/', Airbnb usa '/reservas/'
+        const path = (tipo === 'HOTEL' || tipo === 'AGENCIA') ? 'hotel' : 'reservas';
         const link = `${window.location.origin}/${path}/${codigo}`;
         navigator.clipboard.writeText(link);
         setCopiedCodigo(`LINK-${codigo}`);
@@ -160,7 +161,7 @@ export default function AliadosPage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold">Gestión de Aliados</h1>
-                            <p className="text-gray-400 mt-1">Administra hoteles y Airbnbs</p>
+                            <p className="text-gray-400 mt-1">Administra hoteles, agencias y Airbnbs</p>
                         </div>
                         <Button
                             onClick={() => router.push('/admin/dashboard')}
@@ -193,9 +194,12 @@ export default function AliadosPage() {
                                     <h3 className="text-xl font-bold text-gray-900 mb-1">
                                         {aliado.nombre}
                                     </h3>
-                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${aliado.tipo === 'HOTEL'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : 'bg-purple-100 text-purple-800'
+                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                        aliado.tipo === 'HOTEL'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : aliado.tipo === 'AIRBNB'
+                                            ? 'bg-purple-100 text-purple-800'
+                                            : 'bg-green-100 text-green-800'
                                         }`}>
                                         {aliado.tipo}
                                     </span>
@@ -227,18 +231,20 @@ export default function AliadosPage() {
                                     </button>
                                 </div>
 
-                                {/* Public Link Section - Always show for both HOTEL and AIRBNB */}
+                                {/* Public Link Section - Always show for all types */}
                                 <div className="mt-2 pt-2 border-t border-gray-100">
-                                    {aliado.tipo === 'HOTEL' ? (
+                                    {(aliado.tipo === 'HOTEL' || aliado.tipo === 'AGENCIA') ? (
                                         <>
-                                            {/* Hotel has both access code and public link */}
+                                            {/* Hotel y Agencia tienen código de acceso y link público */}
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs text-gray-500">Link Público (Huéspedes):</span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {aliado.tipo === 'HOTEL' ? 'Link Público (Huéspedes):' : 'Link Público (Clientes):'}
+                                                    </span>
                                                     <button
                                                         onClick={() => copyLink(aliado.codigo, aliado.tipo)}
                                                         className="text-xs flex items-center gap-1 text-[#D6A75D] hover:text-[#C5964A] font-medium"
-                                                        title="Link para huéspedes - pago en efectivo"
+                                                        title={aliado.tipo === 'HOTEL' ? 'Link para huéspedes - pago en efectivo' : 'Link para clientes - pago en efectivo'}
                                                     >
                                                         {copiedCodigo === `LINK-${aliado.codigo}` ? (
                                                             <>
@@ -252,7 +258,7 @@ export default function AliadosPage() {
                                                     </button>
                                                 </div>
                                                 <p className="text-xs text-gray-400 italic">
-                                                    💡 El código es para recepcionistas. El link público es para huéspedes (pago en efectivo).
+                                                    💡 El código es para {aliado.tipo === 'HOTEL' ? 'recepcionistas' : 'empleados de la agencia'}. El link público es para {aliado.tipo === 'HOTEL' ? 'huéspedes' : 'clientes'} (pago en efectivo).
                                                 </p>
                                             </div>
                                         </>
@@ -385,6 +391,16 @@ export default function AliadosPage() {
                                         className="w-4 h-4 text-[#D6A75D] focus:ring-[#D6A75D]"
                                     />
                                     <span className="text-sm">Airbnb</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        value="AGENCIA"
+                                        checked={formData.tipo === 'AGENCIA'}
+                                        onChange={(e) => setFormData({ ...formData, tipo: 'AGENCIA' })}
+                                        className="w-4 h-4 text-[#D6A75D] focus:ring-[#D6A75D]"
+                                    />
+                                    <span className="text-sm">Agencia</span>
                                 </label>
                             </div>
                         </div>

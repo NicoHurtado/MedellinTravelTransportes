@@ -74,9 +74,9 @@ export default function HotelPublicPage() {
 
             const aliadoData = data.data;
 
-            // Validate that this is a HOTEL
-            if (aliadoData.tipo !== 'HOTEL') {
-                throw new Error('Este enlace solo está disponible para hoteles');
+            // Validate that this is a HOTEL or AGENCIA
+            if (aliadoData.tipo !== 'HOTEL' && aliadoData.tipo !== 'AGENCIA') {
+                throw new Error('Este enlace solo está disponible para hoteles y agencias');
             }
 
             setAliado(aliadoData);
