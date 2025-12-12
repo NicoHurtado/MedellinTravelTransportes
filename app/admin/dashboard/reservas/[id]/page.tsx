@@ -298,6 +298,17 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     <label className="block text-sm text-gray-500 mb-1">Municipio</label>
                                     <p className="font-medium">{reserva.municipio}</p>
                                 </div>
+                                {/* Número de Vuelo - Solo para servicios de aeropuerto */}
+                                {reserva.servicio?.esAeropuerto && (
+                                    <div className={`md:col-span-2 p-4 rounded-lg border ${reserva.numeroVuelo ? 'bg-blue-50 border-blue-100' : 'bg-yellow-50 border-yellow-200'}`}>
+                                        <label className={`block text-sm font-bold mb-1 ${reserva.numeroVuelo ? 'text-blue-800' : 'text-yellow-800'}`}>
+                                            ✈️ Número de Vuelo
+                                        </label>
+                                        <p className={`text-lg font-bold ${reserva.numeroVuelo ? 'text-blue-900' : 'text-yellow-700 italic'}`}>
+                                            {reserva.numeroVuelo || 'No especificado'}
+                                        </p>
+                                    </div>
+                                )}
                                 {/* Origen / Lugar de Recogida */}
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">

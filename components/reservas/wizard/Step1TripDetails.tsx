@@ -509,13 +509,14 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     {/* Flight Number */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('reservas.paso1_numero_vuelo', language)}
+                            {t('reservas.paso1_numero_vuelo', language)} *
                         </label>
                         <input
                             type="text"
                             value={formData.numeroVuelo || ''}
                             onChange={(e) => updateFormData({ numeroVuelo: e.target.value })}
                             placeholder="Ej: AV123"
+                            required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         />
                     </div>

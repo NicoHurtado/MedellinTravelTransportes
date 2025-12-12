@@ -21,6 +21,8 @@ interface CalendarEvent {
         cliente: string;
         estado: string;
         hora: string;
+        numeroVuelo?: string;
+        esAeropuerto?: boolean;
     };
 }
 
@@ -62,7 +64,9 @@ export default function CalendarioPage() {
                         codigo: reserva.codigo,
                         cliente: reserva.nombreCliente,
                         estado: reserva.estado,
-                        hora: reserva.hora
+                        hora: reserva.hora,
+                        numeroVuelo: reserva.numeroVuelo,
+                        esAeropuerto: reserva.servicio?.esAeropuerto
                     }
                 };
             });
@@ -213,6 +217,16 @@ export default function CalendarioPage() {
                                             {selectedEvent.extendedProps.estado.replace(/_/g, ' ')}
                                         </span>
                                     </div>
+                                    {selectedEvent.extendedProps.esAeropuerto && (
+                                        <div className={`p-3 rounded-lg border ${selectedEvent.extendedProps.numeroVuelo ? 'bg-blue-50 border-blue-100' : 'bg-yellow-50 border-yellow-200'}`}>
+                                            <p className={`text-sm font-bold ${selectedEvent.extendedProps.numeroVuelo ? 'text-blue-800' : 'text-yellow-800'}`}>
+                                                ✈️ Número de Vuelo
+                                            </p>
+                                            <p className={`font-bold text-lg ${selectedEvent.extendedProps.numeroVuelo ? 'text-blue-900' : 'text-yellow-700 italic'}`}>
+                                                {selectedEvent.extendedProps.numeroVuelo || 'No especificado'}
+                                            </p>
+                                        </div>
+                                    )}
                                     <Button
                                         fullWidth
                                         onClick={() => router.push(`/tracking/${selectedEvent.extendedProps.codigo}`)}

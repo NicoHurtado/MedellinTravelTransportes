@@ -29,6 +29,11 @@ export async function GET(
                         vehiculo: true
                     }
                 }
+            },
+            orderBy: {
+                servicio: {
+                    esAeropuerto: 'desc' // Airport services first
+                }
             }
         });
 

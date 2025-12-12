@@ -446,6 +446,17 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         <p className="font-semibold">{reserva.vehiculo.nombre}</p>
                                     </div>
                                 )}
+                                {/* Número de Vuelo - Solo para servicios de aeropuerto */}
+                                {reserva.servicio?.esAeropuerto && (
+                                    <div className={`md:col-span-2 p-4 rounded-lg border ${reserva.numeroVuelo ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-200'}`}>
+                                        <p className={`text-sm font-bold ${reserva.numeroVuelo ? 'text-blue-800' : 'text-gray-600'}`}>
+                                            ✈️ {lang === 'ES' ? 'Número de Vuelo' : 'Flight Number'}
+                                        </p>
+                                        <p className={`text-lg font-bold ${reserva.numeroVuelo ? 'text-blue-900' : 'text-gray-500 italic'}`}>
+                                            {reserva.numeroVuelo || (lang === 'ES' ? 'No especificado' : 'Not specified')}
+                                        </p>
+                                    </div>
+                                )}
                                 {reserva.servicio?.duracion && (
                                     <div>
                                         <p className="text-sm text-gray-600">{t.duracion}</p>

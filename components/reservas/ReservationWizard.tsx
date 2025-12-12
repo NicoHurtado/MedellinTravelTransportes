@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiAlertCircle } from 'react-icons/fi';
 import Step0ServiceInfo from './wizard/Step0ServiceInfo';
 import Step1TripDetails from './wizard/Step1TripDetails';
 import Step2ContactInfo from './wizard/Step2ContactInfo';
@@ -53,6 +53,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     const { language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
     const [maxStepReached, setMaxStepReached] = useState(0);
+    const [errorMessage, setErrorMessage] = useState<string>('');
     const [formData, setFormData] = useState<ReservationFormData>({
         idioma: language.toUpperCase() === 'EN' ? Idioma.EN : Idioma.ES,
         fecha: null,
@@ -92,6 +93,12 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
 
     if (!isOpen) return null;
 
+    // Helper function to show error
+    const showError = (message: string) => {
+        setErrorMessage(message);
+        setTimeout(() => setErrorMessage(''), 5000); // Auto-hide after 5 seconds
+    };
+
     const validateStep = (step: number): boolean => {
         // Step 0: Service Info - Always valid (just informational)
         if (step === 0) return true;
@@ -100,32 +107,32 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         if (step === 1) {
             // Required: fecha, hora, municipio, numeroPasajeros, vehiculoId
             if (!formData.fecha || !formData.hora || !formData.municipio) {
-                alert(t('reservas.error_campos_requeridos', language) || 'Por favor completa todos los campos obligatorios');
+                showError(language === 'es' ? 'Por favor completa todos los campos obligatorios' : 'Please complete all required fields');
                 return false;
             }
 
             // If municipio is OTRO, otroMunicipio is required
             if (formData.municipio === Municipio.OTRO && !formData.otroMunicipio) {
-                alert(language === 'es' ? 'Por favor especifica el municipio' : 'Please specify the municipality');
+                showError(language === 'es' ? 'Por favor especifica el municipio' : 'Please specify the municipality');
                 return false;
             }
 
             // Number of passengers must be greater than 0
             if (formData.numeroPasajeros <= 0) {
-                alert(language === 'es' ? 'Por favor ingresa el número de pasajeros' : 'Please enter the number of passengers');
+                showError(language === 'es' ? 'Por favor ingresa el número de pasajeros' : 'Please enter the number of passengers');
                 return false;
             }
 
             // Vehicle must be selected
             if (!formData.vehiculoId) {
-                alert(language === 'es' ? 'Por favor selecciona un vehículo' : 'Please select a vehicle');
+                showError(language === 'es' ? 'Por favor selecciona un vehículo' : 'Please select a vehicle');
                 return false;
             }
 
             // For hourly services, validate hours
             if (service.esPorHoras) {
                 if (!formData.cantidadHoras || formData.cantidadHoras < 4) {
-                    alert(language === 'es' ? 'Por favor ingresa una cantidad válida de horas (mínimo 4)' : 'Please enter a valid number of hours (minimum 4)');
+                    showError(language === 'es' ? 'Por favor ingresa una cantidad válida de horas (mínimo 4)' : 'Please enter a valid number of hours (minimum 4)');
                     return false;
                 }
             }
@@ -133,17 +140,21 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
             // For airport services, additional validations
             if (service.esAeropuerto) {
                 if (!formData.aeropuertoTipo) {
-                    alert(language === 'es' ? 'Por favor selecciona la dirección del aeropuerto' : 'Please select airport direction');
+                    showError(language === 'es' ? 'Por favor selecciona la dirección del aeropuerto' : 'Please select airport direction');
                     return false;
                 }
                 if (!formData.lugarRecogida) {
-                    alert(language === 'es' ? 'Por favor ingresa el lugar de recogida/destino' : 'Please enter pickup/destination location');
+                    showError(language === 'es' ? 'Por favor ingresa el lugar de recogida/destino' : 'Please enter pickup/destination location');
+                    return false;
+                }
+                if (!formData.numeroVuelo || formData.numeroVuelo.trim() === '') {
+                    showError(language === 'es' ? 'Por favor ingresa el número de vuelo' : 'Please enter the flight number');
                     return false;
                 }
             } else {
                 // For non-airport services, lugarRecogida is required
                 if (!formData.lugarRecogida) {
-                    alert(language === 'es' ? 'Por favor ingresa el lugar de recogida' : 'Please enter pickup location');
+                    showError(language === 'es' ? 'Por favor ingresa el lugar de recogida' : 'Please enter pickup location');
                     return false;
                 }
             }
@@ -155,21 +166,21 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         if (step === 2) {
             // Required: nombreCliente, whatsappCliente, emailCliente
             if (!formData.nombreCliente || !formData.whatsappCliente || !formData.emailCliente) {
-                alert(t('reservas.error_campos_requeridos', language) || 'Por favor completa todos los campos obligatorios');
+                showError(language === 'es' ? 'Por favor completa todos los campos obligatorios' : 'Please complete all required fields');
                 return false;
             }
 
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(formData.emailCliente)) {
-                alert(language === 'es' ? 'Por favor ingresa un email válido' : 'Please enter a valid email');
+                showError(language === 'es' ? 'Por favor ingresa un email válido' : 'Please enter a valid email');
                 return false;
             }
 
             // Validate WhatsApp (should be numbers only, at least 10 digits)
             const whatsappClean = formData.whatsappCliente.replace(/\D/g, '');
             if (whatsappClean.length < 10) {
-                alert(language === 'es' ? 'Por favor ingresa un número de WhatsApp válido (mínimo 10 dígitos)' : 'Please enter a valid WhatsApp number (minimum 10 digits)');
+                showError(language === 'es' ? 'Por favor ingresa un número de WhatsApp válido (mínimo 10 dígitos)' : 'Please enter a valid WhatsApp number (minimum 10 digits)');
                 return false;
             }
 
@@ -179,7 +190,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     if (asistente.nombre || asistente.numeroDocumento) {
                         // If any field is filled, all fields must be filled
                         if (!asistente.nombre || !asistente.numeroDocumento) {
-                            alert(language === 'es' ? 'Por favor completa la información de todos los asistentes o elimínalos' : 'Please complete all assistant information or remove them');
+                            showError(language === 'es' ? 'Por favor completa la información de todos los asistentes o elimínalos' : 'Please complete all assistant information or remove them');
                             return false;
                         }
                     }
@@ -251,7 +262,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
             // Redirect directly to tracking page
             router.push(`/tracking/${data.data.codigo}`);
         } catch (error: any) {
-            alert(error.message);
+            showError(error.message || (language === 'es' ? 'Error al crear la reserva' : 'Error creating reservation'));
         } finally {
             setLoading(false);
         }
@@ -259,6 +270,29 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            {/* Error Notification */}
+            {errorMessage && (
+                <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] animate-in slide-in-from-top duration-300">
+                    <div className="bg-red-50 border-l-4 border-red-500 rounded-lg shadow-lg p-4 flex items-start gap-3 max-w-md">
+                        <div className="flex-shrink-0">
+                            <FiAlertCircle className="text-red-500 text-2xl" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-red-800 mb-1">
+                                {language === 'es' ? 'Campos Incompletos' : 'Incomplete Fields'}
+                            </h3>
+                            <p className="text-red-700 text-sm">{errorMessage}</p>
+                        </div>
+                        <button
+                            onClick={() => setErrorMessage('')}
+                            className="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                        >
+                            <FiX size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative">
                 {/* Close button */}
                 <button

@@ -44,6 +44,10 @@ export async function GET(request: Request) {
                     }
                 }
             },
+            orderBy: [
+                { esAeropuerto: 'desc' }, // Airport services first
+                { nombre: 'asc' }, // Then alphabetically
+            ]
         });
 
         return NextResponse.json({ data: servicios, success: true });
