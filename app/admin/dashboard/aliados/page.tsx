@@ -69,14 +69,11 @@ export default function AliadosPage() {
             });
 
             if (res.ok) {
-                const data = await res.json();
                 await fetchAliados();
                 handleCloseModal();
-
-                // Si es creación, abrir configuración de precios automáticamente
-                if (!editingAliado && data.data?.id) {
-                    handleConfigPrecios(data.data.id);
-                }
+                
+                // Ya no se abre automáticamente la configuración de precios
+                // El usuario debe hacer clic manualmente en "Configurar Precios"
             }
         } catch (error) {
             console.error('Error saving aliado:', error);

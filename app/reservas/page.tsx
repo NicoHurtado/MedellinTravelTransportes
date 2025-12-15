@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FiClock, FiUsers, FiLogOut, FiMapPin, FiChevronRight } from 'react-icons/fi';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
+import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import AllyReservationsModal from '@/components/reservas/AllyReservationsModal';
@@ -45,6 +46,7 @@ export default function ReservasPage() {
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [wizardOpen, setWizardOpen] = useState(false);
+    const [municipalModalOpen, setMunicipalModalOpen] = useState(false);
 
     // Ally state
     const [aliado, setAliado] = useState<Aliado | null>(null);
@@ -201,6 +203,23 @@ export default function ReservasPage() {
         setWizardOpen(true);
     };
 
+    const handleSelectMunicipalService = async (serviceId: string) => {
+        try {
+            const res = await fetch(`/api/servicios/${serviceId}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                openWizard(data.data);
+            }
+        } catch (error) {
+            console.error('Error loading service:', error);
+        }
+    };
+
+    // Separate municipal and regular services
+    const serviciosMunicipales = services.filter(s => s.tipo === 'TRANSPORTE_MUNICIPAL');
+    const serviciosRegulares = services.filter(s => s.tipo !== 'TRANSPORTE_MUNICIPAL');
+
     return (
         <>
             <Header />
@@ -313,8 +332,8 @@ export default function ReservasPage() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {/* Servicios de Aeropuerto - SIEMPRE PRIMERO */}
-                            {services
-                                .filter(service => service.esAeropuerto && service.tipo !== 'TRANSPORTE_MUNICIPAL')
+                            {serviciosRegulares
+                                .filter(service => service.esAeropuerto)
                                 .map((service) => (
                                 <div
                                     key={service.id}
@@ -368,57 +387,56 @@ export default function ReservasPage() {
                                 </div>
                             ))}
 
-                            {/* Tarjeta Especial: Transporte Municipal - DESPUÉS DE AEROPUERTO */}
-                            <div
-                                className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                                onClick={() => window.location.href = '/reservas/transporte-municipal'}
-                            >
-                                <div className="relative h-56 overflow-hidden">
-                                    <Image
-                                        src="/antioquia.jpg"
-                                        alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
-                                        fill
-                                        className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                    <div className="absolute top-4 right-4">
-                                        <span className="px-3 py-1 bg-[#D6A75D] text-black rounded-full text-xs font-bold">
-                                            {language === 'es' ? 'NUEVO' : 'NEW'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
-                                        {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
-                                    </h3>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                        {language === 'es' 
-                                            ? 'Viaja cómodamente a diferentes municipios de Antioquia. Fredonia, Santa Elena, Jardín y más destinos.' 
-                                            : 'Travel comfortably to different municipalities of Antioquia. Fredonia, Santa Elena, Jardín and more destinations.'}
-                                    </p>
-
-                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                                        <div className="flex items-center gap-1">
-                                            <FiMapPin className="text-[#D6A75D]" />
-                                            <span>{language === 'es' ? 'Múltiples destinos' : 'Multiple destinations'}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <FiUsers className="text-[#D6A75D]" />
-                                            <span>{t('landing.privado', language)}</span>
-                                        </div>
+                            {/* Tarjeta Transporte Municipal - DESPUÉS DE AEROPUERTO */}
+                            {serviciosMunicipales.length > 0 && (
+                                <div
+                                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                    onClick={() => setMunicipalModalOpen(true)}
+                                >
+                                    <div className="relative h-56 overflow-hidden">
+                                        <Image
+                                            src="/antioquia.jpg"
+                                            alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                                     </div>
 
-                                    <button className="w-full bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
-                                        {language === 'es' ? 'Ver Destinos' : 'View Destinations'}
-                                        <FiChevronRight className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
+                                    <div className="p-6">
+                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                            {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
+                                        </h3>
+                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                            {language === 'es' 
+                                                ? `${serviciosMunicipales.length} destino${serviciosMunicipales.length !== 1 ? 's' : ''} disponible${serviciosMunicipales.length !== 1 ? 's' : ''}` 
+                                                : `${serviciosMunicipales.length} destination${serviciosMunicipales.length !== 1 ? 's' : ''} available`}
+                                        </p>
 
-                            {/* Otros Servicios (sin aeropuerto ni transporte municipal) */}
-                            {services
-                                .filter(service => !service.esAeropuerto && service.tipo !== 'TRANSPORTE_MUNICIPAL')
+                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                            <div className="flex items-center gap-1">
+                                                <FiMapPin className="text-[#D6A75D]" />
+                                                <span>{language === 'es' ? 'Múltiples destinos' : 'Multiple destinations'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <FiUsers className="text-[#D6A75D]" />
+                                                <span>{t('landing.privado', language)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-end">
+                                            <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                                                {language === 'es' ? 'Ver Destinos' : 'View Destinations'}
+                                                <FiChevronRight />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Otros Servicios (sin aeropuerto) */}
+                            {serviciosRegulares
+                                .filter(service => !service.esAeropuerto)
                                 .map((service) => (
                                 <div
                                     key={service.id}
@@ -477,6 +495,14 @@ export default function ReservasPage() {
             </main>
             <Footer />
 
+            {/* Modal Transporte Municipal */}
+            <TransporteMunicipalModal
+                isOpen={municipalModalOpen}
+                onClose={() => setMunicipalModalOpen(false)}
+                onSelectService={handleSelectMunicipalService}
+                serviciosMunicipales={serviciosMunicipales}
+            />
+
             {/* Reservation Wizard Modal */}
             {selectedService && (
                 <ReservationWizard
@@ -490,7 +516,8 @@ export default function ReservasPage() {
                     aliadoTipo={aliado?.tipo || null}
                     aliadoNombre={aliado?.nombre || null}
                     preciosPersonalizados={preciosPersonalizados}
-                    tarifasMunicipios={aliado ? tarifasMunicipios : selectedService.tarifasMunicipios}
+                    tarifasMunicipios={tarifasMunicipios}
+                    metodoPago={aliado ? 'EFECTIVO' : 'BOLD'}
                 />
             )}
 

@@ -9,3 +9,4 @@ BEGIN
         ALTER TABLE "Reserva" ADD COLUMN "cantidadHoras" INTEGER;
     END IF;
 END $$;
+

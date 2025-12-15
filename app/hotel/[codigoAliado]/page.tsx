@@ -300,12 +300,14 @@ export default function HotelPublicPage() {
                                     className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                                     onClick={() => setMunicipalModalOpen(true)}
                                 >
-                                    <div className="relative h-56 bg-gradient-to-br from-green-500 to-emerald-600 overflow-hidden">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <FiMapPin className="text-white/20" size={120} />
-                                        </div>
+                                    <div className="relative h-56 overflow-hidden">
+                                        <Image
+                                            src="/antioquia.jpg"
+                                            alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
+                                            fill
+                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                                     </div>
 
                                     <div className="p-6">
