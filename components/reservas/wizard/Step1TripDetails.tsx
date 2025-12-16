@@ -103,13 +103,20 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         : null;
 
     // Auto-select recommended vehicle when passenger count changes
-    // This ensures the smallest compatible vehicle is always selected
+    // Only auto-select if no vehicle is selected OR if current vehicle is incompatible
     useEffect(() => {
         if (recommendedVehicle && formData.numeroPasajeros > 0) {
-            // Always update to recommended vehicle when passengers change
-            updateFormData({ vehiculoId: recommendedVehicle.id });
+            const currentVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
+            const isCurrentCompatible = currentVehicle && currentVehicle.capacidadMaxima >= formData.numeroPasajeros;
+            
+            // Only auto-select if:
+            // 1. No vehicle is currently selected, OR
+            // 2. Current vehicle is not compatible with passenger count
+            if (!formData.vehiculoId || !isCurrentCompatible) {
+                updateFormData({ vehiculoId: recommendedVehicle.id });
+            }
         }
-    }, [formData.numeroPasajeros, recommendedVehicle, updateFormData]);
+    }, [formData.numeroPasajeros, recommendedVehicle, availableVehicles, formData.vehiculoId, updateFormData]);
 
 
 
