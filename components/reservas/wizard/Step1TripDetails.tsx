@@ -813,7 +813,16 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                         </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {availableVehicles.map((vehiculo: any) => {
+                        {[...availableVehicles]
+                            .sort((a: any, b: any) => {
+                                // Ordenar por capacidad mínima primero
+                                if (a.capacidadMinima !== b.capacidadMinima) {
+                                    return a.capacidadMinima - b.capacidadMinima;
+                                }
+                                // Si la capacidad mínima es igual, ordenar por capacidad máxima
+                                return a.capacidadMaxima - b.capacidadMaxima;
+                            })
+                            .map((vehiculo: any) => {
                             const isSelected = formData.vehiculoId === vehiculo.id;
                             const isRecommended = recommendedVehicle?.id === vehiculo.id;
                             const isCapacityCompatible = vehiculo.capacidadMaxima >= formData.numeroPasajeros;

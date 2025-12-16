@@ -603,7 +603,16 @@ export default function EditarServicioPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {vehiculos.map((vehiculo) => {
+                            {[...vehiculos]
+                                .sort((a, b) => {
+                                    // Ordenar por capacidad mínima primero
+                                    if (a.capacidadMinima !== b.capacidadMinima) {
+                                        return a.capacidadMinima - b.capacidadMinima;
+                                    }
+                                    // Si la capacidad mínima es igual, ordenar por capacidad máxima
+                                    return a.capacidadMaxima - b.capacidadMaxima;
+                                })
+                                .map((vehiculo) => {
                                 const isSelected = vehiculosSeleccionados.find(
                                     (v) => v.vehiculoId === vehiculo.id
                                 );

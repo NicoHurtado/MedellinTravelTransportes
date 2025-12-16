@@ -313,7 +313,16 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
                                 )}
                             </div>
                             <div className="grid grid-cols-1 gap-4">
-                                                {vehiculos.map(vehiculo => {
+                                                {[...vehiculos]
+                                                    .sort((a, b) => {
+                                                        // Ordenar por capacidad mínima primero
+                                                        if (a.capacidadMinima !== b.capacidadMinima) {
+                                                            return a.capacidadMinima - b.capacidadMinima;
+                                                        }
+                                                        // Si la capacidad mínima es igual, ordenar por capacidad máxima
+                                                        return a.capacidadMaxima - b.capacidadMaxima;
+                                                    })
+                                                    .map(vehiculo => {
                                                     const precioVehiculo = config.preciosVehiculos.find(
                                                         pv => pv.vehiculoId === vehiculo.id
                                                     );
