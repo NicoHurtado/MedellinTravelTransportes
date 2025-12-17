@@ -154,16 +154,7 @@ export default function VehiculosPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[...vehiculos]
-                        .sort((a, b) => {
-                            // Ordenar por capacidad mínima primero
-                            if (a.capacidadMinima !== b.capacidadMinima) {
-                                return a.capacidadMinima - b.capacidadMinima;
-                            }
-                            // Si la capacidad mínima es igual, ordenar por capacidad máxima
-                            return a.capacidadMaxima - b.capacidadMaxima;
-                        })
-                        .map((vehiculo) => (
+                    {vehiculos.map((vehiculo) => (
                         <Card key={vehiculo.id} hover padding="none">
                             {/* Image */}
                             <div className="relative h-56 bg-gray-200 rounded-t-2xl overflow-hidden">

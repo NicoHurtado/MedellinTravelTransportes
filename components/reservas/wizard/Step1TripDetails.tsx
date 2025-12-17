@@ -34,9 +34,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     // 🔥 NEW: Use camposPersonalizados (JSONB) instead of configuracionFormulario
     const dynamicFields = service.camposPersonalizados || [];
 
-    // 🏨 Check if this is a hotel or agency reservation
-    const isHotelOrAgencia = aliadoTipo === 'HOTEL' || aliadoTipo === 'AGENCIA';
-    const aliadoNameForPickup = aliadoNombre || '';
+    // 🏨 Check if this is a hotel reservation
+    const isHotel = aliadoTipo === 'HOTEL';
+    const hotelName = aliadoNombre || '';
 
     console.log('🔧 Dynamic Fields Debug:', {
         serviceId: service.id,
@@ -57,12 +57,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         }
     }, [dynamicFields.length, formData.datosDinamicos, updateFormData]);
 
-    // 🏨 Auto-fill lugarRecogida for hotels and agencies
+    // 🏨 Auto-fill lugarRecogida for hotels
     useEffect(() => {
-        if (isHotelOrAgencia && aliadoNameForPickup && formData.lugarRecogida !== aliadoNameForPickup) {
-            updateFormData({ lugarRecogida: aliadoNameForPickup });
+        if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
+            updateFormData({ lugarRecogida: hotelName });
         }
-    }, [isHotelOrAgencia, aliadoNameForPickup, formData.lugarRecogida, updateFormData]);
+    }, [isHotel, hotelName, formData.lugarRecogida, updateFormData]);
 
     // Get available vehicles
     const availableVehicles = (() => {
@@ -103,20 +103,13 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         : null;
 
     // Auto-select recommended vehicle when passenger count changes
-    // Only auto-select if no vehicle is selected OR if current vehicle is incompatible
+    // This ensures the smallest compatible vehicle is always selected
     useEffect(() => {
         if (recommendedVehicle && formData.numeroPasajeros > 0) {
-            const currentVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
-            const isCurrentCompatible = currentVehicle && currentVehicle.capacidadMaxima >= formData.numeroPasajeros;
-            
-            // Only auto-select if:
-            // 1. No vehicle is currently selected, OR
-            // 2. Current vehicle is not compatible with passenger count
-            if (!formData.vehiculoId || !isCurrentCompatible) {
-                updateFormData({ vehiculoId: recommendedVehicle.id });
-            }
+            // Always update to recommended vehicle when passengers change
+            updateFormData({ vehiculoId: recommendedVehicle.id });
         }
-    }, [formData.numeroPasajeros, recommendedVehicle, availableVehicles, formData.vehiculoId, updateFormData]);
+    }, [formData.numeroPasajeros, recommendedVehicle, updateFormData]);
 
 
 
@@ -166,12 +159,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
         // Get vehicle price
         const selectedVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
-        let vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
-
-        // For hourly services, multiply by hours
-        if (service.esPorHoras && formData.cantidadHoras) {
-            vehiclePrice = vehiclePrice * formData.cantidadHoras;
-        }
+        const vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
 
         // Apply custom vehicle price if available
         // Apply custom vehicle price if available
@@ -244,7 +232,6 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     }, [
         formData.hora, 
         formData.municipio, 
-        formData.cantidadHoras,
         dynamicPrice, 
         formData.datosDinamicos, 
         formData.vehiculoId, 
@@ -257,7 +244,6 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         service.recargoNocturnoInicio,
         service.recargoNocturnoFin,
         service.precioBase,
-        service.esPorHoras,
         service.id,
         service.nombre,
         updateFormData
@@ -464,10 +450,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
-                            ) : isHotelOrAgencia ? (
+                            ) : isHotel ? (
                                 <input
                                     type="text"
-                                    value={aliadoNameForPickup}
+                                    value={hotelName}
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
@@ -494,10 +480,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
-                            ) : isHotelOrAgencia ? (
+                            ) : isHotel ? (
                                 <input
                                     type="text"
-                                    value={aliadoNameForPickup}
+                                    value={hotelName}
                                     readOnly
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                                 />
@@ -516,14 +502,14 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     {/* Flight Number */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('reservas.paso1_numero_vuelo', language)} *
+                            {t('reservas.paso1_numero_vuelo', language)}{!isHotel && ' *'}
+                            {isHotel && <span className="text-gray-500 text-xs ml-1">({language === 'es' ? 'opcional' : 'optional'})</span>}
                         </label>
                         <input
                             type="text"
                             value={formData.numeroVuelo || ''}
                             onChange={(e) => updateFormData({ numeroVuelo: e.target.value })}
                             placeholder="Ej: AV123"
-                            required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         />
                     </div>
@@ -532,15 +518,15 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Origen fijo para hoteles/agencias en servicios NO aeropuerto */}
-                {!service.esAeropuerto && !isTransporteMunicipal && isHotelOrAgencia && (
+                {/* Origen fijo para hoteles en servicios NO aeropuerto */}
+                {!service.esAeropuerto && !isTransporteMunicipal && isHotel && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_origen', language)} *
                         </label>
                         <input
                             type="text"
-                            value={aliadoNameForPickup}
+                            value={hotelName}
                             readOnly
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
                         />
@@ -562,8 +548,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel/agencia AND NOT municipal transport */}
-                {!service.esAeropuerto && !isHotelOrAgencia && !isTransporteMunicipal && (
+                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport */}
+                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_lugar_recogida', language)} *
@@ -771,58 +757,13 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     />
                 </div>
 
-                {/* Cantidad de Horas - Only for hourly services */}
-                {service.esPorHoras && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
-                        </label>
-                        <input
-                            type="number"
-                            min="4"
-                            max="24"
-                            value={formData.cantidadHoras || 4}
-                            onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                if (val >= 4) {
-                                    updateFormData({ cantidadHoras: val });
-                                }
-                            }}
-                            placeholder="4"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {language === 'es' ? 'Mínimo 4 horas' : 'Minimum 4 hours'}
-                        </p>
-                    </div>
-                )}
-
                 {/* Vehicle Selection */}
                 <div className="md:col-span-2 space-y-3">
                     <label className="block text-sm font-medium text-gray-700">
                         {t('reservas.paso1_vehiculo', language)} *
                     </label>
-                    {service.esPorHoras && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-                            <FiAlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-blue-800">
-                                {language === 'es' 
-                                    ? 'Los precios mostrados son por hora de servicio.' 
-                                    : 'Prices shown are per hour of service.'}
-                            </p>
-                        </div>
-                    )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[...availableVehicles]
-                            .sort((a: any, b: any) => {
-                                // Ordenar por capacidad mínima primero
-                                if (a.capacidadMinima !== b.capacidadMinima) {
-                                    return a.capacidadMinima - b.capacidadMinima;
-                                }
-                                // Si la capacidad mínima es igual, ordenar por capacidad máxima
-                                return a.capacidadMaxima - b.capacidadMaxima;
-                            })
-                            .map((vehiculo: any) => {
+                        {availableVehicles.map((vehiculo: any) => {
                             const isSelected = formData.vehiculoId === vehiculo.id;
                             const isRecommended = recommendedVehicle?.id === vehiculo.id;
                             const isCapacityCompatible = vehiculo.capacidadMaxima >= formData.numeroPasajeros;
@@ -871,11 +812,6 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                             </div>
                                             <p className="text-[#D6A75D] font-bold mt-2">
                                                 ${Number(vehiculo.precio).toLocaleString()}
-                                                {service.esPorHoras && (
-                                                    <span className="text-xs text-gray-600 font-normal ml-1">
-                                                        / {language === 'es' ? 'hora' : 'hour'}
-                                                    </span>
-                                                )}
                                             </p>
                                         </div>
                                     </div>

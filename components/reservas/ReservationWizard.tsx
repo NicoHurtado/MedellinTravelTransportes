@@ -147,7 +147,9 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     showError(language === 'es' ? 'Por favor ingresa el lugar de recogida/destino' : 'Please enter pickup/destination location');
                     return false;
                 }
-                if (!formData.numeroVuelo || formData.numeroVuelo.trim() === '') {
+                // Número de vuelo es opcional para hoteles, pero requerido para otros aliados
+                const isHotel = aliadoTipo === 'HOTEL';
+                if (!isHotel && (!formData.numeroVuelo || formData.numeroVuelo.trim() === '')) {
                     showError(language === 'es' ? 'Por favor ingresa el número de vuelo' : 'Please enter the flight number');
                     return false;
                 }
