@@ -104,7 +104,7 @@ export default function ReservasPage() {
                     });
                 
                 // Sort services using custom priority order
-                const sortedServices = sortServicesByPriority(activeServices);
+                const sortedServices = sortServicesByPriority(activeServices) as Service[];
                 setServices(sortedServices);
             } else {
                 console.log('[Public] Services data:', data.data);
@@ -112,7 +112,7 @@ export default function ReservasPage() {
                     console.log('[Public] First service vehicles:', data.data[0].vehiculosPermitidos);
                 }
                 // Sort services using custom priority order
-                const sortedServices = sortServicesByPriority(data.data || []);
+                const sortedServices = sortServicesByPriority(data.data || []) as Service[];
                 setServices(sortedServices);
             }
         } catch (error) {

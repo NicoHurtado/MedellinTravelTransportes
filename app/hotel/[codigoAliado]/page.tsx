@@ -160,7 +160,7 @@ export default function HotelPublicPage() {
                 }));
             
             // Sort services using custom priority order
-            const sortedServices = sortServicesByPriority(activeServices);
+            const sortedServices = sortServicesByPriority(activeServices) as Service[];
             setServices(sortedServices);
         } catch (error) {
             console.error('Error loading services:', error);

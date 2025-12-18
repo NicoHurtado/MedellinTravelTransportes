@@ -72,7 +72,7 @@ const NAME_ORDER_MAP: Record<string, number> = {
 
 interface ServiceForSorting {
   tipo: string;
-  nombre: string | { es?: string; en?: string };
+  nombre: any; // Can be string, object, or JsonValue from Prisma
   esAeropuerto?: boolean;
   [key: string]: any;
 }
@@ -81,12 +81,22 @@ interface ServiceForSorting {
  * Extracts text from multi-language field
  */
 function getServiceName(service: ServiceForSorting): string {
+  // Handle null or undefined
+  if (!service.nombre) {
+    return '';
+  }
+  
+  // Handle string
   if (typeof service.nombre === 'string') {
     return service.nombre.toLowerCase();
   }
-  if (typeof service.nombre === 'object' && service.nombre !== null) {
-    return (service.nombre.es || service.nombre.en || '').toLowerCase();
+  
+  // Handle object (multi-language)
+  if (typeof service.nombre === 'object') {
+    const nombre = service.nombre as any;
+    return (nombre.es || nombre.en || '').toLowerCase();
   }
+  
   return '';
 }
 

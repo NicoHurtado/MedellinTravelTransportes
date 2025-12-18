@@ -10,6 +10,7 @@ import AllyHeader from '@/components/landing/AllyHeader';
 import AllyFooter from '@/components/landing/AllyFooter';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
+import { sortServicesByPriority } from '@/lib/service-order';
 
 interface Service {
     id: string;
@@ -150,7 +151,7 @@ export default function ReservaAliadoPage() {
                 });
             
             // Sort services using custom priority order
-            const sortedServices = sortServicesByPriority(activeServices);
+            const sortedServices = sortServicesByPriority(activeServices) as Service[];
             console.log('Final Active Services:', sortedServices);
             setServices(sortedServices);
         } catch (error) {
