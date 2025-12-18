@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sortServicesByPriority } from '@/lib/service-order';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -29,17 +30,26 @@ export async function GET(
                         vehiculo: true
                     }
                 }
-            },
-            orderBy: {
-                servicio: {
-                    esAeropuerto: 'desc' // Airport services first
-                }
             }
         });
 
+        // Create a map of servicio.id -> servicioAliado for quick lookup
+        const servicioAliadoMap = new Map(
+            serviciosAliado.map(sa => [sa.servicio.id, sa])
+        );
+
+        // Extract just the services and sort them
+        const services = serviciosAliado.map(sa => sa.servicio);
+        const sortedServices = sortServicesByPriority(services);
+
+        // Remap sorted services back to serviciosAliado maintaining the sort order
+        const sortedServiciosAliado = sortedServices
+            .map(service => servicioAliadoMap.get(service.id))
+            .filter(Boolean); // Remove any undefined entries
+
         return NextResponse.json({
             success: true,
-            data: serviciosAliado
+            data: sortedServiciosAliado
         });
     } catch (error) {
         console.error('Error fetching servicios aliado:', error);

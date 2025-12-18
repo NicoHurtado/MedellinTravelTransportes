@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { sortServicesByPriority } from '@/lib/service-order';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -43,14 +44,13 @@ export async function GET(request: Request) {
                         vehiculo: true
                     }
                 }
-            },
-            orderBy: [
-                { esAeropuerto: 'desc' }, // Airport services first
-                { nombre: 'asc' }, // Then alphabetically
-            ]
+            }
         });
 
-        return NextResponse.json({ data: servicios, success: true });
+        // Apply custom service ordering based on priority
+        const sortedServicios = sortServicesByPriority(servicios);
+
+        return NextResponse.json({ data: sortedServicios, success: true });
     } catch (error) {
         console.error('Error fetching servicios:', error);
         return NextResponse.json(
