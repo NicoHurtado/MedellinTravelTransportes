@@ -97,6 +97,11 @@ enum AeropuertoTipo {
   HACIA
 }
 
+enum TrasladoTipo {
+  DESDE_UBICACION
+  DESDE_MUNICIPIO
+}
+
 enum AeropuertoNombre {
   JOSE_MARIA_CORDOVA
   OLAYA_HERRERA
@@ -252,6 +257,8 @@ model Reserva {
 
   // Campos Específicos por Tipo de Servicio
   aeropuertoTipo        AeropuertoTipo?
+  trasladoTipo          TrasladoTipo?
+  trasladoDestino       String? // Destino del traslado (municipio o ubicación)
   aeropuertoNombre      AeropuertoNombre?
   numeroVuelo           String?
   lugarRecogida         String?

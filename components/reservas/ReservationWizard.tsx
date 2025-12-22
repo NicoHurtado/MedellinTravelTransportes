@@ -10,7 +10,7 @@ import Step3Notes from './wizard/Step3Notes';
 import Step4Summary from './wizard/Step4Summary';
 import Step5Confirmation from './wizard/Step5Confirmation';
 import { ReservationFormData } from '@/types/reservation';
-import { Idioma, Municipio, TipoDocumento, AeropuertoNombre } from '@prisma/client';
+import { Idioma, Municipio, TipoDocumento, AeropuertoNombre, TrasladoTipo } from '@prisma/client';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { useLanguage, t } from '@/lib/i18n';
 import { formatPrice } from '@/lib/pricing';
@@ -137,6 +137,15 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 }
             }
 
+            // Check if this is a traslado or municipal transport service
+            const isTraslado = service.tipo === 'TRANSPORTE_MUNICIPAL' || (service.nombre && (
+                typeof service.nombre === 'string' 
+                    ? service.nombre.toLowerCase().includes('traslado')
+                    : (typeof service.nombre === 'object' && service.nombre 
+                        ? ((service.nombre as any).ES || (service.nombre as any).es || '')?.toLowerCase().includes('traslado')
+                        : false)
+            ));
+
             // For airport services, additional validations
             if (service.esAeropuerto) {
                 if (!formData.aeropuertoTipo) {
@@ -147,10 +156,25 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     showError(language === 'es' ? 'Por favor ingresa el lugar de recogida/destino' : 'Please enter pickup/destination location');
                     return false;
                 }
-                // Número de vuelo es opcional para hoteles, pero requerido para otros aliados
-                const isHotel = aliadoTipo === 'HOTEL';
-                if (!isHotel && (!formData.numeroVuelo || formData.numeroVuelo.trim() === '')) {
+                // Número de vuelo es OBLIGATORIO solo cuando viaja DESDE el aeropuerto (llegada)
+                // Es OPCIONAL cuando viaja HACIA el aeropuerto (salida)
+                if (formData.aeropuertoTipo === 'DESDE' && (!formData.numeroVuelo || formData.numeroVuelo.trim() === '')) {
                     showError(language === 'es' ? 'Por favor ingresa el número de vuelo' : 'Please enter the flight number');
+                    return false;
+                }
+            } else if (isTraslado) {
+                // For traslado services, validate direction and locations
+                if (!formData.trasladoTipo) {
+                    showError(language === 'es' ? 'Por favor selecciona la dirección del traslado' : 'Please select transfer direction');
+                    return false;
+                }
+                if (!formData.lugarRecogida) {
+                    showError(language === 'es' ? 'Por favor ingresa el lugar de origen' : 'Please enter origin location');
+                    return false;
+                }
+                // For DESDE_MUNICIPIO, destination is required
+                if (formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO && (!formData.trasladoDestino || formData.trasladoDestino.trim() === '')) {
+                    showError(language === 'es' ? 'Por favor ingresa el lugar de destino' : 'Please enter destination location');
                     return false;
                 }
             } else {

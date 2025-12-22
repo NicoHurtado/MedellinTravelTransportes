@@ -417,16 +417,20 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                 <div>
                                     <p className="text-sm text-gray-600">{t.destino}</p>
                                     <p className="font-semibold">
+                                        {/* Airport services */}
                                         {reserva.aeropuertoTipo === 'HACIA'
                                             ? (reserva.aeropuertoNombre === 'JOSE_MARIA_CORDOVA' ? t.aeropuertoJMC : t.aeropuertoOH)
-                                            : (reserva.aeropuertoTipo === 'DESDE'
+                                            : reserva.aeropuertoTipo === 'DESDE'
                                                 ? (reserva.lugarRecogida || t.tuHotel)
-                                                : (reserva.servicio?.destinoAutoFill ||
-                                                    (typeof reserva.servicio?.nombre === 'string'
-                                                        ? reserva.servicio?.nombre
-                                                        : (reserva.servicio?.nombre?.[lang.toLowerCase()] || reserva.servicio?.nombre?.['es']))
-                                                    || t.noEspecificado)
-                                            )
+                                                : /* Traslados and Municipal Transport - use trasladoDestino */
+                                                reserva.trasladoDestino
+                                                    ? reserva.trasladoDestino
+                                                    : /* Fallback to destinoAutoFill or service name */
+                                                    (reserva.servicio?.destinoAutoFill ||
+                                                        (typeof reserva.servicio?.nombre === 'string'
+                                                            ? reserva.servicio?.nombre
+                                                            : (reserva.servicio?.nombre?.[lang.toLowerCase()] || reserva.servicio?.nombre?.['es']))
+                                                        || t.noEspecificado)
                                         }
                                     </p>
                                 </div>

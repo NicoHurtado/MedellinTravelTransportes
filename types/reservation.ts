@@ -1,4 +1,4 @@
-import { Municipio, Idioma, TipoDocumento, AeropuertoTipo, AeropuertoNombre } from '@prisma/client';
+import { Municipio, Idioma, TipoDocumento, AeropuertoTipo, AeropuertoNombre, TrasladoTipo } from '@prisma/client';
 
 export interface Asistente {
     nombre: string;
@@ -19,6 +19,8 @@ export interface ReservationFormData {
     aeropuertoTipo?: AeropuertoTipo;
     aeropuertoNombre?: AeropuertoNombre;
     numeroVuelo?: string;
+    trasladoTipo?: TrasladoTipo;
+    trasladoDestino?: string; // Para autocomplete del nombre del municipio
     lugarRecogida?: string;
     guiaCertificado?: boolean;
     vueltaBote?: boolean;

@@ -196,6 +196,8 @@ export async function POST(request: Request) {
                 aeropuertoTipo: body.aeropuertoTipo || null,
                 aeropuertoNombre: body.aeropuertoNombre || null,
                 numeroVuelo: body.numeroVuelo || null,
+                trasladoTipo: body.trasladoTipo || null,
+                trasladoDestino: body.trasladoDestino || null,
                 lugarRecogida: body.lugarRecogida || null,
                 guiaCertificado: body.guiaCertificado || false,
                 vueltaBote: body.vueltaBote || false,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ReservationFormData } from '@/types/reservation';
-import { Municipio, Idioma, TipoServicio, AeropuertoTipo, AeropuertoNombre } from '@prisma/client';
+import { Municipio, Idioma, TipoServicio, AeropuertoTipo, AeropuertoNombre, TrasladoTipo } from '@prisma/client';
 import { calculateTotalPrice, isNightSurchargeApplicable, formatPrice, MUNICIPALITY_PRICES } from '@/lib/pricing';
 import { FiAlertCircle, FiCheck, FiUsers, FiUser } from 'react-icons/fi';
 import Image from 'next/image';
@@ -38,6 +38,69 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     const isHotel = aliadoTipo === 'HOTEL';
     const hotelName = aliadoNombre || '';
 
+    // 🚗 Check if this is a traslado or municipal transport service (but NOT airport service)
+    const isTraslado = (() => {
+        // Airport services have their own logic, don't treat them as traslados
+        if (service.esAeropuerto) {
+            console.log('🚗 Not a traslado: is airport service');
+            return false;
+        }
+        
+        // Municipal transport services also use traslado logic
+        if (service.tipo === 'TRANSPORTE_MUNICIPAL') {
+            console.log('🚗 Is traslado: municipal transport service');
+            return true;
+        }
+        
+        if (!service.nombre) return false;
+        
+        let nombreText = '';
+        if (typeof service.nombre === 'string') {
+            nombreText = service.nombre;
+        } else if (typeof service.nombre === 'object') {
+            nombreText = service.nombre?.ES || service.nombre?.es || service.nombre?.EN || service.nombre?.en || '';
+        }
+        
+        const esTraslado = nombreText.toLowerCase().includes('traslado') || 
+                          nombreText.toLowerCase().includes('transfer');
+        
+        console.log('🚗 Traslado Detection:', {
+            serviceNombre: service.nombre,
+            nombreText,
+            servicioTipo: service.tipo,
+            esAeropuerto: service.esAeropuerto,
+            esTraslado,
+            serviceId: service.id
+        });
+        
+        return esTraslado;
+    })();
+
+    // Extract municipality name from service name or destinoAutoFill
+    const getMunicipalityFromServiceName = () => {
+        if (!isTraslado) return '';
+        
+        // For municipal transport, use destinoAutoFill if available
+        if (service.tipo === 'TRANSPORTE_MUNICIPAL' && service.destinoAutoFill) {
+            console.log('🏘️ Municipality from destinoAutoFill:', service.destinoAutoFill);
+            return service.destinoAutoFill;
+        }
+        
+        let nombreServicio = '';
+        if (typeof service.nombre === 'string') {
+            nombreServicio = service.nombre;
+        } else if (typeof service.nombre === 'object') {
+            nombreServicio = service.nombre?.ES || service.nombre?.es || '';
+        }
+            
+        // Remove "Traslado " prefix
+        const cleaned = nombreServicio.replace(/^Traslado\s+/i, '').trim();
+        console.log('🏘️ Municipality extracted from name:', cleaned);
+        return cleaned;
+    };
+
+    const municipalityName = getMunicipalityFromServiceName();
+
     console.log('🔧 Dynamic Fields Debug:', {
         serviceId: service.id,
         serviceName: service.nombre,
@@ -57,12 +120,46 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         }
     }, [dynamicFields.length, formData.datosDinamicos, updateFormData]);
 
-    // 🏨 Auto-fill lugarRecogida for hotels
+    // 🏨 Auto-fill lugarRecogida for hotels (but not for traslados)
     useEffect(() => {
+        // Don't auto-fill if it's a traslado service - traslados have their own logic
+        if (isTraslado) return;
+        
         if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
             updateFormData({ lugarRecogida: hotelName });
         }
-    }, [isHotel, hotelName, formData.lugarRecogida, updateFormData]);
+    }, [isHotel, hotelName, formData.lugarRecogida, updateFormData, isTraslado]);
+
+    // 🚗 Auto-fill fields for traslados based on direction (only on direction change)
+    useEffect(() => {
+        if (!isTraslado || !formData.trasladoTipo) return;
+
+        if (formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION) {
+            // From my location to municipality
+            if (aliadoNombre) {
+                // If from ally: auto-fill origin with ally name
+                updateFormData({ 
+                    lugarRecogida: aliadoNombre,
+                    trasladoDestino: municipalityName 
+                });
+            } else {
+                // If independent: leave origin empty, set destination
+                updateFormData({ 
+                    lugarRecogida: '',
+                    trasladoDestino: municipalityName 
+                });
+            }
+        } else if (formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO) {
+            // From municipality to my location
+            // Origin: municipality name (editable for details)
+            // Destination: empty (user fills their destination)
+            updateFormData({ 
+                lugarRecogida: municipalityName,
+                trasladoDestino: '' 
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.trasladoTipo]); // Only run when trasladoTipo changes
 
     // Get available vehicles
     const availableVehicles = (() => {
@@ -102,14 +199,24 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             .sort((a: any, b: any) => a.capacidadMaxima - b.capacidadMaxima)[0]
         : null;
 
-    // Auto-select recommended vehicle when passenger count changes
-    // This ensures the smallest compatible vehicle is always selected
+    // Auto-select recommended vehicle only when:
+    // 1. No vehicle is selected yet, OR
+    // 2. Currently selected vehicle is incompatible with passenger count
     useEffect(() => {
         if (recommendedVehicle && formData.numeroPasajeros > 0) {
-            // Always update to recommended vehicle when passengers change
-            updateFormData({ vehiculoId: recommendedVehicle.id });
+            // Only auto-select if no vehicle is selected yet
+            if (!formData.vehiculoId) {
+                updateFormData({ vehiculoId: recommendedVehicle.id });
+                return;
+            }
+            
+            // Or if current vehicle is incompatible
+            const currentVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
+            if (currentVehicle && currentVehicle.capacidadMaxima < formData.numeroPasajeros) {
+                updateFormData({ vehiculoId: recommendedVehicle.id });
+            }
         }
-    }, [formData.numeroPasajeros, recommendedVehicle, updateFormData]);
+    }, [formData.numeroPasajeros, recommendedVehicle?.id, formData.vehiculoId, updateFormData]);
 
 
 
@@ -279,41 +386,169 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                 </p>
             </div>
 
-            {/* 🚍 TRANSPORTE MUNICIPAL SECTION */}
-            {isTransporteMunicipal && (
-                <div className="space-y-4 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                    <h3 className="font-bold text-lg text-green-900 flex items-center gap-2">
-                        🚍 {language === 'es' ? 'Información del Viaje' : 'Trip Information'}
+            {/* 🚍 TRANSPORTE MUNICIPAL SECTION - Now handled by TRASLADO SECTION below */}
+
+            {/* 🚗 TRASLADO SECTION (for Traslados and Municipal Transport) */}
+            {isTraslado && (
+                <div className={`space-y-4 p-6 rounded-xl border-2 ${
+                    service.tipo === 'TRANSPORTE_MUNICIPAL'
+                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+                        : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
+                }`}>
+                    <h3 className={`font-bold text-lg flex items-center gap-2 ${
+                        service.tipo === 'TRANSPORTE_MUNICIPAL'
+                            ? 'text-green-900'
+                            : 'text-purple-900'
+                    }`}>
+                        {service.tipo === 'TRANSPORTE_MUNICIPAL' ? '🚍' : '🚗'} 
+                        {' '}
+                        {language === 'es' 
+                            ? (service.tipo === 'TRANSPORTE_MUNICIPAL' ? 'Detalles del Transporte' : 'Detalles del Traslado')
+                            : (service.tipo === 'TRANSPORTE_MUNICIPAL' ? 'Transport Details' : 'Transfer Details')
+                        }
                     </h3>
 
-                    {/* Destino (readonly - ya seleccionado) */}
+                    {/* Direction Selection - Buttons */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {language === 'es' ? 'Destino' : 'Destination'}
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            {language === 'es' ? 'Dirección del Viaje' : 'Trip Direction'} *
                         </label>
-                        <div className="px-4 py-3 bg-white border-2 border-green-300 rounded-lg font-semibold text-gray-900">
-                            {service.destinoAutoFill || service.nombre}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => updateFormData({ trasladoTipo: TrasladoTipo.DESDE_UBICACION })}
+                                className={`p-4 rounded-lg border-2 transition-all text-left ${formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION
+                                    ? 'border-[#D6A75D] bg-[#D6A75D]/10 ring-2 ring-[#D6A75D]/50'
+                                    : 'border-gray-300 hover:border-[#D6A75D]/50 bg-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION
+                                        ? 'border-[#D6A75D] bg-[#D6A75D]'
+                                        : 'border-gray-300'
+                                        }`}>
+                                        {formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION && (
+                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900">
+                                            {language === 'es' ? 'Desde mi Ubicación' : 'From my Location'}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {language === 'es' ? `Hasta ${municipalityName}` : `To ${municipalityName}`}
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => updateFormData({ trasladoTipo: TrasladoTipo.DESDE_MUNICIPIO })}
+                                className={`p-4 rounded-lg border-2 transition-all text-left ${formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO
+                                    ? 'border-[#D6A75D] bg-[#D6A75D]/10 ring-2 ring-[#D6A75D]/50'
+                                    : 'border-gray-300 hover:border-[#D6A75D]/50 bg-white'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO
+                                        ? 'border-[#D6A75D] bg-[#D6A75D]'
+                                        : 'border-gray-300'
+                                        }`}>
+                                        {formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO && (
+                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900">
+                                            {language === 'es' ? `Desde ${municipalityName}` : `From ${municipalityName}`}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {language === 'es' ? 'Hasta mi Ubicación' : 'To my Location'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     </div>
 
-                    {/* Dirección de Origen (texto libre) */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {language === 'es' ? 'Dirección de Origen' : 'Origin Address'} *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.lugarRecogida || ''}
-                            onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
-                            placeholder={language === 'es' ? 'Ej: Calle 10 # 20-30, El Poblado' : 'Ex: Street 10 # 20-30, El Poblado'}
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {language === 'es' 
-                                ? 'Ingresa la dirección completa desde donde te recogeremos' 
-                                : 'Enter the complete address where we will pick you up'}
-                        </p>
-                    </div>
+                    {/* Origin/Destination based on direction */}
+                    {formData.trasladoTipo && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Origin */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('reservas.paso1_origen', language)} *
+                                </label>
+                                {formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION && aliadoNombre ? (
+                                    // From ally location - readonly
+                                    <input
+                                        type="text"
+                                        value={aliadoNombre}
+                                        readOnly
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                                    />
+                                ) : formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO ? (
+                                    // From municipality - editable with default
+                                    <input
+                                        type="text"
+                                        value={formData.lugarRecogida || ''}
+                                        onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
+                                        placeholder={language === 'es' ? `Ej: ${municipalityName} - Parque Principal` : `E.g.: ${municipalityName} - Main Square`}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                    />
+                                ) : (
+                                    // From my location (no ally) - editable
+                                    <input
+                                        type="text"
+                                        value={formData.lugarRecogida || ''}
+                                        onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
+                                        placeholder={language === 'es' ? 'Ej: Hotel Dann Carlton, Parque Lleras, Mi Casa' : 'E.g.: Dann Carlton Hotel, Lleras Park, My Home'}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                    />
+                                )}
+                                {formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION && !aliadoNombre && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {language === 'es' 
+                                            ? 'Ingresa tu dirección de origen o punto de encuentro' 
+                                            : 'Enter your origin address or meeting point'}
+                                    </p>
+                                )}
+                                {formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {language === 'es' 
+                                            ? 'Puedes agregar detalles como "Parque Principal" o una dirección específica' 
+                                            : 'You can add details like "Main Square" or a specific address'}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Destination */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('reservas.paso1_destino', language)} *
+                                </label>
+                                {formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION ? (
+                                    // To municipality - readonly
+                                    <input
+                                        type="text"
+                                        value={municipalityName}
+                                        readOnly
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                                    />
+                                ) : (
+                                    // To my location - editable
+                                    <input
+                                        type="text"
+                                        value={formData.trasladoDestino || ''}
+                                        onChange={(e) => updateFormData({ trasladoDestino: e.target.value })}
+                                        placeholder={language === 'es' ? 'Ej: Hotel X en Medellín, El Poblado' : 'E.g.: Hotel X in Medellín, El Poblado'}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -502,8 +737,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     {/* Flight Number */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('reservas.paso1_numero_vuelo', language)}{!isHotel && ' *'}
-                            {isHotel && <span className="text-gray-500 text-xs ml-1">({language === 'es' ? 'opcional' : 'optional'})</span>}
+                            {t('reservas.paso1_numero_vuelo', language)}
+                            {formData.aeropuertoTipo === 'DESDE' ? ' *' : ''}
+                            {formData.aeropuertoTipo === 'HACIA' && <span className="text-gray-500 text-xs ml-1">({language === 'es' ? 'opcional' : 'optional'})</span>}
                         </label>
                         <input
                             type="text"
@@ -518,8 +754,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* Common Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Origen fijo para hoteles en servicios NO aeropuerto */}
-                {!service.esAeropuerto && !isTransporteMunicipal && isHotel && (
+                {/* Origen fijo para hoteles en servicios NO aeropuerto y NO traslado */}
+                {!service.esAeropuerto && !isTransporteMunicipal && !isTraslado && isHotel && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_origen', language)} *
@@ -533,8 +769,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 )}
 
-                {/* Destino (Auto-fill or Select) - Only show if NOT airport service AND NOT municipal transport */}
-                {service.destinoAutoFill && !service.esAeropuerto && !isTransporteMunicipal ? (
+                {/* Destino (Auto-fill or Select) - Only show if NOT airport service AND NOT municipal transport AND NOT traslado */}
+                {service.destinoAutoFill && !service.esAeropuerto && !isTransporteMunicipal && !isTraslado ? (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {language === 'es' ? 'Destino' : 'Destination'}
@@ -548,8 +784,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport */}
-                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && (
+                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport AND NOT traslado */}
+                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && !isTraslado && (
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             {t('reservas.paso1_lugar_recogida', language)} *

@@ -158,16 +158,16 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                     {/* Origen */}
                     <div>
                         <span className="text-gray-600">
-                            {formData.aeropuertoTipo === 'DESDE'
-                                ? (language === 'es' ? 'Origen' : 'Origin')
-                                : t('reservas.paso1_lugar_recogida', language)}:
+                            {language === 'es' ? 'Origen' : 'Origin'}:
                         </span>
                         <p className="font-medium">
                             {formData.aeropuertoTipo === 'DESDE'
                                 ? ((formData.aeropuertoNombre === 'JOSE_MARIA_CORDOVA' || !formData.aeropuertoNombre)
                                     ? (language === 'es' ? 'Aeropuerto JMC' : 'JMC Airport')
                                     : (language === 'es' ? 'Aeropuerto Olaya Herrera' : 'Olaya Herrera Airport'))
-                                : (formData.lugarRecogida || (language === 'es' ? 'No especificado' : 'Not specified'))}
+                                : formData.trasladoTipo === 'DESDE_MUNICIPIO'
+                                    ? (formData.lugarRecogida || (language === 'es' ? 'No especificado' : 'Not specified'))
+                                    : (formData.lugarRecogida || (language === 'es' ? 'No especificado' : 'Not specified'))}
                         </p>
                     </div>
 
@@ -179,10 +179,13 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                                 ? ((formData.aeropuertoNombre === 'JOSE_MARIA_CORDOVA' || !formData.aeropuertoNombre)
                                     ? (language === 'es' ? 'Aeropuerto JMC' : 'JMC Airport')
                                     : (language === 'es' ? 'Aeropuerto Olaya Herrera' : 'Olaya Herrera Airport'))
-                                : (formData.aeropuertoTipo === 'DESDE'
+                                : formData.aeropuertoTipo === 'DESDE'
                                     ? (formData.lugarRecogida || (language === 'es' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence'))
-                                    : (service.destinoAutoFill || service.nombre || (language === 'es' ? 'No especificado' : 'Not specified'))
-                                )
+                                    : formData.trasladoTipo === 'DESDE_UBICACION'
+                                        ? (formData.trasladoDestino || (language === 'es' ? 'No especificado' : 'Not specified'))
+                                        : formData.trasladoTipo === 'DESDE_MUNICIPIO'
+                                            ? (formData.trasladoDestino || (language === 'es' ? 'No especificado' : 'Not specified'))
+                                            : (service.destinoAutoFill || service.nombre || (language === 'es' ? 'No especificado' : 'Not specified'))
                             }
                         </p>
                     </div>
