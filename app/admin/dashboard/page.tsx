@@ -234,18 +234,18 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-                <div className="px-8 py-6">
+                <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
-                            <p className="text-sm text-gray-500 mt-1">Gestión de Reservas y Estadísticas</p>
+                        <div className="ml-0 lg:ml-0">
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reservas</h1>
+                            <p className="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">Gestión de Reservas y Estadísticas</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="text-right">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="text-right hidden md:block">
                                 <p className="text-sm font-medium text-gray-900">{session.user?.name}</p>
                                 <p className="text-xs text-gray-500">{session.user?.email}</p>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-[#D6A75D] flex items-center justify-center text-white font-bold">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D6A75D] flex items-center justify-center text-white font-bold text-sm sm:text-base">
                                 {session.user?.name?.charAt(0) || 'A'}
                             </div>
                         </div>
@@ -253,9 +253,9 @@ export default function AdminDashboard() {
                 </div>
             </header>
 
-            <main className="px-8 py-6 space-y-6">
+            <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
                 {/* KPIs */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                     {kpis.map((kpi, index) => {
                         const Icon = kpi.icon;
                         const isActive = estadoFilter === kpi.estado;
@@ -263,18 +263,18 @@ export default function AdminDashboard() {
                             <button
                                 key={index}
                                 onClick={() => setEstadoFilter(estadoFilter === kpi.estado ? '' : kpi.estado)}
-                                className={`bg-white rounded-xl p-6 shadow-sm border transition-all text-left w-full ${isActive
+                                className={`bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-sm border transition-all text-left w-full ${isActive
                                     ? 'border-[#D6A75D] shadow-lg ring-2 ring-[#D6A75D] ring-opacity-50'
                                     : 'border-gray-100 hover:shadow-md hover:border-gray-300'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-600 mb-1">{kpi.title}</p>
-                                        <p className="text-3xl font-bold text-gray-900">{kpi.value}</p>
+                                        <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{kpi.title}</p>
+                                        <p className="text-2xl sm:text-3xl font-bold text-gray-900">{kpi.value}</p>
                                     </div>
-                                    <div className={`${kpi.bgColor} ${kpi.textColor} p-3 rounded-lg`}>
-                                        <Icon size={24} />
+                                    <div className={`${kpi.bgColor} ${kpi.textColor} p-2 sm:p-3 rounded-lg`}>
+                                        <Icon size={20} className="sm:w-6 sm:h-6" />
                                     </div>
                                 </div>
                                 {isActive && (
@@ -288,21 +288,21 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-2 mb-4">
-                        <FiFilter className="text-gray-400" size={20} />
-                        <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
+                <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <FiFilter className="text-gray-400" size={18} />
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Filtros</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                         {/* Search */}
                         <div className="relative">
-                            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
                                 type="text"
                                 placeholder="Buscar por código, cliente o servicio..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                className="w-full pl-10 pr-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                             />
                         </div>
 
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
                         <select
                             value={estadoFilter}
                             onChange={(e) => setEstadoFilter(e.target.value)}
-                            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            className="px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         >
                             {estados.map((estado) => (
                                 <option key={estado.value} value={estado.value}>
@@ -322,46 +322,46 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Reservations Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-gray-900">
+                <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <h2 className="text-base sm:text-lg font-semibold text-gray-900">
                             Reservas ({filteredReservas.length})
                         </h2>
                         {filteredReservas.length > 0 && (
-                            <p className="text-sm text-gray-500">
-                                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredReservas.length)} de {filteredReservas.length} resultados
+                            <p className="text-xs sm:text-sm text-gray-500">
+                                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredReservas.length)} de {filteredReservas.length}
                             </p>
                         )}
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[800px]">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Creada
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Código
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Cliente
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Servicio
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Fecha
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Estado
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Aliado
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Total
                                     </th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                         Acciones
                                     </th>
                                 </tr>
@@ -369,7 +369,7 @@ export default function AdminDashboard() {
                             <tbody className="divide-y divide-gray-200">
                                 {paginatedReservas.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                                        <td colSpan={9} className="px-4 sm:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm">
                                             No se encontraron reservas
                                         </td>
                                     </tr>
@@ -380,16 +380,16 @@ export default function AdminDashboard() {
                                             onClick={() => router.push(`/admin/dashboard/reservas/${reserva.id}`)}
                                             className="hover:bg-gray-50 transition-colors cursor-pointer"
                                         >
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                 <div>
-                                                    <p className="text-sm text-gray-900">
+                                                    <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
                                                         {new Date(reserva.createdAt).toLocaleDateString('es-CO', {
                                                             day: '2-digit',
                                                             month: '2-digit',
                                                             year: 'numeric'
                                                         })}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">
+                                                    <p className="text-xs text-gray-500 whitespace-nowrap">
                                                         {new Date(reserva.createdAt).toLocaleTimeString('es-CO', {
                                                             hour: '2-digit',
                                                             minute: '2-digit'
@@ -397,63 +397,63 @@ export default function AdminDashboard() {
                                                     </p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className="font-mono text-sm font-semibold text-[#D6A75D]">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                <span className="font-mono text-xs sm:text-sm font-semibold text-[#D6A75D] whitespace-nowrap">
                                                     {reserva.codigo}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                 <div>
-                                                    <p className="font-medium text-gray-900">{reserva.nombreCliente}</p>
-                                                    <p className="text-sm text-gray-500">{reserva.emailCliente}</p>
+                                                    <p className="text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">{reserva.nombreCliente}</p>
+                                                    <p className="text-xs text-gray-500 truncate max-w-[150px]">{reserva.emailCliente}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-sm text-gray-900">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                <span className="text-xs sm:text-sm text-gray-900">
                                                     {reserva.servicio?.nombre ? getLocalizedText(reserva.servicio.nombre, 'ES') : 'N/A'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                 <div>
-                                                    <p className="text-sm text-gray-900">
+                                                    <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
                                                         {(() => {
                                                             const dateStr = new Date(reserva.fecha).toISOString().split('T')[0];
                                                             const [year, month, day] = dateStr.split('-');
                                                             return `${day}/${month}/${year}`;
                                                         })()}
                                                     </p>
-                                                    <p className="text-xs text-gray-500">{reserva.hora}</p>
+                                                    <p className="text-xs text-gray-500 whitespace-nowrap">{reserva.hora}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getStateColor(reserva.estado)}`}>
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium ${getStateColor(reserva.estado)}`}>
                                                     {getStateLabel(reserva.estado)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                 {reserva.esReservaAliado && reserva.aliado ? (
                                                     <div>
-                                                        <p className="text-sm font-medium text-blue-600">{reserva.aliado.nombre}</p>
+                                                        <p className="text-xs sm:text-sm font-medium text-blue-600 whitespace-nowrap">{reserva.aliado.nombre}</p>
                                                         <p className="text-xs text-gray-500">Reserva de aliado</p>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-gray-400">-</span>
+                                                    <span className="text-xs sm:text-sm text-gray-400">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className="font-semibold text-gray-900">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                <span className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
                                                     ${Number(reserva.precioTotal).toLocaleString('es-CO')}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         router.push(`/admin/dashboard/reservas/${reserva.id}`);
                                                     }}
-                                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+                                                    className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
                                                 >
-                                                    <FiEye size={16} />
+                                                    <FiEye size={14} className="sm:w-4 sm:h-4" />
                                                     Ver
                                                 </button>
                                             </td>
@@ -466,10 +466,10 @@ export default function AdminDashboard() {
 
                     {/* Pagination Controls */}
                     {filteredReservas.length > 0 && (
-                        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
                             {/* Items per page selector */}
                             <div className="flex items-center gap-2">
-                                <label htmlFor="itemsPerPage" className="text-sm text-gray-600">
+                                <label htmlFor="itemsPerPage" className="text-xs sm:text-sm text-gray-600">
                                     Mostrar:
                                 </label>
                                 <select
@@ -479,37 +479,37 @@ export default function AdminDashboard() {
                                         setItemsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                                 >
                                     <option value={10}>10</option>
                                     <option value={20}>20</option>
                                     <option value={50}>50</option>
                                     <option value={100}>100</option>
                                 </select>
-                                <span className="text-sm text-gray-600">por página</span>
+                                <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">por página</span>
                             </div>
 
                             {/* Page navigation */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 sm:gap-2">
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1}
-                                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    Anterior
+                                    Ant
                                 </button>
 
                                 <div className="flex items-center gap-1">
                                     {getPageNumbers().map((page, index) => (
                                         page === '...' ? (
-                                            <span key={`ellipsis-${index}`} className="px-3 py-1.5 text-gray-500">
+                                            <span key={`ellipsis-${index}`} className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-500">
                                                 ...
                                             </span>
                                         ) : (
                                             <button
                                                 key={page}
                                                 onClick={() => setCurrentPage(page as number)}
-                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                                                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
                                                     ? 'bg-[#D6A75D] text-white'
                                                     : 'text-gray-700 hover:bg-gray-100'
                                                     }`}
@@ -523,9 +523,9 @@ export default function AdminDashboard() {
                                 <button
                                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage === totalPages}
-                                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    Siguiente
+                                    Sig
                                 </button>
                             </div>
                         </div>
