@@ -157,21 +157,21 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
         const isMunicipalTransport = servicio?.tipo === 'TRANSPORTE_MUNICIPAL';
 
         const precioIndex = config.preciosVehiculos.findIndex(pv => pv.vehiculoId === vehiculoId);
-        
+
         let updatedPrecio: PrecioVehiculo;
-        
+
         if (precioIndex >= 0) {
             updatedPrecio = { ...config.preciosVehiculos[precioIndex] };
-            
+
             // Update the field that changed
             updatedPrecio[field] = value;
-            
+
             // For municipal transport, auto-calculate 10% commission when price changes
             if (isMunicipalTransport && field === 'precio') {
                 const precio = parseFloat(value) || 0;
                 updatedPrecio.comision = Math.round(precio * 0.1).toString();
             }
-            
+
             config.preciosVehiculos[precioIndex] = updatedPrecio;
         } else {
             // Creating new price entry
@@ -180,13 +180,13 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
                 precio: field === 'precio' ? value : '0',
                 comision: field === 'comision' ? value : '0'
             };
-            
+
             // For municipal transport, auto-calculate 10% commission
             if (isMunicipalTransport && field === 'precio') {
                 const precio = parseFloat(value) || 0;
                 updatedPrecio.comision = Math.round(precio * 0.1).toString();
             }
-            
+
             config.preciosVehiculos.push(updatedPrecio);
         }
 
@@ -205,7 +205,7 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
         setSaving(true);
         try {
             // Guardar configuraciones de servicios
-            const serviciosActivos = Array.from(configuraciones.values()).filter(c => c.activo);
+            const serviciosActivos = Array.from(configuraciones.values());
 
             for (const config of serviciosActivos) {
                 await fetch(`/api/aliados/${aliadoId}/servicios`, {
@@ -383,7 +383,7 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
                 <div>
                     <Card padding="none" className="overflow-hidden">
                         {/* Header de la sección municipal */}
-                        <div 
+                        <div
                             className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200 cursor-pointer hover:from-green-100 hover:to-emerald-100 transition-colors"
                             onClick={() => setMunicipalSectionExpanded(!municipalSectionExpanded)}
                         >

@@ -78,6 +78,36 @@ export async function PUT(
             updateData.idioma = body.idioma;
         }
 
+        // Service Details Updates
+        if (body.fecha) {
+            // Ensure we store it as a proper Date object
+            updateData.fecha = new Date(body.fecha);
+        }
+        if (body.hora) {
+            updateData.hora = body.hora;
+        }
+        if (body.numeroPasajeros) {
+            updateData.numeroPasajeros = Number(body.numeroPasajeros);
+        }
+        if (body.vehiculoId) {
+            updateData.vehiculoId = body.vehiculoId;
+        }
+        if (body.municipio !== undefined) {
+            updateData.municipio = body.municipio;
+        }
+        if (body.numeroVuelo !== undefined) {
+            updateData.numeroVuelo = body.numeroVuelo;
+        }
+        if (body.lugarRecogida !== undefined) {
+            updateData.lugarRecogida = body.lugarRecogida;
+        }
+        if (body.notas !== undefined) {
+            updateData.notas = body.notas;
+        }
+        if (body.aeropuertoNombre !== undefined) {
+            updateData.aeropuertoNombre = body.aeropuertoNombre;
+        }
+
         // Pricing updates (for quotes)
         if (body.precioTotal !== undefined) {
             updateData.precioTotal = parseFloat(body.precioTotal);
@@ -139,9 +169,19 @@ export async function PUT(
         // Sync with Google Calendar if needed
         if (body.estado || body.conductorId || body.fecha || body.hora) {
             try {
-                const { updateCalendarEvent } = await import('@/lib/google-calendar-service');
+                const { updateCalendarEvent, deleteCalendarEvent } = await import('@/lib/google-calendar-service');
                 if (reserva.googleCalendarEventId) {
-                    await updateCalendarEvent(reserva as any);
+                    if (reserva.estado === EstadoReserva.CANCELADA) {
+                        await deleteCalendarEvent(reserva.googleCalendarEventId);
+
+                        // Clean up the ID from our database since it's gone from Calendar
+                        await prisma.reserva.update({
+                            where: { id: params.id },
+                            data: { googleCalendarEventId: null }
+                        });
+                    } else {
+                        await updateCalendarEvent(reserva as any);
+                    }
                 }
             } catch (calendarError) {
                 console.error('Error updating calendar event:', calendarError);

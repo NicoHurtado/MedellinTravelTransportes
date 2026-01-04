@@ -35,12 +35,23 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [vehiculos, setVehiculos] = useState<any[]>([]);
 
     // Form states
     const [selectedConductor, setSelectedConductor] = useState('');
-
     const [selectedEstado, setSelectedEstado] = useState<string>('');
     const [quotePrice, setQuotePrice] = useState<number>(0);
+
+    // Editable Service Details
+    const [fecha, setFecha] = useState('');
+    const [hora, setHora] = useState('');
+    const [numeroPasajeros, setNumeroPasajeros] = useState(1);
+    const [vehiculoId, setVehiculoId] = useState('');
+    const [municipio, setMunicipio] = useState('');
+    const [numeroVuelo, setNumeroVuelo] = useState('');
+    const [lugarRecogida, setLugarRecogida] = useState('');
+    const [notas, setNotas] = useState('');
+    const [aeropuertoNombre, setAeropuertoNombre] = useState('');
 
     // Customer Edit States
     const [nombreCliente, setNombreCliente] = useState('');
@@ -75,11 +86,30 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
             setWhatsappCliente(dataReserva.whatsappCliente || '');
             setIdioma(dataReserva.idioma || 'ES');
 
+            // Initialize service edit states
+            setFecha(dataReserva.fecha ? new Date(dataReserva.fecha).toISOString().split('T')[0] : '');
+            setHora(dataReserva.hora || '');
+            setNumeroPasajeros(dataReserva.numeroPasajeros || 1);
+            setVehiculoId(dataReserva.vehiculoId || '');
+            setMunicipio(dataReserva.municipio || '');
+            setNumeroVuelo(dataReserva.numeroVuelo || '');
+            setLugarRecogida(dataReserva.lugarRecogida || '');
+            setNotas(dataReserva.notas || '');
+            setAeropuertoNombre(dataReserva.aeropuertoNombre || '');
+
             // Fetch Conductores
             const resConductores = await fetch('/api/conductores?activo=true');
             if (resConductores.ok) {
                 const dataConductores = await resConductores.json();
                 setConductores(dataConductores.data || []);
+            }
+
+            // Fetch Vehiculos (All active vehicles)
+            const resVehiculos = await fetch('/api/vehiculos');
+            if (resVehiculos.ok) {
+                const dataVehiculos = await resVehiculos.json();
+                // API usually returns { data: [...] } or just [...]
+                setVehiculos(dataVehiculos.data || dataVehiculos || []);
             }
 
 
@@ -108,7 +138,17 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                 nombreCliente,
                 emailCliente,
                 whatsappCliente,
-                idioma
+                idioma,
+                // Service Details
+                fecha,
+                hora,
+                numeroPasajeros: Number(numeroPasajeros),
+                vehiculoId: vehiculoId || null,
+                municipio,
+                numeroVuelo,
+                lugarRecogida,
+                notas,
+                aeropuertoNombre
             };
 
             // If updating price for quote
@@ -270,18 +310,32 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Fecha y Hora</label>
-                                    <div className="flex items-center gap-2">
-                                        <FiCalendar className="text-gray-400" />
-                                        <p className="font-medium">
-                                            {formatReservationDate(reserva.fecha, 'es-CO', 'short')} - {reserva.hora}
-                                        </p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="date"
+                                            value={fecha}
+                                            onChange={(e) => setFecha(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
+                                        <input
+                                            type="time"
+                                            value={hora}
+                                            onChange={(e) => setHora(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Pasajeros</label>
                                     <div className="flex items-center gap-2">
                                         <FiUsers className="text-gray-400" />
-                                        <p className="font-medium">{reserva.numeroPasajeros}</p>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={numeroPasajeros}
+                                            onChange={(e) => setNumeroPasajeros(Number(e.target.value))}
+                                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
                                     </div>
                                 </div>
                                 {/* Cantidad de Horas - Only for hourly services */}
@@ -296,17 +350,26 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                 )}
                                 <div>
                                     <label className="block text-sm text-gray-500 mb-1">Municipio</label>
-                                    <p className="font-medium">{reserva.municipio}</p>
+                                    <input
+                                        type="text"
+                                        value={municipio}
+                                        onChange={(e) => setMunicipio(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                    />
                                 </div>
                                 {/* Número de Vuelo - Solo para servicios de aeropuerto */}
                                 {reserva.servicio?.esAeropuerto && (
-                                    <div className={`md:col-span-2 p-4 rounded-lg border ${reserva.numeroVuelo ? 'bg-blue-50 border-blue-100' : 'bg-yellow-50 border-yellow-200'}`}>
-                                        <label className={`block text-sm font-bold mb-1 ${reserva.numeroVuelo ? 'text-blue-800' : 'text-yellow-800'}`}>
+                                    <div className={`md:col-span-2 p-4 rounded-lg border ${numeroVuelo ? 'bg-blue-50 border-blue-100' : 'bg-yellow-50 border-yellow-200'}`}>
+                                        <label className={`block text-sm font-bold mb-1 ${numeroVuelo ? 'text-blue-800' : 'text-yellow-800'}`}>
                                             ✈️ Número de Vuelo
                                         </label>
-                                        <p className={`text-lg font-bold ${reserva.numeroVuelo ? 'text-blue-900' : 'text-yellow-700 italic'}`}>
-                                            {reserva.numeroVuelo || 'No especificado'}
-                                        </p>
+                                        <input
+                                            type="text"
+                                            value={numeroVuelo}
+                                            onChange={(e) => setNumeroVuelo(e.target.value)}
+                                            placeholder="Ej: AV9364"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none bg-white"
+                                        />
                                     </div>
                                 )}
                                 {/* Origen / Lugar de Recogida */}
@@ -314,11 +377,24 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     <label className="block text-sm text-gray-500 mb-1">
                                         {reserva.aeropuertoTipo === 'DESDE' ? 'Origen' : 'Lugar de Recogida'}
                                     </label>
-                                    <p className="font-medium">
-                                        {reserva.aeropuertoTipo === 'DESDE'
-                                            ? (reserva.aeropuertoNombre === 'JOSE_MARIA_CORDOVA' ? 'Aeropuerto JMC' : 'Aeropuerto Olaya Herrera')
-                                            : (reserva.lugarRecogida || 'No especificado')}
-                                    </p>
+                                    {reserva.aeropuertoTipo === 'DESDE' ? (
+                                        <select
+                                            value={aeropuertoNombre}
+                                            onChange={(e) => setAeropuertoNombre(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        >
+                                            <option value="">Seleccionar Aeropuerto</option>
+                                            <option value="JOSE_MARIA_CORDOVA">Aeropuerto JMC</option>
+                                            <option value="OLAYA_HERRERA">Aeropuerto Olaya Herrera</option>
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={lugarRecogida}
+                                            onChange={(e) => setLugarRecogida(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        />
+                                    )}
                                 </div>
                                 {/* Destino */}
                                 <div>
@@ -337,18 +413,30 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                         }
                                     </p>
                                 </div>
-                                {reserva.vehiculo && (
-                                    <div>
-                                        <label className="block text-sm text-gray-500 mb-1">Vehículo</label>
-                                        <p className="font-medium">{reserva.vehiculo.nombre}</p>
-                                    </div>
-                                )}
-                                {reserva.notas && (
-                                    <div className="md:col-span-2 bg-yellow-50 p-4 rounded-lg border border-yellow-100">
-                                        <label className="block text-sm text-yellow-800 font-bold mb-1">Notas Adicionales</label>
-                                        <p className="text-sm text-yellow-900">{reserva.notas}</p>
-                                    </div>
-                                )}
+                                <div>
+                                    <label className="block text-sm text-gray-500 mb-1">Vehículo ({reserva.vehiculo?.nombre})</label>
+                                    <select
+                                        value={vehiculoId}
+                                        onChange={(e) => setVehiculoId(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                    >
+                                        <option value="">Seleccionar Vehículo</option>
+                                        {vehiculos.map((v) => (
+                                            <option key={v.id} value={v.id}>
+                                                {v.nombre} ({v.pasajerosMax} pax)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm text-gray-500 mb-1">Notas Adicionales</label>
+                                    <textarea
+                                        value={notas}
+                                        onChange={(e) => setNotas(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                        rows={3}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -421,7 +509,7 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                                                 const tipo = field.tipo ? field.tipo.toUpperCase() : '';
                                                                 const label = field.etiqueta?.es || field.label || fieldKey;
                                                                 const tienePrecio = field.tienePrecio !== false; // Default true
-                                                                
+
                                                                 if (!tienePrecio) return;
 
                                                                 let itemPrice = 0;

@@ -45,25 +45,25 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             console.log('🚗 Not a traslado: is airport service');
             return false;
         }
-        
+
         // Municipal transport services also use traslado logic
         if (service.tipo === 'TRANSPORTE_MUNICIPAL') {
             console.log('🚗 Is traslado: municipal transport service');
             return true;
         }
-        
+
         if (!service.nombre) return false;
-        
+
         let nombreText = '';
         if (typeof service.nombre === 'string') {
             nombreText = service.nombre;
         } else if (typeof service.nombre === 'object') {
             nombreText = service.nombre?.ES || service.nombre?.es || service.nombre?.EN || service.nombre?.en || '';
         }
-        
-        const esTraslado = nombreText.toLowerCase().includes('traslado') || 
-                          nombreText.toLowerCase().includes('transfer');
-        
+
+        const esTraslado = nombreText.toLowerCase().includes('traslado') ||
+            nombreText.toLowerCase().includes('transfer');
+
         console.log('🚗 Traslado Detection:', {
             serviceNombre: service.nombre,
             nombreText,
@@ -72,27 +72,27 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             esTraslado,
             serviceId: service.id
         });
-        
+
         return esTraslado;
     })();
 
     // Extract municipality name from service name or destinoAutoFill
     const getMunicipalityFromServiceName = () => {
         if (!isTraslado) return '';
-        
+
         // For municipal transport, use destinoAutoFill if available
         if (service.tipo === 'TRANSPORTE_MUNICIPAL' && service.destinoAutoFill) {
             console.log('🏘️ Municipality from destinoAutoFill:', service.destinoAutoFill);
             return service.destinoAutoFill;
         }
-        
+
         let nombreServicio = '';
         if (typeof service.nombre === 'string') {
             nombreServicio = service.nombre;
         } else if (typeof service.nombre === 'object') {
             nombreServicio = service.nombre?.ES || service.nombre?.es || '';
         }
-            
+
         // Remove "Traslado " prefix
         const cleaned = nombreServicio.replace(/^Traslado\s+/i, '').trim();
         console.log('🏘️ Municipality extracted from name:', cleaned);
@@ -124,7 +124,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
     useEffect(() => {
         // Don't auto-fill if it's a traslado service - traslados have their own logic
         if (isTraslado) return;
-        
+
         if (isHotel && hotelName && formData.lugarRecogida !== hotelName) {
             updateFormData({ lugarRecogida: hotelName });
         }
@@ -138,27 +138,27 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             // From my location to municipality
             if (aliadoNombre) {
                 // If from ally: auto-fill origin with ally name
-                updateFormData({ 
+                updateFormData({
                     lugarRecogida: aliadoNombre,
-                    trasladoDestino: municipalityName 
+                    trasladoDestino: municipalityName
                 });
             } else {
                 // If independent: leave origin empty, set destination
-                updateFormData({ 
+                updateFormData({
                     lugarRecogida: '',
-                    trasladoDestino: municipalityName 
+                    trasladoDestino: municipalityName
                 });
             }
         } else if (formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO) {
             // From municipality to my location
             // Origin: municipality name (editable for details)
             // Destination: empty (user fills their destination)
-            updateFormData({ 
+            updateFormData({
                 lugarRecogida: municipalityName,
-                trasladoDestino: '' 
+                trasladoDestino: ''
             });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData.trasladoTipo]); // Only run when trasladoTipo changes
 
     // Get available vehicles
@@ -209,7 +209,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                 updateFormData({ vehiculoId: recommendedVehicle.id });
                 return;
             }
-            
+
             // Or if current vehicle is incompatible
             const currentVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
             if (currentVehicle && currentVehicle.capacidadMaxima < formData.numeroPasajeros) {
@@ -337,12 +337,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             precioTotal: totalConDinamico,
         });
     }, [
-        formData.hora, 
-        formData.municipio, 
-        dynamicPrice, 
-        formData.datosDinamicos, 
-        formData.vehiculoId, 
-        formData.numeroPasajeros, 
+        formData.hora,
+        formData.municipio,
+        dynamicPrice,
+        formData.datosDinamicos,
+        formData.vehiculoId,
+        formData.numeroPasajeros,
         availableVehicles,
         preciosPersonalizados,
         tarifasMunicipios,
@@ -390,19 +390,17 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* 🚗 TRASLADO SECTION (for Traslados and Municipal Transport) */}
             {isTraslado && (
-                <div className={`space-y-4 p-6 rounded-xl border-2 ${
-                    service.tipo === 'TRANSPORTE_MUNICIPAL'
+                <div className={`space-y-4 p-6 rounded-xl border-2 ${service.tipo === 'TRANSPORTE_MUNICIPAL'
                         ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
                         : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
-                }`}>
-                    <h3 className={`font-bold text-lg flex items-center gap-2 ${
-                        service.tipo === 'TRANSPORTE_MUNICIPAL'
+                    }`}>
+                    <h3 className={`font-bold text-lg flex items-center gap-2 ${service.tipo === 'TRANSPORTE_MUNICIPAL'
                             ? 'text-green-900'
                             : 'text-purple-900'
-                    }`}>
-                        {service.tipo === 'TRANSPORTE_MUNICIPAL' ? '🚍' : '🚗'} 
+                        }`}>
+                        {service.tipo === 'TRANSPORTE_MUNICIPAL' ? '🚍' : '🚗'}
                         {' '}
-                        {language === 'es' 
+                        {language === 'es'
                             ? (service.tipo === 'TRANSPORTE_MUNICIPAL' ? 'Detalles del Transporte' : 'Detalles del Traslado')
                             : (service.tipo === 'TRANSPORTE_MUNICIPAL' ? 'Transport Details' : 'Transfer Details')
                         }
@@ -509,15 +507,15 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                 )}
                                 {formData.trasladoTipo === TrasladoTipo.DESDE_UBICACION && !aliadoNombre && (
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {language === 'es' 
-                                            ? 'Ingresa tu dirección de origen o punto de encuentro' 
+                                        {language === 'es'
+                                            ? 'Ingresa tu dirección de origen o punto de encuentro'
                                             : 'Enter your origin address or meeting point'}
                                     </p>
                                 )}
                                 {formData.trasladoTipo === TrasladoTipo.DESDE_MUNICIPIO && (
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {language === 'es' 
-                                            ? 'Puedes agregar detalles como "Parque Principal" o una dirección específica' 
+                                        {language === 'es'
+                                            ? 'Puedes agregar detalles como "Parque Principal" o una dirección específica'
                                             : 'You can add details like "Main Square" or a specific address'}
                                     </p>
                                 )}

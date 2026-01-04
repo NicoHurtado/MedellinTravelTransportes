@@ -43,6 +43,9 @@ export default function BaseDatosPage() {
     const [estadoFilter, setEstadoFilter] = useState<string[]>([]);
     const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
     const [aliados, setAliados] = useState<any[]>([]);
+    const [conductores, setConductores] = useState<any[]>([]);
+    const [selectedConductor, setSelectedConductor] = useState('');
+    const [filterPlaca, setFilterPlaca] = useState('');
 
     useEffect(() => {
         const fetchAliados = async () => {
@@ -54,6 +57,19 @@ export default function BaseDatosPage() {
                 }
             } catch (error) {
                 console.error('Error fetching aliados:', error);
+            }
+        };
+
+        const fetchConductores = async () => {
+            try {
+                // Fetch all conductors, not just active ones, so we can filter historical data
+                const res = await fetch('/api/conductores');
+                if (res.ok) {
+                    const data = await res.json();
+                    setConductores(data.data || []);
+                }
+            } catch (error) {
+                console.error('Error fetching conductores:', error);
             }
         };
 
@@ -82,11 +98,12 @@ export default function BaseDatosPage() {
 
         fetchData();
         fetchAliados();
+        fetchConductores();
     }, [viewMode]);
 
     useEffect(() => {
         setCurrentPage(1); // Reset to first page when filters change
-    }, [searchQuery, fechaInicio, fechaFin, servicioFilter, canalFilter, aliadoFilter, estadoFilter]);
+    }, [searchQuery, fechaInicio, fechaFin, servicioFilter, canalFilter, aliadoFilter, estadoFilter, selectedConductor, filterPlaca]);
 
     // Filter data based on search and filters
     const filteredData = viewMode === 'nueva'
@@ -115,7 +132,15 @@ export default function BaseDatosPage() {
             // Status Filter Logic (Multi-select)
             const matchesEstado = estadoFilter.length === 0 || estadoFilter.includes(r.estado);
 
-            return matchesSearch && matchesFecha && matchesServicio && matchesAliado && matchesEstado;
+            // Conductor Filter
+            const matchesConductor = !selectedConductor || r.conductorId === selectedConductor;
+
+            // Placa Filter (Checks both the assigned vehicle and the conductor's vehicle plate)
+            const matchesPlaca = !filterPlaca ||
+                (r.vehiculo?.placa?.toLowerCase().includes(filterPlaca.toLowerCase())) ||
+                (r.conductor?.placa?.toLowerCase().includes(filterPlaca.toLowerCase()));
+
+            return matchesSearch && matchesFecha && matchesServicio && matchesAliado && matchesEstado && matchesConductor && matchesPlaca;
         }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         : bdAntigua.filter(r => {
             const matchesSearch = searchQuery === '' ||
@@ -153,7 +178,10 @@ export default function BaseDatosPage() {
         setServicioFilter('');
         setCanalFilter('');
         setAliadoFilter('');
+        setAliadoFilter('');
         setEstadoFilter([]);
+        setSelectedConductor('');
+        setFilterPlaca('');
     };
 
     if (loading) {
@@ -337,6 +365,39 @@ export default function BaseDatosPage() {
                                     </select>
                                 </div>
                             )}
+
+                            {/* Conductor Filter */}
+                            {viewMode === 'nueva' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Conductor
+                                    </label>
+                                    <select
+                                        value={selectedConductor}
+                                        onChange={(e) => setSelectedConductor(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
+                                    >
+                                        <option value="">Todos los conductores</option>
+                                        {conductores.map(c => (
+                                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Placa Filter */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Placa Vehículo
+                                </label>
+                                <input
+                                    type="text"
+                                    value={filterPlaca}
+                                    onChange={(e) => setFilterPlaca(e.target.value)}
+                                    placeholder="Ej: EQT"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
+                                />
+                            </div>
 
                             {/* Status Filter (Multi-Select) */}
                             {viewMode === 'nueva' && (
