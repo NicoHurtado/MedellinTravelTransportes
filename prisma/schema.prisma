@@ -267,7 +267,7 @@ model Reserva {
   cantidadAlmuerzos     Int               @default(0)
   cantidadMotos         Int               @default(0)
   cantidadParticipantes Int               @default(0)
-  cantidadHoras         Int?              // Para servicios por horas
+  cantidadHoras         Int? // Para servicios por horas
 
   // Precios y Pagos
   precioBase        Decimal  @db.Decimal(10, 2)
@@ -291,6 +291,11 @@ model Reserva {
 
   // Método de Pago
   metodoPago MetodoPago @default(BOLD)
+
+  // Cotizaciones Personalizadas
+  esCotizacion   Boolean @default(false) // Indica si fue creada como cotización
+  linkCotizacion String? @unique // Link único para compartir cotización (ej: "COT8X3K2")
+  precioManual   Boolean @default(false) // Indica si el precio fue establecido manualmente
 
   // Notas y Metadata
   notas         String? @db.Text // del cliente
@@ -324,6 +329,7 @@ model Reserva {
   @@index([fecha])
   @@index([servicioId])
   @@index([aliadoId])
+  @@index([linkCotizacion])
 }
 
 // Asistentes (personas en la reserva)

@@ -16,7 +16,8 @@ import {
     FiMenu,
     FiX,
     FiStar,
-    FiMapPin
+    FiMapPin,
+    FiDollarSign
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 
@@ -55,6 +56,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const navigation = [
         { name: 'Reservas', href: '/admin/dashboard', icon: FiHome },
         { name: 'Calendario', href: '/admin/dashboard/calendario', icon: FiCalendar },
+        { name: 'Crear Cotización', href: '/admin/dashboard/cotizaciones/crear', icon: FiDollarSign },
         { name: 'Estadísticas', href: '/admin/dashboard/estadisticas', icon: FiBarChart2 },
         { name: 'Calificaciones', href: '/admin/dashboard/calificaciones', icon: FiStar },
         { name: 'Base de Datos', href: '/admin/dashboard/base-datos', icon: FiDatabase },
@@ -74,14 +76,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="min-h-screen bg-gray-50">
             {/* Mobile Overlay */}
             {isMobile && sidebarOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
-            <aside 
+            <aside
                 className={`
                     fixed top-0 left-0 h-screen bg-[#0A0A0A] text-white z-50 flex flex-col
                     transition-transform duration-300 ease-in-out
