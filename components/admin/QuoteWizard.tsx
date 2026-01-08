@@ -65,7 +65,9 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
     const [precioPersonalizado, setPrecioPersonalizado] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [quoteLink, setQuoteLink] = useState<string>('');
+    const [reservationCode, setReservationCode] = useState<string>('');
     const [copied, setCopied] = useState(false);
+    const [activeTab, setActiveTab] = useState<'interno' | 'tercero'>('tercero');
     const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
     // Process service data
@@ -219,8 +221,10 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                 throw new Error(data.error || 'Error al crear cotización');
             }
 
-            const fullLink = `${window.location.origin}/cotizacion/${data.data.linkCotizacion}`;
-            setQuoteLink(fullLink);
+            // Usar el link de tracking directamente en lugar del de cotización
+            const trackingLink = `${window.location.origin}/tracking/${data.data.codigo}`;
+            setQuoteLink(trackingLink);
+            setReservationCode(data.data.codigo);
             setCurrentStep(5);
 
         } catch (error: any) {
@@ -465,53 +469,94 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                     )}
 
                     {currentStep === 5 && (
-                        <div className="text-center space-y-6">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                                <FiCheck className="text-green-600 text-4xl" />
-                            </div>
-                            <div>
-                                <h2 className="text-3xl font-bold text-gray-900 mb-2">¡Cotización Creada!</h2>
-                                <p className="text-gray-600">
-                                    Comparte este link con tu cliente para que pueda ver y pagar su reserva
-                                </p>
-                            </div>
-
-                            <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6">
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Link de Cotización
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={quoteLink}
-                                        readOnly
-                                        className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-mono"
-                                    />
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="px-6 py-3 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold rounded-lg transition-all flex items-center gap-2"
-                                    >
-                                        {copied ? (
-                                            <>
-                                                <FiCheck size={20} />
-                                                Copiado
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FiCopy size={20} />
-                                                Copiar
-                                            </>
-                                        )}
-                                    </button>
+                        <div className="space-y-6">
+                            <div className="text-center">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FiCheck className="text-green-600 text-4xl" />
                                 </div>
+                                <h2 className="text-3xl font-bold text-gray-900 mb-2">Reserva Generada</h2>
+                                <p className="text-gray-600">Código: <span className="font-mono font-bold text-[#D6A75D]">{reservationCode}</span></p>
                             </div>
 
-                            <button
-                                onClick={handleClose}
-                                className="px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg transition-all"
-                            >
-                                Crear Nueva Cotización
-                            </button>
+                            {/* Tabs */}
+                            <div className="flex gap-2 border-b border-gray-200">
+                                <button
+                                    onClick={() => setActiveTab('interno')}
+                                    className={`flex-1 py-3 px-4 font-semibold transition-all ${activeTab === 'interno'
+                                            ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    Uso Interno
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('tercero')}
+                                    className={`flex-1 py-3 px-4 font-semibold transition-all ${activeTab === 'tercero'
+                                            ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                        }`}
+                                >
+                                    Para Tercero
+                                </button>
+                            </div>
+
+                            {/* Tab Content */}
+                            <div className="mt-6">
+                                {activeTab === 'interno' ? (
+                                    <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 text-center space-y-4">
+                                        <div className="text-blue-600 text-5xl mb-2">✓</div>
+                                        <h3 className="text-xl font-bold text-gray-900">Puedes cerrar este aviso</h3>
+                                        <p className="text-gray-700">
+                                            La reserva quedó guardada y la puedes ver en el panel de reservas
+                                        </p>
+                                        <button
+                                            onClick={handleClose}
+                                            className="mt-4 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+                                        >
+                                            Cerrar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-6 space-y-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                            Link para Compartir
+                                        </label>
+                                        <p className="text-sm text-gray-600 mb-3">
+                                            Comparte este link con tu cliente. Podrá ver todos los detalles de la reserva y realizar el pago.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={quoteLink}
+                                                readOnly
+                                                className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm font-mono"
+                                            />
+                                            <button
+                                                onClick={copyToClipboard}
+                                                className="px-6 py-3 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold rounded-lg transition-all flex items-center gap-2"
+                                            >
+                                                {copied ? (
+                                                    <>
+                                                        <FiCheck size={20} />
+                                                        Copiado
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <FiCopy size={20} />
+                                                        Copiar
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={handleClose}
+                                            className="w-full mt-4 px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg transition-all"
+                                        >
+                                            Crear Nueva Cotización
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -532,7 +577,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                                 disabled={currentStep === 4 && loading}
                                 className="flex-1 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
                             >
-                                {currentStep === 4 ? (loading ? 'Generando...' : 'Generar Link de Cotización') : 'Continuar'}
+                                {currentStep === 4 ? (loading ? 'Generando...' : 'Generar') : 'Continuar'}
                             </button>
                         </div>
                     </div>

@@ -725,3 +725,108 @@ export async function sendCancelacionEmail(
     html,
   });
 }
+
+// ============================================
+// TRIGGER 8: Cotización Generada (Admin)
+// ============================================
+export async function sendCotizacionGeneradaEmail(
+  reserva: ReservaWithRelations,
+  language: 'ES' | 'EN' = 'ES'
+) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const trackingUrl = `${appUrl}/tracking/${reserva.codigo}`;
+  const serviceName = getLocalizedName(reserva.servicio.nombre, language);
+
+  const content = language === 'ES' ? `
+    <h1>¡Tu Cotización Está Lista! 📋</h1>
+    <p>Hola <strong>${reserva.nombreCliente}</strong>,</p>
+    <p>Hemos preparado una cotización especial para ti. A continuación encontrarás los detalles de tu reserva:</p>
+    
+    <div class="info-box">
+      <h2 style="margin-top: 0;">Código de Reserva</h2>
+      <p style="font-size: 24px; font-weight: bold; color: #D6A75D; margin: 0;">${reserva.codigo}</p>
+    </div>
+    
+    <h2>Detalles del Servicio</h2>
+    <div style="margin: 16px 0;">
+      <p><strong>Servicio:</strong> ${serviceName}</p>
+      <p><strong>Fecha:</strong> ${formatDate(reserva.fecha, language)}</p>
+      <p><strong>Hora:</strong> ${reserva.hora}</p>
+      ${reserva.lugarRecogida ? `<p><strong>Lugar de Recogida:</strong> ${reserva.lugarRecogida}</p>` : ''}
+      <p><strong>Municipio:</strong> ${reserva.otroMunicipio || reserva.municipio}</p>
+      <p><strong>Pasajeros:</strong> ${reserva.numeroPasajeros} personas</p>
+      ${reserva.vehiculo ? `<p><strong>Vehículo:</strong> ${reserva.vehiculo.nombre}</p>` : ''}
+    </div>
+
+    ${reserva.notas ? `
+    <div class="info-box" style="background-color: #f9fafb; border-left-color: #9ca3af;">
+      <h3 style="margin-top: 0; font-size: 16px;">Notas Adicionales</h3>
+      <p style="margin-bottom: 0;">${reserva.notas}</p>
+    </div>
+    ` : ''}
+    
+    <h2>Precio Total</h2>
+    <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
+    
+    <p style="margin-top: 24px;">
+      <a href="${trackingUrl}" class="button">Ver Reserva</a>
+    </p>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 16px;">
+      Haz clic en el botón para ver todos los detalles de tu reserva y proceder con el pago.
+    </p>
+    
+    <p>¡Gracias por confiar en nosotros!</p>
+  ` : `
+    <h1>Your Quote is Ready! 📋</h1>
+    <p>Hello <strong>${reserva.nombreCliente}</strong>,</p>
+    <p>We have prepared a special quote for you. Here are the details of your reservation:</p>
+    
+    <div class="info-box">
+      <h2 style="margin-top: 0;">Booking Code</h2>
+      <p style="font-size: 24px; font-weight: bold; color: #D6A75D; margin: 0;">${reserva.codigo}</p>
+    </div>
+    
+    <h2>Service Details</h2>
+    <div style="margin: 16px 0;">
+      <p><strong>Service:</strong> ${serviceName}</p>
+      <p><strong>Date:</strong> ${formatDate(reserva.fecha, language)}</p>
+      <p><strong>Time:</strong> ${reserva.hora}</p>
+      ${reserva.lugarRecogida ? `<p><strong>Pickup Location:</strong> ${reserva.lugarRecogida}</p>` : ''}
+      <p><strong>City:</strong> ${reserva.otroMunicipio || reserva.municipio}</p>
+      <p><strong>Passengers:</strong> ${reserva.numeroPasajeros} people</p>
+      ${reserva.vehiculo ? `<p><strong>Vehicle:</strong> ${reserva.vehiculo.nombre}</p>` : ''}
+    </div>
+
+    ${reserva.notas ? `
+    <div class="info-box" style="background-color: #f9fafb; border-left-color: #9ca3af;">
+      <h3 style="margin-top: 0; font-size: 16px;">Additional Notes</h3>
+      <p style="margin-bottom: 0;">${reserva.notas}</p>
+    </div>
+    ` : ''}
+    
+    <h2>Total Price</h2>
+    <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
+    
+    <p style="margin-top: 24px;">
+      <a href="${trackingUrl}" class="button">View Reservation</a>
+    </p>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 16px;">
+      Click the button to view all the details of your reservation and proceed with payment.
+    </p>
+    
+    <p>Thank you for trusting us!</p>
+  `;
+
+  const html = getEmailLayout(content, language);
+
+  await transporter.sendMail({
+    from: `"Transportes Medellín Travel" <${process.env.GMAIL_USER}>`,
+    to: reserva.emailCliente,
+    subject: language === 'ES'
+      ? `Tu Cotización Está Lista - ${reserva.codigo}`
+      : `Your Quote is Ready - ${reserva.codigo}`,
+    html,
+  });
+}

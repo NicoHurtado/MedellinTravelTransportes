@@ -171,6 +171,16 @@ export async function POST(req: NextRequest) {
             precioTotal: cotizacion.precioTotal,
         });
 
+        // Enviar email al cliente con el link de la reserva
+        try {
+            const { sendCotizacionGeneradaEmail } = await import('@/lib/email-service');
+            await sendCotizacionGeneradaEmail(cotizacion as any, cotizacion.idioma || 'ES');
+            console.log('✅ Email de cotización enviado a:', cotizacion.emailCliente);
+        } catch (emailError) {
+            console.error('❌ Error enviando email de cotización:', emailError);
+            // No fallar la cotización si el email falla
+        }
+
         return NextResponse.json({
             success: true,
             data: {

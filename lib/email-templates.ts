@@ -98,6 +98,38 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
           font-size: 14px;
           font-weight: 600;
         }
+        .contact-section {
+          background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+          padding: 28px 24px;
+          margin: 32px 24px 0 24px;
+          border-radius: 12px;
+          text-align: center;
+        }
+        .contact-section h3 {
+          color: #ffffff;
+          font-size: 22px;
+          margin: 0 0 8px 0;
+          font-weight: bold;
+        }
+        .contact-section p {
+          color: #ffffff;
+          margin: 8px 0;
+          font-size: 16px;
+        }
+        .whatsapp-button {
+          display: inline-block;
+          padding: 16px 32px;
+          background-color: #ffffff;
+          color: #128C7E;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: bold;
+          font-size: 18px;
+          margin: 16px 0 8px 0;
+        }
+        .whatsapp-button:hover {
+          background-color: #f0f0f0;
+        }
       </style>
     </head>
     <body>
@@ -108,15 +140,27 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
         <div class="content">
           ${content}
         </div>
+        
+        <!-- Sección de Contacto Prominente -->
+        <div class="contact-section">
+          <h3>${language === 'ES' ? '¿Necesitas Ayuda?' : 'Need Help?'}</h3>
+          <p>${language === 'ES' ? '¡Estamos aquí para atenderte!' : 'We are here to help you!'}</p>
+          <a href="https://wa.me/573175177409" class="whatsapp-button">
+            📱 WhatsApp: +57 317 5177409
+          </a>
+          <p style="font-size: 14px; margin-top: 12px; opacity: 0.95;">
+            ${language === 'ES' ? 'Comunícate con nosotros en cualquier momento' : 'Contact us at any time'}
+          </p>
+        </div>
+        
         <div class="footer">
           <p>
-            <strong>Contacto:</strong><br>
-            WhatsApp: <a href="https://wa.me/573175177409">+57 317 5177409</a><br>
+            <strong>${language === 'ES' ? 'Contacto:' : 'Contact:'}</strong><br>
             Email: <a href="mailto:medellintraveltransportes@gmail.com">medellintraveltransportes@gmail.com</a><br>
             Instagram: <a href="https://instagram.com/transportesmedellintravel">@transportesmedellintravel</a>
           </p>
           <p style="margin-top: 16px; font-size: 12px; color: #999;">
-            © 2024 Transportes Medellín Travel - Todos los derechos reservados
+            © 2024 Transportes Medellín Travel - ${language === 'ES' ? 'Todos los derechos reservados' : 'All rights reserved'}
           </p>
         </div>
       </div>
