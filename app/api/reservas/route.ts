@@ -119,7 +119,7 @@ export async function POST(request: Request) {
                 if (servicio?.tipo === 'TRANSPORTE_MUNICIPAL') {
                     comisionAliado = precioTotal * 0.10; // 10% del precio total
                     console.log('💰 [Transporte Municipal] Comisión 10%:', comisionAliado, 'de', precioTotal);
-                } 
+                }
                 // Comisión normal para otros servicios (basada en precio de vehículo)
                 else if (body.vehiculoId) {
                     const servicioAliado = await prisma.servicioAliado.findUnique({
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
             data: {
                 codigo,
                 servicioId: body.servicioId,
-                fecha: new Date(body.fecha),
+                fecha: new Date(body.fecha + 'T12:00:00.000Z'),
                 hora: body.hora,
                 nombreCliente: body.nombreCliente,
                 whatsappCliente: body.whatsappCliente,

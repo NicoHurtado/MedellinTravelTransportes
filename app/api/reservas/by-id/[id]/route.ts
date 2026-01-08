@@ -80,8 +80,8 @@ export async function PUT(
 
         // Service Details Updates
         if (body.fecha) {
-            // Ensure we store it as a proper Date object
-            updateData.fecha = new Date(body.fecha);
+            // Ensure we store it as noon UTC to avoid timezone issues
+            updateData.fecha = new Date(body.fecha + 'T12:00:00.000Z');
         }
         if (body.hora) {
             updateData.hora = body.hora;

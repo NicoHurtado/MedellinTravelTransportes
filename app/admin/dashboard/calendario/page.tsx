@@ -23,6 +23,11 @@ interface CalendarEvent {
         hora: string;
         numeroVuelo?: string;
         esAeropuerto?: boolean;
+        servicio: string;
+        whatsappCliente: string;
+        lugarRecogida: string;
+        lugarDestino: string;
+        estadoPago: string;
     };
 }
 
@@ -45,6 +50,33 @@ export default function CalendarioPage() {
         fetchReservas();
     }, []);
 
+    // Auto-refresh when page becomes visible (e.g., when navigating back from detail view)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchReservas();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    // Auto-refresh every 30 seconds to show new reservations
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Only refresh if page is visible
+            if (document.visibilityState === 'visible') {
+                fetchReservas();
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
     const fetchReservas = async () => {
         try {
             const res = await fetch('/api/reservas');
@@ -54,10 +86,48 @@ export default function CalendarioPage() {
             const calendarEvents: CalendarEvent[] = reservas.map((reserva: any) => {
                 const colors = estadoColors[reserva.estado] || { bg: '#6B7280', border: '#4B5563' };
 
+                // Determine pickup and destination based on service type
+                let lugarRecogida = 'No especificado';
+                let lugarDestino = 'No especificado';
+
+                if (reserva.servicio?.esAeropuerto) {
+                    // Airport service
+                    if (reserva.aeropuertoTipo === 'DESDE') {
+                        // From airport to location
+                        lugarRecogida = reserva.aeropuertoNombre === 'JOSE_MARIA_CORDOVA'
+                            ? 'Aeropuerto JMC'
+                            : 'Aeropuerto Olaya Herrera';
+                        lugarDestino = reserva.lugarRecogida || 'No especificado';
+                    } else {
+                        // From location to airport
+                        lugarRecogida = reserva.lugarRecogida || 'No especificado';
+                        lugarDestino = reserva.aeropuertoNombre === 'JOSE_MARIA_CORDOVA'
+                            ? 'Aeropuerto JMC'
+                            : 'Aeropuerto Olaya Herrera';
+                    }
+                } else if (reserva.trasladoTipo) {
+                    // Traslado service
+                    if (reserva.trasladoTipo === 'DESDE_UBICACION') {
+                        lugarRecogida = reserva.lugarRecogida || 'No especificado';
+                        lugarDestino = reserva.trasladoDestino || reserva.municipio || 'No especificado';
+                    } else {
+                        lugarRecogida = reserva.municipio || 'No especificado';
+                        lugarDestino = reserva.trasladoDestino || 'No especificado';
+                    }
+                } else {
+                    // Regular service
+                    lugarRecogida = reserva.lugarRecogida || 'No especificado';
+                    lugarDestino = reserva.servicio?.destinoAutoFill
+                        ? (typeof reserva.servicio.destinoAutoFill === 'string'
+                            ? reserva.servicio.destinoAutoFill
+                            : getLocalizedText(reserva.servicio.destinoAutoFill, 'ES'))
+                        : 'No especificado';
+                }
+
                 return {
                     id: reserva.id,
                     title: `${reserva.servicio?.nombre ? getLocalizedText(reserva.servicio.nombre, 'ES') : 'Servicio'} - ${reserva.nombreCliente}`,
-                    start: reserva.fecha,
+                    start: reserva.fecha.split('T')[0], // Extract only YYYY-MM-DD to avoid timezone issues
                     backgroundColor: colors.bg,
                     borderColor: colors.border,
                     extendedProps: {
@@ -66,7 +136,12 @@ export default function CalendarioPage() {
                         estado: reserva.estado,
                         hora: reserva.hora,
                         numeroVuelo: reserva.numeroVuelo,
-                        esAeropuerto: reserva.servicio?.esAeropuerto
+                        esAeropuerto: reserva.servicio?.esAeropuerto,
+                        servicio: reserva.servicio?.nombre ? getLocalizedText(reserva.servicio.nombre, 'ES') : 'Servicio',
+                        whatsappCliente: reserva.whatsappCliente || 'No especificado',
+                        lugarRecogida,
+                        lugarDestino,
+                        estadoPago: reserva.estadoPago || 'PENDIENTE'
                     }
                 };
             });
@@ -216,67 +291,57 @@ export default function CalendarioPage() {
                             </div>
 
                             {/* Content */}
-                            <div className="p-6 space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Código</p>
-                                        <p className="font-bold text-[#D6A75D] text-lg">
-                                            {selectedEvent.extendedProps.codigo}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Cliente</p>
-                                        <p className="font-medium text-gray-900">{selectedEvent.extendedProps.cliente}</p>
-                                    </div>
-                                </div>
-
+                            <div className="p-6 space-y-3">
+                                {/* Servicio */}
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Servicio</p>
-                                    <p className="font-medium text-gray-900 text-sm leading-snug">
-                                        {selectedEvent.title.split(' - ')[0]}
+                                    <p className="font-semibold text-gray-900">
+                                        {selectedEvent.extendedProps.servicio}
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
-                                        <div className="flex items-center gap-2 text-gray-900 font-medium">
-                                            <FiCalendar className="text-[#D6A75D]" />
-                                            {new Date(selectedEvent.start).toLocaleDateString('es-CO')}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Hora</p>
-                                        <p className="font-medium text-gray-900">{selectedEvent.extendedProps.hora}</p>
-                                    </div>
+                                {/* Hora */}
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Hora</p>
+                                    <p className="font-medium text-gray-900">{selectedEvent.extendedProps.hora}</p>
                                 </div>
 
+                                {/* Nombre Cliente */}
                                 <div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Estado</p>
-                                    <span
-                                        className="inline-flex px-3 py-1 rounded-full text-xs font-semibold text-white items-center gap-2"
-                                        style={{ backgroundColor: selectedEvent.backgroundColor }}
-                                    >
-                                        <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                                        {selectedEvent.extendedProps.estado.replace(/_/g, ' ')}
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Nombre Cliente</p>
+                                    <p className="font-medium text-gray-900">{selectedEvent.extendedProps.cliente}</p>
+                                </div>
+
+                                {/* Número Contacto */}
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Número Contacto</p>
+                                    <p className="font-medium text-gray-900">{selectedEvent.extendedProps.whatsappCliente}</p>
+                                </div>
+
+                                {/* Lugar de Recogida */}
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Lugar de Recogida</p>
+                                    <p className="font-medium text-gray-900 text-sm">{selectedEvent.extendedProps.lugarRecogida}</p>
+                                </div>
+
+                                {/* Lugar Destino */}
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Lugar Destino</p>
+                                    <p className="font-medium text-gray-900 text-sm">{selectedEvent.extendedProps.lugarDestino}</p>
+                                </div>
+
+                                {/* Estado Pago */}
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Estado Pago</p>
+                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${selectedEvent.extendedProps.estadoPago === 'APROBADO'
+                                        ? 'bg-green-100 text-green-800'
+                                        : selectedEvent.extendedProps.estadoPago === 'RECHAZADO'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                        }`}>
+                                        {selectedEvent.extendedProps.estadoPago}
                                     </span>
                                 </div>
-
-                                {selectedEvent.extendedProps.esAeropuerto && (
-                                    <div className={`p-4 rounded-lg border-l-4 ${selectedEvent.extendedProps.numeroVuelo ? 'bg-blue-50 border-blue-500' : 'bg-yellow-50 border-yellow-400'}`}>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className={`text-xs font-bold uppercase tracking-wider ${selectedEvent.extendedProps.numeroVuelo ? 'text-blue-800' : 'text-yellow-800'}`}>
-                                                    Vuelo
-                                                </p>
-                                                <p className={`font-mono text-lg font-bold mt-1 ${selectedEvent.extendedProps.numeroVuelo ? 'text-blue-900' : 'text-yellow-800 italic'}`}>
-                                                    {selectedEvent.extendedProps.numeroVuelo || 'No especificado'}
-                                                </p>
-                                            </div>
-                                            <div className="text-2xl">✈️</div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Footer */}

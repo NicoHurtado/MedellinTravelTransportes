@@ -139,9 +139,9 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
 
             // Check if this is a traslado or municipal transport service
             const isTraslado = service.tipo === 'TRANSPORTE_MUNICIPAL' || (service.nombre && (
-                typeof service.nombre === 'string' 
+                typeof service.nombre === 'string'
                     ? service.nombre.toLowerCase().includes('traslado')
-                    : (typeof service.nombre === 'object' && service.nombre 
+                    : (typeof service.nombre === 'object' && service.nombre
                         ? ((service.nombre as any).ES || (service.nombre as any).es || '')?.toLowerCase().includes('traslado')
                         : false)
             ));
@@ -265,12 +265,13 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         try {
             // For hourly services, force cash payment
             const paymentMethod = service.esPorHoras ? 'EFECTIVO' : metodoPago;
-            
+
             const res = await fetch('/api/reservas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...formData,
+                    fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null, // Convert to YYYY-MM-DD
                     servicioId: service.id,
                     aliadoId: aliadoId || null,
                     esReservaAliado: !!aliadoId,
@@ -340,8 +341,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                                         <div
                                             onClick={() => isClickable && setCurrentStep(step)}
                                             className={`relative w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center text-xs md:text-sm font-bold transition-all ${step <= currentStep
-                                                    ? 'bg-[#D6A75D] text-black shadow-md scale-110'
-                                                    : 'bg-gray-200 text-gray-500'
+                                                ? 'bg-[#D6A75D] text-black shadow-md scale-110'
+                                                : 'bg-gray-200 text-gray-500'
                                                 } ${isClickable ? 'cursor-pointer hover:bg-[#C5964A] hover:text-black' : 'cursor-not-allowed'}`}
                                         >
                                             {step + 1}
