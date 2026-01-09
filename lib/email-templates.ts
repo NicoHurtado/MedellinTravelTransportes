@@ -99,36 +99,39 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
           font-weight: 600;
         }
         .contact-section {
-          background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-          padding: 28px 24px;
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          padding: 20px 24px;
           margin: 32px 24px 0 24px;
-          border-radius: 12px;
+          border-radius: 8px;
           text-align: center;
         }
         .contact-section h3 {
-          color: #ffffff;
-          font-size: 22px;
-          margin: 0 0 8px 0;
-          font-weight: bold;
+          color: #374151;
+          font-size: 16px;
+          margin: 0 0 12px 0;
+          font-weight: 600;
         }
         .contact-section p {
-          color: #ffffff;
+          color: #6b7280;
           margin: 8px 0;
-          font-size: 16px;
+          font-size: 14px;
         }
-        .whatsapp-button {
-          display: inline-block;
-          padding: 16px 32px;
-          background-color: #ffffff;
-          color: #128C7E;
+        .whatsapp-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 20px;
+          background-color: #25D366;
+          color: #ffffff;
           text-decoration: none;
-          border-radius: 8px;
-          font-weight: bold;
-          font-size: 18px;
-          margin: 16px 0 8px 0;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 15px;
+          margin: 12px 0 8px 0;
         }
-        .whatsapp-button:hover {
-          background-color: #f0f0f0;
+        .whatsapp-link:hover {
+          background-color: #128C7E;
         }
       </style>
     </head>
@@ -141,16 +144,12 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
           ${content}
         </div>
         
-        <!-- Sección de Contacto Prominente -->
+        <!-- Sección de Contacto -->
         <div class="contact-section">
-          <h3>${language === 'ES' ? '¿Necesitas Ayuda?' : 'Need Help?'}</h3>
-          <p>${language === 'ES' ? '¡Estamos aquí para atenderte!' : 'We are here to help you!'}</p>
-          <a href="https://wa.me/573175177409" class="whatsapp-button">
-            📱 WhatsApp: +57 317 5177409
+          <h3>${language === 'ES' ? 'Contacta a tu conductor' : 'Contact your driver'}</h3>
+          <a href="https://wa.me/573175177409" class="whatsapp-link">
+            📱 +57 317 5177409
           </a>
-          <p style="font-size: 14px; margin-top: 12px; opacity: 0.95;">
-            ${language === 'ES' ? 'Comunícate con nosotros en cualquier momento' : 'Contact us at any time'}
-          </p>
         </div>
         
         <div class="footer">
