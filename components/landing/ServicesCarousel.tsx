@@ -83,15 +83,17 @@ export default function ServicesCarousel() {
                 <div className="flex w-full overflow-hidden group">
                     {/* First set of items */}
                     <div className="flex animate-marquee group-hover:[animation-play-state:paused] py-4">
-                        {servicios.map((servicio) => (
+                        {servicios.slice(0, 15).map((servicio) => (
                             <ServiceCard key={`a-${servicio.id}`} servicio={servicio} language={language} />
                         ))}
+                        <MoreServicesCard language={language} totalServices={servicios.length} />
                     </div>
                     {/* Second set of items for seamless loop */}
                     <div className="flex animate-marquee group-hover:[animation-play-state:paused] py-4" aria-hidden="true">
-                        {servicios.map((servicio) => (
+                        {servicios.slice(0, 15).map((servicio) => (
                             <ServiceCard key={`b-${servicio.id}`} servicio={servicio} language={language} />
                         ))}
+                        <MoreServicesCard language={language} totalServices={servicios.length} />
                     </div>
                 </div>
             </div>
@@ -141,6 +143,41 @@ function ServiceCard({ servicio, language }: { servicio: Servicio; language: 'es
 
                     <div className="w-full text-center bg-gray-100 group-hover/card:bg-[#D6A75D] text-gray-800 group-hover/card:text-black font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
                         {t('header.reservar', language)} <FiArrowRight />
+                    </div>
+                </div>
+            </Link>
+        </div>
+    );
+}
+
+function MoreServicesCard({ language, totalServices }: { language: 'es' | 'en'; totalServices: number }) {
+    return (
+        <div className="w-[350px] mx-4 flex-shrink-0">
+            <Link
+                href="/reservas"
+                className="group/card bg-gradient-to-br from-[#D6A75D] to-[#B8894A] rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer block h-full flex flex-col"
+            >
+                <div className="relative h-56 overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#D6A75D]/20 to-[#B8894A]/20 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="text-6xl font-bold text-white mb-2">+{totalServices - 15}</div>
+                        <div className="text-xl text-white/90 font-semibold">
+                            {language === 'es' ? 'Destinos' : 'Destinations'}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 flex flex-col flex-grow justify-center items-center text-center">
+                    <h3 className="text-2xl font-bold mb-3 text-white">
+                        {language === 'es' ? '¡Muchos Más!' : 'Many More!'}
+                    </h3>
+                    <p className="text-white/90 text-sm mb-6 flex-grow">
+                        {language === 'es'
+                            ? 'Descubre todos nuestros destinos y experiencias increíbles en Antioquia'
+                            : 'Discover all our destinations and incredible experiences in Antioquia'}
+                    </p>
+
+                    <div className="w-full text-center bg-white text-[#D6A75D] font-bold py-3 rounded-lg transition-all group-hover/card:bg-white/90 flex items-center justify-center gap-2">
+                        {language === 'es' ? 'Ver Todos' : 'View All'} <FiArrowRight />
                     </div>
                 </div>
             </Link>
