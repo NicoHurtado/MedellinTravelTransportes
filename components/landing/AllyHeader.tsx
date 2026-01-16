@@ -14,12 +14,13 @@ export default function AllyHeader({ allyName, allyType }: AllyHeaderProps) {
             <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
                 {/* Logo - Sin link para evitar navegación */}
                 <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 md:w-12 md:h-12">
+                    <div className="relative">
                         <Image
                             src="/logo.png"
                             alt="Transportes Medellín Travel"
-                            fill
-                            className="object-contain"
+                            width={48}
+                            height={48}
+                            className="w-10 h-10 md:w-12 md:h-12 object-contain"
                         />
                     </div>
                     <span className="font-bold text-lg md:text-xl tracking-tight text-white">

@@ -12,12 +12,13 @@ export default function AllyFooter() {
                     {/* Company Info */}
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="relative w-10 h-10">
+                            <div className="relative">
                                 <Image
                                     src="/logo.png"
                                     alt="Transportes Medellín Travel"
-                                    fill
-                                    className="object-contain"
+                                    width={40}
+                                    height={40}
+                                    className="w-10 h-10 object-contain"
                                 />
                             </div>
                             <h3 className="text-xl font-bold">Transportes Medellín Travel</h3>
@@ -35,12 +36,12 @@ export default function AllyFooter() {
                                 <FiPhone className="text-[#D6A75D] flex-shrink-0" size={18} />
                                 <span className="text-sm">+57 317 5177409</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-3 text-gray-300">
                                 <FaInstagram className="text-[#D6A75D] flex-shrink-0" size={18} />
                                 <span className="text-sm">@transportesmedellintravel</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-3 text-gray-300">
                                 <FiMail className="text-[#D6A75D] flex-shrink-0" size={18} />
                                 <span className="text-sm">medellintraveltransportes@gmail.com</span>

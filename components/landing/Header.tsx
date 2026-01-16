@@ -30,12 +30,14 @@ export default function Header() {
                 <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
                     {/* Logo */}
                     <Link href="/" className="relative z-50 flex items-center gap-3 group">
-                        <div className="relative w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-105">
+                        <div className="relative transition-transform group-hover:scale-105">
                             <Image
                                 src="/logo.png"
                                 alt="Transportes Medellín Travel"
-                                fill
-                                className="object-contain"
+                                width={48}
+                                height={48}
+                                className="w-10 h-10 md:w-12 md:h-12 object-contain"
+                                priority
                             />
                         </div>
                         <span className={`font-bold text-lg md:text-xl tracking-tight transition-colors ${isScrolled ? 'text-white' : 'text-white'

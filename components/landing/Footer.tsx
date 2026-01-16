@@ -14,12 +14,13 @@ export default function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
                     {/* Brand */}
                     <div className="flex flex-col items-start">
-                        <div className="relative w-16 h-16 mb-4">
+                        <div className="relative mb-4">
                             <Image
                                 src="/logo.png"
                                 alt="Transportes Medellín Travel"
-                                fill
-                                className="object-contain"
+                                width={64}
+                                height={64}
+                                className="w-16 h-16 object-contain"
                             />
                         </div>
                         <h3 className="text-xl font-bold mb-2">Transportes Medellín Travel</h3>
