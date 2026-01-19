@@ -76,12 +76,45 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     });
     const [reservationCode, setReservationCode] = useState<string>('');
     const [loading, setLoading] = useState(false);
+    const [cartItemCount, setCartItemCount] = useState(0);
     const router = useRouter();
 
     // Update language in form data when context changes
     useEffect(() => {
         setFormData(prev => ({ ...prev, idioma: language.toUpperCase() === 'EN' ? Idioma.EN : Idioma.ES }));
     }, [language]);
+
+    // Check cart item count on mount and when modal opens
+    useEffect(() => {
+        const updateCartCount = () => {
+            try {
+                const cart = localStorage.getItem('medellin-travel-cart');
+                if (cart) {
+                    const cartItems = JSON.parse(cart);
+                    setCartItemCount(Array.isArray(cartItems) ? cartItems.length : 0);
+                } else {
+                    setCartItemCount(0);
+                }
+            } catch (error) {
+                console.error('Error loading cart count:', error);
+                setCartItemCount(0);
+            }
+        };
+
+        if (isOpen) {
+            updateCartCount();
+        }
+
+        // Listen for cart updates
+        const handleCartUpdate = () => {
+            updateCartCount();
+        };
+
+        window.addEventListener('cartUpdated', handleCartUpdate);
+        return () => {
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
+    }, [isOpen]);
 
     // Process service data to get localized text
     const processedService = {
@@ -295,6 +328,103 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         }
     };
 
+    const handleAddToCart = () => {
+        try {
+            // Crear item del carrito con toda la información del formulario
+            const cartItem = {
+                id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                servicioId: service.id,
+                servicioNombre: processedService.nombre,
+                servicioImagen: service.imagen,
+                ...formData,
+                fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null,
+                aliadoId: aliadoId || null,
+                esReservaAliado: !!aliadoId,
+                metodoPago: service.esPorHoras ? 'EFECTIVO' : metodoPago,
+            };
+
+            // Obtener carrito actual del localStorage
+            const existingCart = localStorage.getItem('medellin-travel-cart');
+            const cart = existingCart ? JSON.parse(existingCart) : [];
+
+            // Agregar nuevo item
+            cart.push(cartItem);
+
+            // Guardar en localStorage
+            localStorage.setItem('medellin-travel-cart', JSON.stringify(cart));
+
+            // Disparar evento para actualizar el contador del carrito
+            window.dispatchEvent(new Event('cartUpdated'));
+
+            // Mostrar mensaje de éxito
+            alert(language === 'es'
+                ? '✅ Servicio agregado al carrito. Puedes continuar eligiendo más servicios o proceder al pago desde el carrito.'
+                : '✅ Service added to cart. You can continue choosing more services or proceed to payment from the cart.');
+
+            // Cerrar el modal
+            handleClose();
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            showError(language === 'es' ? 'Error al agregar al carrito' : 'Error adding to cart');
+        }
+    };
+
+    const handleProceedToPayment = async () => {
+        setLoading(true);
+        try {
+            // Crear item del servicio actual
+            const currentItem = {
+                id: `cart-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                servicioId: service.id,
+                servicioNombre: processedService.nombre,
+                servicioImagen: service.imagen,
+                ...formData,
+                fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null,
+                aliadoId: aliadoId || null,
+                esReservaAliado: !!aliadoId,
+                metodoPago: service.esPorHoras ? 'EFECTIVO' : metodoPago,
+            };
+
+            // Obtener items del carrito
+            const existingCart = localStorage.getItem('medellin-travel-cart');
+            const cartItems = existingCart ? JSON.parse(existingCart) : [];
+
+            // Combinar carrito existente + servicio actual
+            const allItems = [...cartItems, currentItem];
+
+            // Crear el pedido con todos los servicios
+            const response = await fetch('/api/pedido', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cartItems: allItems,
+                    idioma: formData.idioma || 'ES',
+                    metodoPago: metodoPago,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Error al crear el pedido');
+            }
+
+            const { data: pedido } = await response.json();
+
+            // Limpiar el carrito
+            localStorage.removeItem('medellin-travel-cart');
+            window.dispatchEvent(new Event('cartUpdated'));
+
+            // Redirigir a la página de tracking del pedido
+            router.push(`/tracking/${pedido.codigo}`);
+        } catch (error: any) {
+            showError(error.message || (language === 'es' ? 'Error al procesar el pedido' : 'Error processing order'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             {/* Error Notification */}
@@ -437,21 +567,73 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                             </div>
                         )}
 
-                        <div className="flex gap-4">
-                            <button
-                                onClick={currentStep === 0 ? handleClose : handleBack}
-                                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                {t('reservas.paso0_volver', language)}
-                            </button>
-                            <button
-                                onClick={currentStep === 4 ? handleConfirmReservation : handleNext}
-                                disabled={currentStep === 4 && loading}
-                                className="flex-1 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-                            >
-                                {currentStep === 4 ? (loading ? t('comunes.cargando', language) : t('reservas.paso4_confirmar', language)) : t('reservas.paso0_continuar', language)}
-                            </button>
-                        </div>
+                        {/* Step 4: Dynamic buttons based on cart state */}
+                        {currentStep === 4 ? (
+                            <div className="space-y-2">
+                                {/* Primary button - Changes based on cart state */}
+                                {cartItemCount > 0 ? (
+                                    // HAY items en el carrito: "Proceder al Pago"
+                                    <button
+                                        onClick={handleProceedToPayment}
+                                        disabled={loading}
+                                        className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
+                                    >
+                                        {loading
+                                            ? t('comunes.cargando', language)
+                                            : (language === 'es' ? `Proceder al Pago (${cartItemCount + 1} servicios)` : `Proceed to Payment (${cartItemCount + 1} services)`)}
+                                    </button>
+                                ) : (
+                                    // NO HAY items en el carrito: "Confirmar Reserva"
+                                    <button
+                                        onClick={handleConfirmReservation}
+                                        disabled={loading}
+                                        className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
+                                    >
+                                        {loading ? t('comunes.cargando', language) : t('reservas.paso4_confirmar', language)}
+                                    </button>
+                                )}
+
+
+
+                                {/* Secondary button - Agregar al Carrito (always shown if allowed) */}
+                                {!service.esPorHoras && (
+                                    <button
+                                        onClick={handleAddToCart}
+                                        disabled={loading}
+                                        className="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg border-2 border-gray-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        {language === 'es' ? 'Agregar al Carrito y Seguir Eligiendo' : 'Add to Cart and Continue Shopping'}
+                                    </button>
+                                )}
+
+                                {/* Back button */}
+                                <button
+                                    onClick={handleBack}
+                                    className="w-full px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    {t('reservas.paso0_volver', language)}
+                                </button>
+                            </div>
+                        ) : (
+                            /* Other steps: Normal navigation */
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={currentStep === 0 ? handleClose : handleBack}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                >
+                                    {t('reservas.paso0_volver', language)}
+                                </button>
+                                <button
+                                    onClick={handleNext}
+                                    className="flex-1 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all"
+                                >
+                                    {t('reservas.paso0_continuar', language)}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

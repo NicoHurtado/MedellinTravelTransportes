@@ -8,6 +8,8 @@ import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalM
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import AllyReservationsModal from '@/components/reservas/AllyReservationsModal';
+import { CartIcon } from '@/components/carrito/CartIcon';
+import { CartModal } from '@/components/carrito/CartModal';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { sortServicesByPriority } from '@/lib/service-order';
@@ -61,6 +63,9 @@ export default function ReservasPage() {
     const [preciosPersonalizados, setPreciosPersonalizados] = useState<any>(null);
     const [tarifasMunicipios, setTarifasMunicipios] = useState<any[]>([]);
 
+    // Cart state
+    const [isCartOpen, setIsCartOpen] = useState(false);
+
     useEffect(() => {
         // Check if ally is already logged in
         const storedAliado = localStorage.getItem('aliado');
@@ -102,7 +107,7 @@ export default function ReservasPage() {
                             vehiculosPermitidos: sa.servicio.vehiculosPermitidos
                         };
                     });
-                
+
                 // Sort services using custom priority order
                 const sortedServices = sortServicesByPriority(activeServices) as Service[];
                 setServices(sortedServices);
@@ -201,7 +206,7 @@ export default function ReservasPage() {
         try {
             const res = await fetch(`/api/servicios/${serviceId}`);
             const data = await res.json();
-            
+
             if (data.success) {
                 openWizard(data.data);
             }
@@ -219,6 +224,11 @@ export default function ReservasPage() {
             <Header />
             <main className="min-h-screen pt-32 pb-16">
                 <div className="container mx-auto px-4">
+                    {/* Cart Icon - Floating */}
+                    <div className="fixed top-24 right-6 z-30">
+                        <CartIcon onClick={() => setIsCartOpen(true)} />
+                    </div>
+
                     {/* Page Header */}
                     <div className="text-center mb-12">
                         <h1 className="text-4xl md:text-5xl font-bold mb-4">
@@ -328,57 +338,57 @@ export default function ReservasPage() {
                             {/* Servicios Prioritarios (Priority 1-8) */}
                             {serviciosRegulares
                                 .map((service) => (
-                                <div
-                                    key={service.id}
-                                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                                    onClick={() => openWizard(service)}
-                                >
-                                    <div className="relative h-56 overflow-hidden">
-                                        <Image
-                                            src={service.imagen || '/medellin.jpg'}
-                                            alt={getLocalizedText(service.nombre, language)}
-                                            fill
-                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                        />
-                                    </div>
+                                    <div
+                                        key={service.id}
+                                        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                        onClick={() => openWizard(service)}
+                                    >
+                                        <div className="relative h-56 overflow-hidden">
+                                            <Image
+                                                src={service.imagen || '/medellin.jpg'}
+                                                alt={getLocalizedText(service.nombre, language)}
+                                                fill
+                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                            />
+                                        </div>
 
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
-                                            {getLocalizedText(service.nombre, language)}
-                                        </h3>
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {getLocalizedText(service.descripcion, language)}
-                                        </p>
+                                        <div className="p-6">
+                                            <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                                {getLocalizedText(service.nombre, language)}
+                                            </h3>
+                                            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                                {getLocalizedText(service.descripcion, language)}
+                                            </p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                                            {service.duracion && (
+                                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                                {service.duracion && (
+                                                    <div className="flex items-center gap-1">
+                                                        <FiClock className="text-[#D6A75D]" />
+                                                        <span>{service.duracion}</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-1">
-                                                    <FiClock className="text-[#D6A75D]" />
-                                                    <span>{service.duracion}</span>
+                                                    <FiUsers className="text-[#D6A75D]" />
+                                                    <span>{t('landing.privado', language)}</span>
                                                 </div>
-                                            )}
-                                            <div className="flex items-center gap-1">
-                                                <FiUsers className="text-[#D6A75D]" />
-                                                <span>{t('landing.privado', language)}</span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                {!aliado && (
+                                                    <div>
+                                                        <p className="text-sm text-gray-500">{t('reservas.desde', language)}</p>
+                                                        <p className="text-2xl font-bold text-[#D6A75D]">
+                                                            ${Number(service.precioBase).toLocaleString('es-CO')}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                <button className={`${aliado ? 'w-full' : ''} bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors`}>
+                                                    {t('header.reservar', language)}
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center justify-between">
-                                            {!aliado && (
-                                                <div>
-                                                    <p className="text-sm text-gray-500">{t('reservas.desde', language)}</p>
-                                                    <p className="text-2xl font-bold text-[#D6A75D]">
-                                                        ${Number(service.precioBase).toLocaleString('es-CO')}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            <button className={`${aliado ? 'w-full' : ''} bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors`}>
-                                                {t('header.reservar', language)}
-                                            </button>
-                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
                             {/* Tarjeta Transporte Municipal - DESPUÉS DE SERVICIOS PRIORITARIOS */}
                             {serviciosMunicipales.length > 0 && (
@@ -401,8 +411,8 @@ export default function ReservasPage() {
                                             {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
                                         </h3>
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {language === 'es' 
-                                                ? `${serviciosMunicipales.length} destino${serviciosMunicipales.length !== 1 ? 's' : ''} disponible${serviciosMunicipales.length !== 1 ? 's' : ''}` 
+                                            {language === 'es'
+                                                ? `${serviciosMunicipales.length} destino${serviciosMunicipales.length !== 1 ? 's' : ''} disponible${serviciosMunicipales.length !== 1 ? 's' : ''}`
                                                 : `${serviciosMunicipales.length} destination${serviciosMunicipales.length !== 1 ? 's' : ''} available`}
                                         </p>
 
@@ -466,6 +476,12 @@ export default function ReservasPage() {
                     aliadoId={aliado.id}
                 />
             )}
+
+            {/* Cart Modal */}
+            <CartModal
+                isOpen={isCartOpen}
+                onClose={() => setIsCartOpen(false)}
+            />
         </>
     );
 }

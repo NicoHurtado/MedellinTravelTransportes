@@ -33,109 +33,211 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Buscar reserva por código
-        const reserva = await prisma.reserva.findUnique({
-            where: { codigo: order_id },
-            include: {
-                servicio: true,
-                conductor: true,
-                vehiculo: true,
-            },
-        });
+        // Detectar si es un pedido o una reserva individual
+        const isPedido = order_id.startsWith('PED');
 
-        if (!reserva) {
-            console.error('Reserva not found for order_id:', order_id);
-            return NextResponse.json(
-                { error: 'Reserva not found' },
-                { status: 404 }
-            );
-        }
+        if (isPedido) {
+            // MANEJO DE PEDIDO
+            const pedido = await prisma.pedido.findUnique({
+                where: { codigo: order_id },
+                include: {
+                    reservas: {
+                        include: {
+                            servicio: true,
+                            conductor: true,
+                            vehiculo: true,
+                        }
+                    }
+                },
+            });
 
-        // Mapear estado de Bold a nuestro sistema
-        let nuevoEstado: string | null = null;
-        let nuevoEstadoPago: string | null = null;
+            if (!pedido) {
+                console.error('Pedido not found for order_id:', order_id);
+                return NextResponse.json(
+                    { error: 'Pedido not found' },
+                    { status: 404 }
+                );
+            }
 
-        switch (payment_status) {
-            case 'approved':
-                nuevoEstado = 'PAGADA_PENDIENTE_ASIGNACION';
-                nuevoEstadoPago = 'APROBADO';
-                break;
-            case 'rejected':
-            case 'failed':
-                nuevoEstadoPago = 'RECHAZADO';
-                break;
-            case 'pending':
-                nuevoEstadoPago = 'PROCESANDO';
-                break;
-        }
+            // Mapear estado de Bold a nuestro sistema
+            let nuevoEstadoPago: string | null = null;
+            let nuevoEstadoReserva: string | null = null;
 
-        // Actualizar reserva
-        const estadoAnterior = reserva.estado;
+            switch (payment_status) {
+                case 'approved':
+                    nuevoEstadoReserva = 'PAGADA_PENDIENTE_ASIGNACION';
+                    nuevoEstadoPago = 'APROBADO';
+                    break;
+                case 'rejected':
+                case 'failed':
+                    nuevoEstadoPago = 'RECHAZADO';
+                    break;
+                case 'pending':
+                    nuevoEstadoPago = 'PROCESANDO';
+                    break;
+            }
 
-        await prisma.reserva.update({
-            where: { id: reserva.id },
-            data: {
-                ...(nuevoEstado && { estado: nuevoEstado as any }),
-                ...(nuevoEstadoPago && { estadoPago: nuevoEstadoPago as any }),
-                ...(transaction_id && { pagoId: transaction_id }),
-                ...(amount && { comisionBold: Number(amount) * 0.029 }), // Bold cobra ~2.9%
-            },
-        });
+            // Actualizar el pedido
+            await prisma.pedido.update({
+                where: { id: pedido.id },
+                data: {
+                    ...(nuevoEstadoPago && { estadoPago: nuevoEstadoPago as any }),
+                    ...(transaction_id && { pagoId: transaction_id }),
+                },
+            });
 
-        // Enviar email si el pago fue aprobado
-        if (payment_status === 'approved') {
-            try {
-                const reservaActualizada = await prisma.reserva.findUnique({
-                    where: { id: reserva.id },
-                    include: {
-                        servicio: true,
-                        conductor: true,
-                        vehiculo: true,
+            // Actualizar TODAS las reservas del pedido
+            if (nuevoEstadoReserva) {
+                await prisma.reserva.updateMany({
+                    where: { pedidoId: pedido.id },
+                    data: {
+                        estado: nuevoEstadoReserva as any,
+                        ...(nuevoEstadoPago && { estadoPago: nuevoEstadoPago as any }),
+                        ...(transaction_id && { pagoId: transaction_id }),
                     },
                 });
-
-                if (reservaActualizada) {
-                    await sendPagoAprobadoEmail(
-                        reservaActualizada,
-                        reserva.idioma as 'ES' | 'EN'
-                    );
-                }
-            } catch (emailError) {
-                console.error('Error sending payment email:', emailError);
-                // No fallar el webhook si el email falla
             }
-        }
 
-        // Enviar email de cambio de estado si hubo cambio
-        if (nuevoEstado && nuevoEstado !== estadoAnterior) {
-            try {
-                const reservaActualizada = await prisma.reserva.findUnique({
-                    where: { id: reserva.id },
-                    include: {
-                        servicio: true,
-                        conductor: true,
-                        vehiculo: true,
-                    },
-                });
+            // Enviar emails si el pago fue aprobado
+            if (payment_status === 'approved') {
+                try {
+                    // Enviar un email por cada reserva del pedido
+                    for (const reserva of pedido.reservas) {
+                        const reservaActualizada = await prisma.reserva.findUnique({
+                            where: { id: reserva.id },
+                            include: {
+                                servicio: true,
+                                conductor: true,
+                                vehiculo: true,
+                            },
+                        });
 
-                if (reservaActualizada) {
-                    await sendCambioEstadoEmail(
-                        reservaActualizada,
-                        estadoAnterior,
-                        reserva.idioma as 'ES' | 'EN'
-                    );
+                        if (reservaActualizada) {
+                            await sendPagoAprobadoEmail(
+                                reservaActualizada,
+                                pedido.idioma as 'ES' | 'EN'
+                            );
+                        }
+                    }
+                } catch (emailError) {
+                    console.error('Error sending payment emails for pedido:', emailError);
+                    // No fallar el webhook si el email falla
                 }
-            } catch (emailError) {
-                console.error('Error sending status change email:', emailError);
             }
-        }
 
-        return NextResponse.json({
-            success: true,
-            message: 'Webhook processed successfully',
-            order_id,
-            new_status: nuevoEstado || reserva.estado,
-        });
+            return NextResponse.json({
+                success: true,
+                message: 'Pedido webhook processed successfully',
+                order_id,
+                reservations_updated: pedido.reservas.length,
+                new_status: nuevoEstadoReserva || 'unchanged',
+            });
+
+        } else {
+            // MANEJO DE RESERVA INDIVIDUAL (código existente)
+            const reserva = await prisma.reserva.findUnique({
+                where: { codigo: order_id },
+                include: {
+                    servicio: true,
+                    conductor: true,
+                    vehiculo: true,
+                },
+            });
+
+            if (!reserva) {
+                console.error('Reserva not found for order_id:', order_id);
+                return NextResponse.json(
+                    { error: 'Reserva not found' },
+                    { status: 404 }
+                );
+            }
+
+            // Mapear estado de Bold a nuestro sistema
+            let nuevoEstado: string | null = null;
+            let nuevoEstadoPago: string | null = null;
+
+            switch (payment_status) {
+                case 'approved':
+                    nuevoEstado = 'PAGADA_PENDIENTE_ASIGNACION';
+                    nuevoEstadoPago = 'APROBADO';
+                    break;
+                case 'rejected':
+                case 'failed':
+                    nuevoEstadoPago = 'RECHAZADO';
+                    break;
+                case 'pending':
+                    nuevoEstadoPago = 'PROCESANDO';
+                    break;
+            }
+
+            // Actualizar reserva
+            const estadoAnterior = reserva.estado;
+
+            await prisma.reserva.update({
+                where: { id: reserva.id },
+                data: {
+                    ...(nuevoEstado && { estado: nuevoEstado as any }),
+                    ...(nuevoEstadoPago && { estadoPago: nuevoEstadoPago as any }),
+                    ...(transaction_id && { pagoId: transaction_id }),
+                    ...(amount && { comisionBold: Number(amount) * 0.029 }), // Bold cobra ~2.9%
+                },
+            });
+
+            // Enviar email si el pago fue aprobado
+            if (payment_status === 'approved') {
+                try {
+                    const reservaActualizada = await prisma.reserva.findUnique({
+                        where: { id: reserva.id },
+                        include: {
+                            servicio: true,
+                            conductor: true,
+                            vehiculo: true,
+                        },
+                    });
+
+                    if (reservaActualizada) {
+                        await sendPagoAprobadoEmail(
+                            reservaActualizada,
+                            reserva.idioma as 'ES' | 'EN'
+                        );
+                    }
+                } catch (emailError) {
+                    console.error('Error sending payment email:', emailError);
+                    // No fallar el webhook si el email falla
+                }
+            }
+
+            // Enviar email de cambio de estado si hubo cambio
+            if (nuevoEstado && nuevoEstado !== estadoAnterior) {
+                try {
+                    const reservaActualizada = await prisma.reserva.findUnique({
+                        where: { id: reserva.id },
+                        include: {
+                            servicio: true,
+                            conductor: true,
+                            vehiculo: true,
+                        },
+                    });
+
+                    if (reservaActualizada) {
+                        await sendCambioEstadoEmail(
+                            reservaActualizada,
+                            estadoAnterior,
+                            reserva.idioma as 'ES' | 'EN'
+                        );
+                    }
+                } catch (emailError) {
+                    console.error('Error sending status change email:', emailError);
+                }
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: 'Webhook processed successfully',
+                order_id,
+                new_status: nuevoEstado || reserva.estado,
+            });
+        }
     } catch (error) {
         console.error('Bold webhook error:', error);
         return NextResponse.json(

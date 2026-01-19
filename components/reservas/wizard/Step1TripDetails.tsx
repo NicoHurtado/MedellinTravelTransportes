@@ -216,7 +216,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                 updateFormData({ vehiculoId: recommendedVehicle.id });
             }
         }
-    }, [formData.numeroPasajeros, recommendedVehicle?.id, formData.vehiculoId, updateFormData]);
+    }, [formData.numeroPasajeros, recommendedVehicle, formData.vehiculoId, updateFormData, availableVehicles]);
 
 
 
@@ -391,12 +391,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             {/* 🚗 TRASLADO SECTION (for Traslados and Municipal Transport) */}
             {isTraslado && (
                 <div className={`space-y-4 p-6 rounded-xl border-2 ${service.tipo === 'TRANSPORTE_MUNICIPAL'
-                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
-                        : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
+                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+                    : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
                     }`}>
                     <h3 className={`font-bold text-lg flex items-center gap-2 ${service.tipo === 'TRANSPORTE_MUNICIPAL'
-                            ? 'text-green-900'
-                            : 'text-purple-900'
+                        ? 'text-green-900'
+                        : 'text-purple-900'
                         }`}>
                         {service.tipo === 'TRANSPORTE_MUNICIPAL' ? '🚍' : '🚗'}
                         {' '}

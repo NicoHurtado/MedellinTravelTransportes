@@ -136,6 +136,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     // Cancellation state
     const [cancelling, setCancelling] = useState(false);
 
+    // Expanded services state (for pedido view)
+    const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
+
     // Fetch Bold config
     useEffect(() => {
         async function fetchBoldConfig() {
@@ -153,20 +156,53 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     }, []);
 
     useEffect(() => {
-        async function fetchReserva() {
+        async function fetchData() {
             try {
-                const res = await fetch(`/api/reservas/${params.codigo}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setReserva(data);
+                // Detectar si es un pedido (PED) o una reserva (RES)
+                const isPedido = params.codigo.startsWith('PED');
+
+                if (isPedido) {
+                    // Buscar pedido
+                    const res = await fetch(`/api/pedido?codigo=${params.codigo}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const pedidoData = data.data;
+
+                        // Si el pedido no tiene hash, generarlo
+                        if (pedidoData.estadoPago === 'PENDIENTE' && !pedidoData.hashPago) {
+                            try {
+                                const hashRes = await fetch('/api/bold/generate-hash', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ pedidoId: pedidoData.id }),
+                                });
+
+                                if (hashRes.ok) {
+                                    const hashData = await hashRes.json();
+                                    pedidoData.hashPago = hashData.hash;
+                                }
+                            } catch (hashError) {
+                                console.error('Error generating hash:', hashError);
+                            }
+                        }
+
+                        setReserva(pedidoData);
+                    }
+                } else {
+                    // Buscar reserva individual
+                    const res = await fetch(`/api/reservas/${params.codigo}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setReserva(data);
+                    }
                 }
             } catch (error) {
-                console.error('Error fetching reserva:', error);
+                console.error('Error fetching data:', error);
             } finally {
                 setLoading(false);
             }
         }
-        fetchReserva();
+        fetchData();
     }, [params.codigo]);
 
     const handleSubmitRating = async () => {
@@ -228,6 +264,19 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
         }
     };
 
+    // Toggle expanded service details (for pedido view)
+    const toggleExpanded = (reservaId: string) => {
+        setExpandedServices(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(reservaId)) {
+                newSet.delete(reservaId);
+            } else {
+                newSet.add(reservaId);
+            }
+            return newSet;
+        });
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -253,6 +302,269 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
         );
     }
 
+    // Detectar si es un pedido (tiene campo 'reservas' en lugar de 'servicio')
+    const isPedido = 'reservas' in reserva && Array.isArray(reserva.reservas);
+
+    // Si es un pedido, mostrar vista de pedido
+    if (isPedido) {
+        const pedido = reserva as any;
+        const lang = (pedido.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
+        const t = DICTIONARY[lang];
+
+
+
+        return (
+            <div className="min-h-screen bg-gray-50">
+                {/* Header */}
+                <header className="bg-black text-white py-6 shadow-lg">
+                    <div className="container mx-auto px-4">
+                        <h1 className="text-2xl md:text-3xl font-bold">Transportes Medellín Travel</h1>
+                    </div>
+                </header>
+
+                <main className="container mx-auto px-4 py-8 max-w-6xl">
+                    {/* Código del Pedido */}
+                    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                        <div className="text-center">
+                            <p className="text-sm text-gray-600 mb-1">Código de Pedido</p>
+                            <p className="text-3xl font-bold text-[#D6A75D] tracking-wider mb-4">{pedido.codigo}</p>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold bg-yellow-100 text-yellow-800">
+                                <span>⏳</span>
+                                <span>{pedido.estadoPago === 'PENDIENTE' ? 'Pendiente de Pago' : pedido.estadoPago}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Servicios en el Pedido */}
+                    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                        <h3 className="text-xl font-bold mb-4">📋 Servicios Incluidos ({pedido.reservas.length})</h3>
+                        <div className="space-y-4">
+                            {pedido.reservas.map((reserva: any, index: number) => {
+                                const isExpanded = expandedServices.has(reserva.id);
+
+                                return (
+                                    <div key={reserva.id} className="border rounded-lg p-4 bg-gray-50">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="font-bold text-lg">
+                                                    {index + 1}. {typeof reserva.servicio?.nombre === 'string'
+                                                        ? reserva.servicio.nombre
+                                                        : reserva.servicio?.nombre?.[lang.toLowerCase()] || 'Servicio'}
+                                                </h4>
+                                                <p className="text-sm text-gray-600">Código: {reserva.codigo}</p>
+                                            </div>
+                                            <span className="text-lg font-bold text-[#D6A75D]">
+                                                ${Number(reserva.precioTotal).toLocaleString('es-CO')} COP
+                                            </span>
+                                        </div>
+
+                                        {/* Información básica */}
+                                        <div className="grid grid-cols-2 gap-2 text-sm mt-3">
+                                            <div>
+                                                <span className="text-gray-600">Cliente:</span>
+                                                <p className="font-medium">{reserva.nombreCliente}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Fecha:</span>
+                                                <p className="font-medium">{new Date(reserva.fecha).toLocaleDateString('es-CO')}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Hora:</span>
+                                                <p className="font-medium">{reserva.hora}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-600">Pasajeros:</span>
+                                                <p className="font-medium">{reserva.numeroPasajeros}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Botón Ver más detalles */}
+                                        <button
+                                            onClick={() => toggleExpanded(reserva.id)}
+                                            className="mt-3 text-[#D6A75D] hover:text-[#B8894A] font-medium text-sm flex items-center gap-1"
+                                        >
+                                            {isExpanded ? '▼ Ocultar detalles' : '▶ Ver más detalles'}
+                                        </button>
+
+                                        {/* Detalles expandidos */}
+                                        {isExpanded && (
+                                            <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                                                <h5 className="font-bold text-sm text-gray-700">Información Completa</h5>
+
+                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                    {/* Contacto */}
+                                                    <div className="col-span-2 bg-white p-3 rounded">
+                                                        <p className="font-semibold text-gray-700 mb-2">📞 Contacto</p>
+                                                        <p><span className="text-gray-600">WhatsApp:</span> {reserva.whatsappCliente}</p>
+                                                        <p><span className="text-gray-600">Email:</span> {reserva.emailCliente}</p>
+                                                    </div>
+
+                                                    {/* Ubicación */}
+                                                    {reserva.municipio && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">📍 Ubicación</p>
+                                                            <p><span className="text-gray-600">Municipio:</span> {reserva.municipio}</p>
+                                                            {reserva.otroMunicipio && (
+                                                                <p><span className="text-gray-600">Especificación:</span> {reserva.otroMunicipio}</p>
+                                                            )}
+                                                            {reserva.lugarRecogida && (
+                                                                <p><span className="text-gray-600">Lugar de recogida:</span> {reserva.lugarRecogida}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Vehículo */}
+                                                    {reserva.vehiculo && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">🚗 Vehículo</p>
+                                                            <p>{reserva.vehiculo.nombre}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Aeropuerto */}
+                                                    {reserva.aeropuertoTipo && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">✈️ Aeropuerto</p>
+                                                            <p><span className="text-gray-600">Tipo:</span> {reserva.aeropuertoTipo}</p>
+                                                            {reserva.aeropuertoNombre && (
+                                                                <p><span className="text-gray-600">Aeropuerto:</span> {reserva.aeropuertoNombre}</p>
+                                                            )}
+                                                            {reserva.numeroVuelo && (
+                                                                <p><span className="text-gray-600">Vuelo:</span> {reserva.numeroVuelo}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Traslado */}
+                                                    {reserva.trasladoTipo && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">🚌 Traslado</p>
+                                                            <p><span className="text-gray-600">Tipo:</span> {reserva.trasladoTipo}</p>
+                                                            {reserva.trasladoDestino && (
+                                                                <p><span className="text-gray-600">Destino:</span> {reserva.trasladoDestino}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Extras dinámicos */}
+                                                    {reserva.datosDinamicos && Object.keys(reserva.datosDinamicos).length > 0 && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">➕ Extras</p>
+                                                            {Object.entries(reserva.datosDinamicos).map(([key, value]: [string, any]) => (
+                                                                <p key={key}>
+                                                                    <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span> {
+                                                                        typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value
+                                                                    }
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Notas */}
+                                                    {reserva.notas && (
+                                                        <div className="col-span-2 bg-white p-3 rounded">
+                                                            <p className="font-semibold text-gray-700 mb-2">📝 Notas</p>
+                                                            <p className="text-gray-700">{reserva.notas}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Desglose de precio */}
+                                                    <div className="col-span-2 bg-blue-50 p-3 rounded">
+                                                        <p className="font-semibold text-gray-700 mb-2">💰 Desglose de Precio</p>
+                                                        <div className="space-y-1">
+                                                            <p className="flex justify-between">
+                                                                <span className="text-gray-600">Precio base:</span>
+                                                                <span>${Number(reserva.precioBase).toLocaleString('es-CO')}</span>
+                                                            </p>
+                                                            {reserva.precioAdicionales > 0 && (
+                                                                <p className="flex justify-between">
+                                                                    <span className="text-gray-600">Adicionales:</span>
+                                                                    <span>${Number(reserva.precioAdicionales).toLocaleString('es-CO')}</span>
+                                                                </p>
+                                                            )}
+                                                            {reserva.recargoNocturno > 0 && (
+                                                                <p className="flex justify-between">
+                                                                    <span className="text-gray-600">Recargo nocturno:</span>
+                                                                    <span>${Number(reserva.recargoNocturno).toLocaleString('es-CO')}</span>
+                                                                </p>
+                                                            )}
+                                                            {reserva.tarifaMunicipio > 0 && (
+                                                                <p className="flex justify-between">
+                                                                    <span className="text-gray-600">Tarifa municipio:</span>
+                                                                    <span>${Number(reserva.tarifaMunicipio).toLocaleString('es-CO')}</span>
+                                                                </p>
+                                                            )}
+                                                            {reserva.descuentoAliado > 0 && (
+                                                                <p className="flex justify-between text-green-600">
+                                                                    <span>Descuento:</span>
+                                                                    <span>-${Number(reserva.descuentoAliado).toLocaleString('es-CO')}</span>
+                                                                </p>
+                                                            )}
+                                                            <p className="flex justify-between font-bold pt-2 border-t border-gray-300">
+                                                                <span>Total:</span>
+                                                                <span className="text-[#D6A75D]">${Number(reserva.precioTotal).toLocaleString('es-CO')}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Resumen de Precio */}
+                    <div className="bg-white rounded-xl shadow-md p-6">
+                        <h3 className="text-xl font-bold mb-4">💰 Resumen de Pago</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Subtotal ({pedido.reservas.length} servicios):</span>
+                                <span className="font-semibold">${Number(pedido.subtotal).toLocaleString('es-CO')} COP</span>
+                            </div>
+                            <div className="flex justify-between text-orange-600">
+                                <span>+ 6% Impuestos del pago:</span>
+                                <span className="font-semibold">${Number(pedido.comisionBold).toLocaleString('es-CO')} COP</span>
+                            </div>
+                            <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                                <div className="flex justify-between text-2xl font-bold">
+                                    <span>TOTAL:</span>
+                                    <span className="text-[#D6A75D]">${Number(pedido.precioTotal).toLocaleString('es-CO')} COP</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Botón de Pago Bold */}
+                        {pedido.estadoPago === 'PENDIENTE' && boldConfig && (
+                            <div className="mt-6">
+                                <p className="text-gray-700 mb-4">
+                                    💳 Completa tu pago a través de Bold, una plataforma verificada y segura.
+                                </p>
+                                <BoldButton
+                                    orderId={pedido.codigo}
+                                    amount={Math.round(Number(pedido.precioTotal)).toString()}
+                                    currency="COP"
+                                    apiKey={boldConfig.publicKey}
+                                    integritySignature={pedido.hashPago || ''}
+                                    redirectionUrl={boldConfig.redirectUrl}
+                                    description={`Pedido ${pedido.codigo} - ${pedido.reservas.length} servicios`}
+                                    customerData={{
+                                        email: pedido.emailCliente,
+                                        fullName: pedido.nombreCliente,
+                                        phone: pedido.whatsappCliente,
+                                        dialCode: '+57'
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // Vista normal de reserva individual
     // Determine language and get dictionary
     const lang = (reserva.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
     const t = DICTIONARY[lang];
@@ -619,6 +931,14 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         <div className="flex justify-between text-green-600">
                                             <span>{t.descuentoAliado}</span>
                                             <span className="font-semibold">-${Number(reserva.descuentoAliado).toLocaleString('es-CO')}</span>
+                                        </div>
+                                    )}
+
+                                    {/* Detectar impuestos (diferencia entre total y componentes) */}
+                                    {(Number(reserva.precioTotal) - (Number(reserva.precioBase) + Number(reserva.precioAdicionales || 0) + Number(reserva.recargoNocturno || 0) + Number(reserva.tarifaMunicipio || 0) - Number(reserva.descuentoAliado || 0))) > 50 && (
+                                        <div className="flex justify-between text-orange-600">
+                                            <span>+ 6% Impuestos del pago:</span>
+                                            <span className="font-semibold">${(Number(reserva.precioTotal) - (Number(reserva.precioBase) + Number(reserva.precioAdicionales || 0) + Number(reserva.recargoNocturno || 0) + Number(reserva.tarifaMunicipio || 0) - Number(reserva.descuentoAliado || 0))).toLocaleString('es-CO')}</span>
                                         </div>
                                     )}
                                     <div className="border-t-2 border-gray-200 pt-3 mt-3">

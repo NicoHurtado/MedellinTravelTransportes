@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiPlus, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiSearch } from 'react-icons/fi';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getLocalizedText } from '@/types/multi-language';
 
 interface Servicio {
@@ -215,11 +216,13 @@ export default function ServiciosPage() {
                         >
                             <div className="flex items-start gap-4">
                                 {/* Service Image */}
-                                <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                    <img
+                                <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                    <Image
                                         src={servicio.imagen || '/placeholder.jpg'}
                                         alt={getLocalizedText(servicio.nombre, 'ES')}
-                                        className="w-full h-full object-cover"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
                                     />
                                 </div>
 

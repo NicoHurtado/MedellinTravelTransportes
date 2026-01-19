@@ -134,6 +134,7 @@ model Aliado {
 
   // Relaciones
   reservas          Reserva[]
+  pedidos           Pedido[]
   tarifas           TarifaAliado[]
   serviciosAliado   ServicioAliado[]
   tarifasMunicipios TarifaMunicipioAliado[]
@@ -289,6 +290,10 @@ model Reserva {
   aliadoId        String?
   esReservaAliado Boolean @default(false)
 
+  // Pedido (si es parte de un pedido multi-servicio)
+  pedidoId String?
+  esPedido Boolean @default(false) // Indica si es parte de un pedido
+
   // Método de Pago
   metodoPago MetodoPago @default(BOLD)
 
@@ -320,6 +325,7 @@ model Reserva {
   vehiculo                 Vehiculo?          @relation(fields: [vehiculoId], references: [id])
   conductor                Conductor?         @relation(fields: [conductorId], references: [id])
   aliado                   Aliado?            @relation(fields: [aliadoId], references: [id])
+  pedido                   Pedido?            @relation(fields: [pedidoId], references: [id])
   asistentes               Asistente[]
   adicionalesSeleccionados ReservaAdicional[]
   calificacion             Calificacion?
@@ -330,6 +336,7 @@ model Reserva {
   @@index([servicioId])
   @@index([aliadoId])
   @@index([linkCotizacion])
+  @@index([pedidoId])
 }
 
 // Asistentes (personas en la reserva)
@@ -390,6 +397,46 @@ model TarifaAliado {
   servicio Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
 
   @@unique([aliadoId, servicioId])
+}
+
+// Pedido (Order) - Agrupa múltiples reservas en un solo pago
+model Pedido {
+  id     String @id @default(cuid())
+  codigo String @unique // ej: "PED8X3K2"
+
+  // Cliente (tomado de la primera reserva)
+  nombreCliente   String
+  whatsappCliente String
+  emailCliente    String
+  idioma          Idioma
+
+  // Precios
+  subtotal     Decimal @db.Decimal(10, 2) // Suma de todas las reservas
+  comisionBold Decimal @db.Decimal(10, 2) // 6% del subtotal
+  precioTotal  Decimal @db.Decimal(10, 2) // subtotal + comisionBold
+
+  // Estado y Pago
+  estadoPago EstadoPago?
+  metodoPago MetodoPago @default(BOLD)
+
+  // Bold Payment
+  hashPago String? // Bold hash
+  pagoId   String? // transaction ID Bold
+
+  // Aliado (si todas las reservas son del mismo aliado)
+  aliadoId        String?
+  esReservaAliado Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  reservas Reserva[]
+  aliado   Aliado?   @relation(fields: [aliadoId], references: [id])
+
+  @@index([codigo])
+  @@index([estadoPago])
+  @@index([createdAt])
 }
 
 // Calificaciones (Reviews 1-5 estrellas)

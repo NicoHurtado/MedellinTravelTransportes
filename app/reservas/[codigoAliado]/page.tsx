@@ -8,6 +8,8 @@ import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import AllyHeader from '@/components/landing/AllyHeader';
 import AllyFooter from '@/components/landing/AllyFooter';
+import { CartIcon } from '@/components/carrito/CartIcon';
+import { CartModal } from '@/components/carrito/CartModal';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { sortServicesByPriority } from '@/lib/service-order';
@@ -53,6 +55,7 @@ export default function ReservaAliadoPage() {
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [wizardOpen, setWizardOpen] = useState(false);
     const [municipalModalOpen, setMunicipalModalOpen] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
 
     // Custom pricing state
     const [preciosPersonalizados, setPreciosPersonalizados] = useState<any>(null);
@@ -149,7 +152,7 @@ export default function ReservaAliadoPage() {
                     console.log(`Service ${sa.servicio.nombre} mapped vehicles:`, mapped.vehiculosPermitidos);
                     return mapped;
                 });
-            
+
             // Sort services using custom priority order
             const sortedServices = sortServicesByPriority(activeServices) as Service[];
             console.log('Final Active Services:', sortedServices);
@@ -168,7 +171,7 @@ export default function ReservaAliadoPage() {
         try {
             const res = await fetch(`/api/servicios/${serviceId}`);
             const data = await res.json();
-            
+
             if (data.success) {
                 openWizard(data.data);
             }
@@ -211,7 +214,9 @@ export default function ReservaAliadoPage() {
 
     return (
         <>
-            <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo} />
+            <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo}>
+                <CartIcon onClick={() => setIsCartOpen(true)} />
+            </AllyHeader>
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     {/* Partner Header */}
@@ -235,49 +240,49 @@ export default function ReservaAliadoPage() {
                             {/* Servicios Prioritarios (Priority 1-8) */}
                             {serviciosRegulares
                                 .map((service) => (
-                                <div
-                                    key={service.id}
-                                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                                    onClick={() => openWizard(service)}
-                                >
-                                    <div className="relative h-56 overflow-hidden">
-                                        <Image
-                                            src={service.imagen || '/medellin.jpg'}
-                                            alt={getLocalizedText(service.nombre, language)}
-                                            fill
-                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                        />
-                                    </div>
+                                    <div
+                                        key={service.id}
+                                        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                        onClick={() => openWizard(service)}
+                                    >
+                                        <div className="relative h-56 overflow-hidden">
+                                            <Image
+                                                src={service.imagen || '/medellin.jpg'}
+                                                alt={getLocalizedText(service.nombre, language)}
+                                                fill
+                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                            />
+                                        </div>
 
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
-                                            {getLocalizedText(service.nombre, language)}
-                                        </h3>
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {getLocalizedText(service.descripcion, language)}
-                                        </p>
+                                        <div className="p-6">
+                                            <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                                {getLocalizedText(service.nombre, language)}
+                                            </h3>
+                                            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                                {getLocalizedText(service.descripcion, language)}
+                                            </p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                                            {service.duracion && (
+                                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                                {service.duracion && (
+                                                    <div className="flex items-center gap-1">
+                                                        <FiClock className="text-[#D6A75D]" />
+                                                        <span>{service.duracion}</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-1">
-                                                    <FiClock className="text-[#D6A75D]" />
-                                                    <span>{service.duracion}</span>
+                                                    <FiUsers className="text-[#D6A75D]" />
+                                                    <span>{t('landing.privado', language)}</span>
                                                 </div>
-                                            )}
-                                            <div className="flex items-center gap-1">
-                                                <FiUsers className="text-[#D6A75D]" />
-                                                <span>{t('landing.privado', language)}</span>
+                                            </div>
+
+                                            <div className="flex items-center justify-end">
+                                                <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors">
+                                                    {t('header.reservar', language)}
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center justify-end">
-                                            <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors">
-                                                {t('header.reservar', language)}
-                                            </button>
-                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
                             {/* Tarjeta Transporte Municipal - DESPUÉS DE SERVICIOS PRIORITARIOS */}
                             {serviciosMunicipales.length > 0 && (
@@ -300,8 +305,8 @@ export default function ReservaAliadoPage() {
                                             {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
                                         </h3>
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {language === 'es' 
-                                                ? `${serviciosMunicipales.length} destinos disponibles` 
+                                            {language === 'es'
+                                                ? `${serviciosMunicipales.length} destinos disponibles`
                                                 : `${serviciosMunicipales.length} destinations available`}
                                         </p>
 
@@ -330,6 +335,12 @@ export default function ReservaAliadoPage() {
                 </div>
             </main>
             <AllyFooter />
+
+            {/* Cart Modal */}
+            <CartModal
+                isOpen={isCartOpen}
+                onClose={() => setIsCartOpen(false)}
+            />
 
             {/* Modal Transporte Municipal */}
             <TransporteMunicipalModal

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, Input, Modal, ModalFooter } from '@/components/ui';
 import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiUsers } from 'react-icons/fi';
 import ImageUpload from '@/components/admin/ImageUpload';
+import Image from 'next/image';
 
 interface Vehiculo {
     id: string;
@@ -159,10 +160,12 @@ export default function VehiculosPage() {
                             {/* Image */}
                             <div className="relative h-56 bg-gray-200 rounded-t-2xl overflow-hidden">
                                 {vehiculo.imagen ? (
-                                    <img
+                                    <Image
                                         src={vehiculo.imagen}
                                         alt={vehiculo.nombre}
-                                        className="w-full h-full object-contain p-4"
+                                        fill
+                                        className="object-contain p-4"
+                                        unoptimized
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400">

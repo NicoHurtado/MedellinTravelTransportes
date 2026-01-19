@@ -85,10 +85,14 @@ export async function POST(req: NextRequest) {
             attempts++;
         }
 
-        // Generar hash de Bold para el pago
+        // Calcular precio con comisión Bold (6%)
+        const comisionBold = Math.round(precioPersonalizado * 0.06);
+        const precioTotal = precioPersonalizado + comisionBold;
+
+        // Generar hash de Bold para el pago con el precio TOTAL
         const hashPago = generateBoldHash(
             codigo,
-            precioPersonalizado,
+            precioTotal,
             'COP'
         );
 
@@ -124,13 +128,13 @@ export async function POST(req: NextRequest) {
                 lugarRecogida: body.lugarRecogida || null,
                 cantidadHoras: body.cantidadHoras || null,
 
-                // Precios - Todo en precioTotal (precio personalizado)
+                // Precios
                 precioBase: precioPersonalizado,
                 precioAdicionales: 0,
                 recargoNocturno: 0,
                 tarifaMunicipio: 0,
                 descuentoAliado: 0,
-                precioTotal: precioPersonalizado,
+                precioTotal: precioTotal, // Guardar total con comisión
 
                 // Estado
                 estado: EstadoReserva.CONFIRMADA_PENDIENTE_PAGO,
@@ -179,6 +183,22 @@ export async function POST(req: NextRequest) {
         } catch (emailError) {
             console.error('❌ Error enviando email de cotización:', emailError);
             // No fallar la cotización si el email falla
+        }
+
+        // Crear evento en Google Calendar
+        try {
+            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+            const eventId = await createCalendarEvent(cotizacion as any);
+
+            if (eventId) {
+                await prisma.reserva.update({
+                    where: { id: cotizacion.id },
+                    data: { googleCalendarEventId: eventId }
+                });
+                console.log('✅ Evento de calendario creado para cotización:', eventId);
+            }
+        } catch (calError) {
+            console.error('❌ Error creando evento de calendario para cotización:', calError);
         }
 
         return NextResponse.json({

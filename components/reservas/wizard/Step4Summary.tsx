@@ -63,12 +63,16 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
             // CORRECCIÓN: Convertir tipo a minúsculas para comparar
             const tipo = field.tipo ? field.tipo.toLowerCase() : '';
 
-            console.log(`🔍 Calc - Tipo: ${tipo}, Valor: ${value}, Precio: ${field.precioUnitario}`);
+            console.log(`🔍 Calc - Tipo: ${tipo}, Valor: ${value}, Precio: ${field.precio}, PrecioUnitario: ${field.precioUnitario}`);
 
-            if (tipo === 'switch' && value === true && field.precio) {
-                total += field.precio;
+            // Switch: soporta tanto 'precio' como 'precioUnitario'
+            if (tipo === 'switch' && value === true) {
+                const precio = field.precio || field.precioUnitario;
+                if (precio) {
+                    total += Number(precio);
+                }
             }
-            // Asegurar que value y precioUnitario sean números
+            // Counter: usa precioUnitario
             if (tipo === 'counter' && Number(value) > 0 && field.precioUnitario) {
                 total += Number(value) * Number(field.precioUnitario);
             }
@@ -265,21 +269,22 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                                 {(() => {
                                     const selectedVehicle = service.vehiculosPermitidos?.find((v: any) => v.vehiculo.id === formData.vehiculoId)?.vehiculo;
                                     const vehicleName = selectedVehicle ? selectedVehicle.nombre : t('reservas.paso4_precio_base', language);
-                                    
+
                                     if (service.esPorHoras && formData.cantidadHoras) {
                                         const selectedVehicleData = service.vehiculosPermitidos?.find((v: any) => v.vehiculo.id === formData.vehiculoId);
                                         const precioHora = selectedVehicleData ? Number(selectedVehicleData.precio) : 0;
                                         return `${vehicleName} (${formatPrice(precioHora)} × ${formData.cantidadHoras} ${language === 'es' ? 'horas' : 'hours'})`;
                                     }
-                                    
+
                                     return vehicleName;
                                 })()}
                             </span>
                             <span className="font-medium">{formatPrice(formData.precioBase)}</span>
                         </div>
 
+
                         {/* Desglose de Extras Dinámicos */}
-                        {dynamicPrice > 0 && dynamicFields.length > 0 && formData.datosDinamicos && (
+                        {dynamicFields.length > 0 && formData.datosDinamicos && (
                             <>
                                 {dynamicFields.map((field) => {
                                     // @ts-ignore
@@ -290,14 +295,20 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                                     const tipo = field.tipo ? field.tipo.toLowerCase() : '';
                                     const label = getLabel(field);
 
-                                    // Mostrar Switch con precio
-                                    if (tipo === 'switch' && value === true && field.precio) {
-                                        return (
-                                            <div key={field.id || fieldKey} className="flex justify-between text-sm">
-                                                <span>{label}</span>
-                                                <span className="font-medium">{formatPrice(field.precio)}</span>
-                                            </div>
-                                        );
+                                    // Debug log
+                                    console.log('🔍 Field:', label, 'Tipo:', tipo, 'Value:', value, 'Precio:', field.precio, 'PrecioUnitario:', field.precioUnitario);
+
+                                    // Mostrar Switch con precio (soporta tanto 'precio' como 'precioUnitario')
+                                    if (tipo === 'switch' && value === true) {
+                                        const precio = field.precio || field.precioUnitario;
+                                        if (precio) {
+                                            return (
+                                                <div key={field.id || fieldKey} className="flex justify-between text-sm">
+                                                    <span>{label}</span>
+                                                    <span className="font-medium">{formatPrice(precio)}</span>
+                                                </div>
+                                            );
+                                        }
                                     }
                                     // Mostrar Counter con precio
                                     if (tipo === 'counter' && Number(value) > 0 && field.precioUnitario) {
@@ -334,10 +345,22 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             </div>
                         )}
 
+                        {/* Comisión Bold 6% - Solo para servicios que no son por horas */}
+                        {!service.esPorHoras && (
+                            <div className="flex justify-between text-orange-600">
+                                <span>+ 6% {language === 'es' ? 'Impuestos del pago' : 'Payment taxes'}:</span>
+                                <span className="font-medium">{formatPrice(formData.precioTotal * 0.06)}</span>
+                            </div>
+                        )}
+
                         <div className="border-t-2 border-[#D6A75D] pt-2 mt-2">
                             <div className="flex justify-between text-xl font-bold">
                                 <span>{t('reservas.paso4_total', language)}</span>
-                                <span className="text-[#D6A75D]">{formatPrice(formData.precioTotal)}</span>
+                                <span className="text-[#D6A75D]">
+                                    {!service.esPorHoras
+                                        ? formatPrice(formData.precioTotal * 1.06)
+                                        : formatPrice(formData.precioTotal)}
+                                </span>
                             </div>
                         </div>
                     </div>
