@@ -934,11 +934,11 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         </div>
                                     )}
 
-                                    {/* Detectar impuestos (diferencia entre total y componentes) */}
-                                    {(Number(reserva.precioTotal) - (Number(reserva.precioBase) + Number(reserva.precioAdicionales || 0) + Number(reserva.recargoNocturno || 0) + Number(reserva.tarifaMunicipio || 0) - Number(reserva.descuentoAliado || 0))) > 50 && (
+                                    {/* Bold Commission - Direct from database */}
+                                    {Number(reserva.comisionBold || 0) > 0 && (
                                         <div className="flex justify-between text-orange-600">
                                             <span>+ 6% Impuestos del pago:</span>
-                                            <span className="font-semibold">${(Number(reserva.precioTotal) - (Number(reserva.precioBase) + Number(reserva.precioAdicionales || 0) + Number(reserva.recargoNocturno || 0) + Number(reserva.tarifaMunicipio || 0) - Number(reserva.descuentoAliado || 0))).toLocaleString('es-CO')}</span>
+                                            <span className="font-semibold">${Number(reserva.comisionBold).toLocaleString('es-CO')}</span>
                                         </div>
                                     )}
                                     <div className="border-t-2 border-gray-200 pt-3 mt-3">

@@ -98,13 +98,25 @@ export async function POST(request: Request) {
         // Generar código único de 8 caracteres
         const codigo = await generateUniqueCodigo();
 
-        // Calcular precio total
-        const precioTotal =
+        // Calcular subtotal (precio del servicio sin comisión de Bold)
+        const subtotal =
             (parseFloat(body.precioBase) || 0) +
             (parseFloat(body.precioAdicionales) || 0) +
             (parseFloat(body.recargoNocturno) || 0) +
             (parseFloat(body.tarifaMunicipio) || 0) -
             (parseFloat(body.descuentoAliado) || 0);
+
+        // Determinar método de pago (default: BOLD)
+        const metodoPago = body.metodoPago || 'BOLD';
+
+        // Calcular comisión de Bold (6% del subtotal para pagos con Bold)
+        let comisionBold = 0;
+        if (metodoPago === 'BOLD') {
+            comisionBold = subtotal * 0.06;
+        }
+
+        // Calcular precio total (subtotal + comisión de Bold)
+        const precioTotal = subtotal + comisionBold;
 
         // Calcular comisión de aliado si aplica
         let comisionAliado = 0;
@@ -115,10 +127,10 @@ export async function POST(request: Request) {
                     where: { id: body.servicioId }
                 });
 
-                // Comisión especial para Transporte Municipal: 10% del precio total
+                // Comisión especial para Transporte Municipal: 10% del subtotal (sin Bold)
                 if (servicio?.tipo === 'TRANSPORTE_MUNICIPAL') {
-                    comisionAliado = precioTotal * 0.10; // 10% del precio total
-                    console.log('💰 [Transporte Municipal] Comisión 10%:', comisionAliado, 'de', precioTotal);
+                    comisionAliado = subtotal * 0.10; // 10% del subtotal
+                    console.log('💰 [Transporte Municipal] Comisión 10%:', comisionAliado, 'de', subtotal);
                 }
                 // Comisión normal para otros servicios (basada en precio de vehículo)
                 else if (body.vehiculoId) {
@@ -150,9 +162,6 @@ export async function POST(request: Request) {
                 console.error('Error calculating ally commission:', e);
             }
         }
-
-        // Determinar método de pago (default: BOLD)
-        const metodoPago = body.metodoPago || 'BOLD';
 
         // Determinar estado inicial
         let estadoInicial: EstadoReserva;
@@ -212,6 +221,7 @@ export async function POST(request: Request) {
                 tarifaMunicipio: parseFloat(body.tarifaMunicipio || 0),
                 descuentoAliado: parseFloat(body.descuentoAliado || 0),
                 precioTotal,
+                comisionBold,
                 comisionAliado,
 
                 estado: estadoInicial,
