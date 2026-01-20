@@ -266,7 +266,12 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
         // Get vehicle price
         const selectedVehicle = availableVehicles.find((v: any) => v.id === formData.vehiculoId);
-        const vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
+        let vehiclePrice = selectedVehicle ? Number(selectedVehicle.precio) : 0;
+
+        // For hourly services, multiply by number of hours
+        if (service.esPorHoras && formData.cantidadHoras) {
+            vehiclePrice = vehiclePrice * formData.cantidadHoras;
+        }
 
         // Apply custom vehicle price if available
         // Apply custom vehicle price if available
@@ -314,7 +319,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             'pricing.total (sin dinámico)': pricing.total,
             dynamicPrice,
             totalConDinamico,
-            'formData.numeroPasajeros': formData.numeroPasajeros
+            'formData.numeroPasajeros': formData.numeroPasajeros,
+            'service.esPorHoras': service.esPorHoras,
+            'formData.cantidadHoras': formData.cantidadHoras
         });
 
         // Si es cotización manual (OTRO), no calcular precios
@@ -343,6 +350,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         formData.datosDinamicos,
         formData.vehiculoId,
         formData.numeroPasajeros,
+        formData.cantidadHoras,
         availableVehicles,
         preciosPersonalizados,
         tarifasMunicipios,
@@ -353,6 +361,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         service.precioBase,
         service.id,
         service.nombre,
+        service.esPorHoras,
         updateFormData
     ]);
 
@@ -990,6 +999,41 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                     />
                 </div>
+
+                {/* Hours (for hourly services) */}
+                {service.esPorHoras && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
+                        </label>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            value={formData.cantidadHoras === 4 ? '' : (formData.cantidadHoras || '')}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                // Allow only numbers or empty
+                                if (val === '') {
+                                    updateFormData({ cantidadHoras: undefined });
+                                } else if (/^\d+$/.test(val)) {
+                                    updateFormData({ cantidadHoras: parseInt(val) });
+                                }
+                            }}
+                            onBlur={(e) => {
+                                // On blur, ensure minimum value of 4
+                                const val = e.target.value;
+                                if (val === '' || parseInt(val) < 4) {
+                                    updateFormData({ cantidadHoras: 4 });
+                                }
+                            }}
+                            placeholder="4"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {language === 'es' ? 'Mínimo 4 horas' : 'Minimum 4 hours'}
+                        </p>
+                    </div>
+                )}
 
                 {/* Vehicle Selection */}
                 <div className="md:col-span-2 space-y-3">
