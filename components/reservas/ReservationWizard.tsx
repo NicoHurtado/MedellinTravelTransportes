@@ -63,7 +63,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         nombreCliente: '',
         whatsappCliente: '',
         emailCliente: '',
-        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '' }],
+        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' }],
         precioBase: Number(service.precioBase),
         precioAdicionales: 0,
         recargoNocturno: 0,
@@ -138,8 +138,9 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
 
         // Step 1: Trip Details
         if (step === 1) {
-            // Required: fecha, hora, municipio, numeroPasajeros, vehiculoId
-            if (!formData.fecha || !formData.hora || !formData.municipio) {
+            // Required: fecha, hora, municipio (except for TOUR_COMPARTIDO), numeroPasajeros, vehiculoId
+            // For TOUR_COMPARTIDO, municipio is null and not required
+            if (!formData.fecha || !formData.hora || (service.tipo !== 'TOUR_COMPARTIDO' && !formData.municipio)) {
                 showError(language === 'es' ? 'Por favor completa todos los campos obligatorios' : 'Please complete all required fields');
                 return false;
             }
@@ -150,14 +151,45 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 return false;
             }
 
+            // Special validation for SHARED TOURS
+            if (service.tipo === 'TOUR_COMPARTIDO') {
+                if (!formData.fecha) {
+                    showError(language === 'es' ? 'Por favor selecciona una fecha' : 'Please select a date');
+                    return false;
+                }
+                if (formData.numeroPasajeros <= 0) {
+                    showError(language === 'es' ? 'Por favor ingresa el número de pasajeros' : 'Please enter the number of passengers');
+                    return false;
+                }
+
+                // Validate participants
+                if (!formData.asistentes || formData.asistentes.length !== formData.numeroPasajeros) {
+                    showError(language === 'es' ? 'Por favor completa los datos de todos los participantes' : 'Please complete details for all participants');
+                    return false;
+                }
+
+                for (let i = 0; i < formData.asistentes.length; i++) {
+                    const a = formData.asistentes[i];
+                    if (!a.nombre || !a.numeroDocumento) {
+                        showError(language === 'es'
+                            ? `Por favor completa todos los campos del participante ${i + 1}`
+                            : `Please complete all fields for participant ${i + 1}`);
+                        return false;
+                    }
+                }
+
+                // If shared tour, we don't need vehicle or other checks
+                return true;
+            }
+
             // Number of passengers must be greater than 0
             if (formData.numeroPasajeros <= 0) {
                 showError(language === 'es' ? 'Por favor ingresa el número de pasajeros' : 'Please enter the number of passengers');
                 return false;
             }
 
-            // Vehicle must be selected
-            if (!formData.vehiculoId) {
+            // Vehicle must be selected (ONLY if not Shared Tour)
+            if (!formData.vehiculoId && service.tipo !== 'TOUR_COMPARTIDO') {
                 showError(language === 'es' ? 'Por favor selecciona un vehículo' : 'Please select a vehicle');
                 return false;
             }

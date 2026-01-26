@@ -6,6 +6,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiToggleLeft, FiToggleRight, FiSearch } from
 import Link from 'next/link';
 import Image from 'next/image';
 import { getLocalizedText } from '@/types/multi-language';
+import MunicipalServicesGroup from './MunicipalServicesGroup';
 
 interface Servicio {
     id: string;
@@ -123,6 +124,7 @@ export default function ServiciosPage() {
             TOUR_ATV: 'ATV',
             TOUR_HACIENDA_NAPOLES: 'Hacienda Nápoles',
             TOUR_OCCIDENTE: 'Occidente',
+            TOUR_COMPARTIDO: 'Tour Compartido',
             OTRO: 'Otro',
         };
         return labels[tipo] || tipo;
@@ -176,6 +178,7 @@ export default function ServiciosPage() {
                         <option value="TOUR_ATV">ATV</option>
                         <option value="TOUR_HACIENDA_NAPOLES">Hacienda Nápoles</option>
                         <option value="TOUR_OCCIDENTE">Occidente</option>
+                        <option value="TOUR_COMPARTIDO">Tour Compartido</option>
                         <option value="OTRO">Otro</option>
                     </select>
 
@@ -209,119 +212,130 @@ export default function ServiciosPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4">
-                    {servicios.map((servicio) => (
-                        <div
-                            key={servicio.id}
-                            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
-                        >
-                            <div className="flex items-start gap-4">
-                                {/* Service Image */}
-                                <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                    <Image
-                                        src={servicio.imagen || '/placeholder.jpg'}
-                                        alt={getLocalizedText(servicio.nombre, 'ES')}
-                                        fill
-                                        className="object-cover"
-                                        unoptimized
-                                    />
-                                </div>
+                    {/* Municipal Services Group */}
+                    <MunicipalServicesGroup
+                        servicios={servicios.filter(s => s.tipo === 'TRANSPORTE_MUNICIPAL')}
+                        onToggle={handleToggleActive}
+                        onDelete={handleDelete}
+                        getTipoLabel={getTipoLabel}
+                    />
 
-                                {/* Service Info */}
-                                <div className="flex-1">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900">
-                                                {getLocalizedText(servicio.nombre, 'ES')}
-                                            </h3>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-sm px-2 py-1 bg-gray-100 rounded">
-                                                    {getTipoLabel(servicio.tipo)}
-                                                </span>
-                                                {servicio.esAeropuerto && (
-                                                    <span className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                                                        ✈️ Aeropuerto
+                    {/* Other Services */}
+                    {servicios
+                        .filter(s => s.tipo !== 'TRANSPORTE_MUNICIPAL')
+                        .map((servicio) => (
+                            <div
+                                key={servicio.id}
+                                className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
+                            >
+                                <div className="flex items-start gap-4">
+                                    {/* Service Image */}
+                                    <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                        <Image
+                                            src={servicio.imagen || '/placeholder.jpg'}
+                                            alt={getLocalizedText(servicio.nombre, 'ES')}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    </div>
+
+                                    {/* Service Info */}
+                                    <div className="flex-1">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-gray-900">
+                                                    {getLocalizedText(servicio.nombre, 'ES')}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-sm px-2 py-1 bg-gray-100 rounded">
+                                                        {getTipoLabel(servicio.tipo)}
                                                     </span>
-                                                )}
-                                                {servicio.destinoAutoFill && (
-                                                    <span className="text-sm px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                                                        📍 Auto-fill: {servicio.destinoAutoFill}
+                                                    {servicio.esAeropuerto && (
+                                                        <span className="text-sm px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                                            ✈️ Aeropuerto
+                                                        </span>
+                                                    )}
+                                                    {servicio.destinoAutoFill && (
+                                                        <span className="text-sm px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                                                            📍 Auto-fill: {servicio.destinoAutoFill}
+                                                        </span>
+                                                    )}
+                                                    <span
+                                                        className={`text-sm px-2 py-1 rounded ${servicio.activo
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : 'bg-red-100 text-red-700'
+                                                            }`}
+                                                    >
+                                                        {servicio.activo ? 'Activo' : 'Inactivo'}
                                                     </span>
-                                                )}
-                                                <span
-                                                    className={`text-sm px-2 py-1 rounded ${servicio.activo
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-red-100 text-red-700'
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleToggleActive(servicio.id)}
+                                                    className={`p-2 rounded transition-colors ${servicio.activo
+                                                        ? 'text-green-600 hover:bg-green-50'
+                                                        : 'text-gray-400 hover:bg-gray-50'
                                                         }`}
+                                                    title={servicio.activo ? 'Desactivar' : 'Activar'}
                                                 >
-                                                    {servicio.activo ? 'Activo' : 'Inactivo'}
-                                                </span>
+                                                    {servicio.activo ? (
+                                                        <FiToggleRight size={24} />
+                                                    ) : (
+                                                        <FiToggleLeft size={24} />
+                                                    )}
+                                                </button>
+                                                <Link
+                                                    href={`/admin/dashboard/servicios/${servicio.id}/editar`}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <FiEdit2 size={20} />
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleDelete(servicio.id, servicio.nombre)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    <FiTrash2 size={20} />
+                                                </button>
                                             </div>
                                         </div>
 
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleToggleActive(servicio.id)}
-                                                className={`p-2 rounded transition-colors ${servicio.activo
-                                                    ? 'text-green-600 hover:bg-green-50'
-                                                    : 'text-gray-400 hover:bg-gray-50'
-                                                    }`}
-                                                title={servicio.activo ? 'Desactivar' : 'Activar'}
-                                            >
-                                                {servicio.activo ? (
-                                                    <FiToggleRight size={24} />
-                                                ) : (
-                                                    <FiToggleLeft size={24} />
-                                                )}
-                                            </button>
-                                            <Link
-                                                href={`/admin/dashboard/servicios/${servicio.id}/editar`}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                                title="Editar"
-                                            >
-                                                <FiEdit2 size={20} />
-                                            </Link>
-                                            <button
-                                                onClick={() => handleDelete(servicio.id, servicio.nombre)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                title="Eliminar"
-                                            >
-                                                <FiTrash2 size={20} />
-                                            </button>
-                                        </div>
-                                    </div>
+                                        <p className="text-gray-600 mt-2 line-clamp-2">
+                                            {getLocalizedText(servicio.descripcion, 'ES')}
+                                        </p>
 
-                                    <p className="text-gray-600 mt-2 line-clamp-2">
-                                        {getLocalizedText(servicio.descripcion, 'ES')}
-                                    </p>
-
-                                    {/* Stats */}
-                                    <div className="flex items-center gap-6 mt-4 text-sm">
-                                        <div>
-                                            <span className="text-gray-500">Precio base:</span>{' '}
-                                            <span className="font-semibold">
-                                                ${Number(servicio.precioBase).toLocaleString('es-CO')}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">Vehículos:</span>{' '}
-                                            <span className="font-semibold">
-                                                {servicio.vehiculosPermitidos.length}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">Campos dinámicos:</span>{' '}
-                                            <span className="font-semibold">
-                                                {Array.isArray(servicio.camposPersonalizados)
-                                                    ? servicio.camposPersonalizados.length
-                                                    : 0}
-                                            </span>
+                                        {/* Stats */}
+                                        <div className="flex items-center gap-6 mt-4 text-sm">
+                                            <div>
+                                                <span className="text-gray-500">Precio base:</span>{' '}
+                                                <span className="font-semibold">
+                                                    ${Number(servicio.precioBase).toLocaleString('es-CO')}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Vehículos:</span>{' '}
+                                                <span className="font-semibold">
+                                                    {servicio.vehiculosPermitidos.length}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">Campos dinámicos:</span>{' '}
+                                                <span className="font-semibold">
+                                                    {Array.isArray(servicio.camposPersonalizados)
+                                                        ? servicio.camposPersonalizados.length
+                                                        : 0}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
             )}
         </div>

@@ -230,6 +230,35 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         let horaInicioRecargo = service.recargoNocturnoInicio;
         let horaFinRecargo = service.recargoNocturnoFin;
 
+        // 🔥 SHARED TOUR PRICING LOGIC
+        if (service.tipo === 'TOUR_COMPARTIDO') {
+            // Price is fixed per person: 195.000 (Hardcoded or from basePrice if user edited it to 195k)
+            // Assuming basePrice in DB is 195000.
+            const pricePerPerson = Number(service.precioBase);
+            const totalShared = pricePerPerson * formData.numeroPasajeros;
+
+            // Auto-set hardcoded values for Shared Tour
+            if (formData.hora !== '07:50') {
+                updateFormData({ hora: '07:50' });
+            }
+            if (formData.lugarRecogida !== 'Esquina Carrera 35 con Calle 7, Provenza') {
+                updateFormData({ lugarRecogida: 'Esquina Carrera 35 con Calle 7, Provenza' });
+            }
+            if (formData.municipio !== null) {
+                // For shared tours, municipio should be null (no pickup municipality)
+                updateFormData({ municipio: null as any });
+            }
+
+            updateFormData({
+                precioBase: totalShared,
+                recargoNocturno: 0,
+                tarifaMunicipio: 0,
+                precioAdicionales: 0,
+                precioTotal: totalShared,
+            });
+            return;
+        }
+
         // Check if hotel has override configuration
         const hotelConfig = preciosPersonalizados?.[service.id];
 
@@ -376,6 +405,16 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         return formData.numeroPasajeros > 0;
     };
 
+    // Shared tour validation
+    const isSharedTour = service.tipo === 'TOUR_COMPARTIDO';
+    if (isSharedTour) {
+        const isValidShared = formData.fecha && formData.numeroPasajeros > 0 && formData.asistentes && formData.asistentes.length === formData.numeroPasajeros &&
+            formData.asistentes.every(a => a.nombre && a.numeroDocumento);
+        // We'll let validateStep in main wizard handle specific alerts, but local isValid logic needs to pass.
+        // Actually Step 1 validation in main wizard just checks basic fields. We might need to make sure 'hora' and 'municipio' are set.
+        // The pricing useEffect sets them.
+    }
+
     const handleWhatsAppAssistance = () => {
         const message = encodeURIComponent(
             `Hola, necesito asistencia con el servicio: ${service.nombre}. Requiero múltiples recogidas o una petición personalizada.`
@@ -397,8 +436,150 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
             {/* 🚍 TRANSPORTE MUNICIPAL SECTION - Now handled by TRASLADO SECTION below */}
 
+
+            {/* 🚍 SHARED TOUR SECTION */}
+            {isSharedTour && (
+                <div className="space-y-6">
+                    {/* Logistics Info Box - At the beginning */}
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                        <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                            🚌 {language === 'es' ? 'Información del Tour Compartido' : 'Shared Tour Information'}
+                        </h3>
+                        <div className="text-sm text-amber-900 space-y-2">
+                            <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                            <p><strong>{language === 'es' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
+                            <p className="italic">{language === 'es' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
+                        </div>
+                    </div>
+
+                    {/* Date Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('reservas.paso1_fecha', language)} *
+                        </label>
+                        <DateInput
+                            value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
+                            onChange={(dateStr) => {
+                                if (!dateStr) {
+                                    updateFormData({ fecha: null });
+                                } else {
+                                    // Manually create date at noon UTC to avoid timezone issues
+                                    const date = new Date(dateStr + 'T12:00:00Z');
+                                    updateFormData({ fecha: date });
+                                }
+                            }}
+                            min={new Date().toISOString().split('T')[0]}
+                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        />
+                    </div>
+
+
+                    {/* Passengers Count */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('reservas.paso1_pasajeros', language)}
+                        </label>
+                        <div className="flex items-center gap-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newVal = Math.max(1, formData.numeroPasajeros - 1);
+                                    // Update assistants array size
+                                    const newAsistentes = [...(formData.asistentes || [])];
+                                    if (newAsistentes.length > newVal) {
+                                        newAsistentes.length = newVal;
+                                    }
+                                    updateFormData({ numeroPasajeros: newVal, asistentes: newAsistentes });
+                                }}
+                                className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-xl hover:bg-gray-100 transition-colors"
+                            >
+                                -
+                            </button>
+                            <span className="text-xl font-bold w-12 text-center">{formData.numeroPasajeros}</span>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newVal = formData.numeroPasajeros + 1;
+                                    // Expand assistants array
+                                    const newAsistentes = [...(formData.asistentes || [])];
+                                    while (newAsistentes.length < newVal) {
+                                        // @ts-ignore
+                                        newAsistentes.push({ nombre: '', tipoDocumento: 'CC', numeroDocumento: '', email: '', telefono: '' });
+                                    }
+                                    updateFormData({ numeroPasajeros: newVal, asistentes: newAsistentes });
+                                }}
+                                className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center text-xl hover:bg-gray-100 transition-colors"
+                            >
+                                +
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Participant Details Forms */}
+                    {formData.numeroPasajeros > 0 && (
+                        <div className="space-y-4 border-t pt-4">
+                            <h4 className="font-bold text-gray-900">
+                                {language === 'es' ? 'Datos de los Participantes' : 'Participants Details'}
+                            </h4>
+                            {Array.from({ length: formData.numeroPasajeros }).map((_, index) => (
+                                <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <h5 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                        <FiUser /> {language === 'es' ? `Participante ${index + 1}` : `Participant ${index + 1}`}
+                                    </h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input
+                                            type="text"
+                                            placeholder={language === 'es' ? 'Nombre Completo *' : 'Full Name *'}
+                                            value={formData.asistentes?.[index]?.nombre || ''}
+                                            onChange={(e) => {
+                                                const newAsistentes = [...(formData.asistentes || [])];
+                                                if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
+                                                newAsistentes[index].nombre = e.target.value;
+                                                updateFormData({ asistentes: newAsistentes });
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={formData.asistentes?.[index]?.tipoDocumento || 'CC'}
+                                                onChange={(e) => {
+                                                    const newAsistentes = [...(formData.asistentes || [])];
+                                                    if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
+                                                    // @ts-ignore
+                                                    newAsistentes[index].tipoDocumento = e.target.value;
+                                                    updateFormData({ asistentes: newAsistentes });
+                                                }}
+                                                className="w-1/3 px-3 py-2 border border-gray-300 rounded-md"
+                                            >
+                                                <option value="CC">CC</option>
+                                                <option value="CE">CE</option>
+                                                <option value="PASAPORTE">Pass</option>
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder={language === 'es' ? 'No. Documento *' : 'Doc Number *'}
+                                                value={formData.asistentes?.[index]?.numeroDocumento || ''}
+                                                onChange={(e) => {
+                                                    const newAsistentes = [...(formData.asistentes || [])];
+                                                    if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
+                                                    newAsistentes[index].numeroDocumento = e.target.value;
+                                                    updateFormData({ asistentes: newAsistentes });
+                                                }}
+                                                className="w-2/3 px-3 py-2 border border-gray-300 rounded-md"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                </div>
+            )}
+
             {/* 🚗 TRASLADO SECTION (for Traslados and Municipal Transport) */}
-            {isTraslado && (
+            {isTraslado && !isSharedTour && (
                 <div className={`space-y-4 p-6 rounded-xl border-2 ${service.tipo === 'TRANSPORTE_MUNICIPAL'
                     ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
                     : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'
@@ -802,8 +983,14 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                             value={formData.lugarRecogida || ''}
                             onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
                             placeholder="Ej: Hotel Dann Carlton, Parque Lleras, etc."
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            disabled={isSharedTour}
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none ${isSharedTour ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                         />
+                        {isSharedTour && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                {language === 'es' ? '📍 Punto de encuentro fijo para este tour compartido' : '📍 Fixed meeting point for this shared tour'}
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -1098,9 +1285,26 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                         })}
                     </div>
                     {availableVehicles.length === 0 && (
-                        <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
-                            <FiAlertCircle /> {t('reservas.no_vehiculos', language)}
-                        </p>
+                        isSharedTour ? (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-gray-900 mb-2">
+                                            {language === 'es' ? '🚐 Van con capacidad de 15 personas' : '🚐 Van with capacity for 15 people'}
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                            {language === 'es'
+                                                ? 'Este tour compartido se realiza en una van cómoda con capacidad para hasta 15 pasajeros.'
+                                                : 'This shared tour is conducted in a comfortable van with capacity for up to 15 passengers.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
+                                <FiAlertCircle /> {t('reservas.no_vehiculos', language)}
+                            </p>
+                        )
                     )}
                 </div>
             </div>

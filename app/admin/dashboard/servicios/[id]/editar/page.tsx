@@ -205,12 +205,18 @@ export default function EditarServicioPage() {
         e.preventDefault();
 
         // Validation
-        if (!nombreES || !nombreEN || !tipo || !descripcionES || !descripcionEN || !imagen) {
+        if (!nombreES || !nombreEN || !tipo || !descripcionES || !descripcionEN) {
             alert('Por favor completa todos los campos requeridos en ambos idiomas');
             return;
         }
 
-        if (vehiculosSeleccionados.length === 0) {
+        if (!imagen) {
+            alert('Por favor sube una imagen del servicio. Recuerda hacer clic en el botón "Subir" después de seleccionar el archivo.');
+            return;
+        }
+
+        // Skip vehicle validation for Tour Compartido (price is per person, not per vehicle)
+        if (tipo !== 'TOUR_COMPARTIDO' && vehiculosSeleccionados.length === 0) {
             alert('Debes seleccionar al menos un vehículo');
             return;
         }

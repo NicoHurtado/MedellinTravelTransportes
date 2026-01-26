@@ -148,7 +148,8 @@ export default function CrearServicioPage() {
             return;
         }
 
-        if (vehiculosSeleccionados.length === 0) {
+        // Skip vehicle validation for Tour Compartido (price is per person, not per vehicle)
+        if (tipo !== 'TOUR_COMPARTIDO' && vehiculosSeleccionados.length === 0) {
             alert('Debes seleccionar al menos un vehículo');
             return;
         }
@@ -276,6 +277,7 @@ export default function CrearServicioPage() {
                                 <option value="TOUR_ATV">Tour ATV</option>
                                 <option value="TOUR_HACIENDA_NAPOLES">Tour Hacienda Nápoles</option>
                                 <option value="TOUR_OCCIDENTE">Tour Occidente</option>
+                                <option value="TOUR_COMPARTIDO">Tour Compartido</option>
                                 <option value="OTRO">Otro</option>
                             </select>
                         </div>
@@ -337,18 +339,19 @@ export default function CrearServicioPage() {
 
                     <div className="mt-4">
                         <label className="block text-sm font-medium mb-2">
-                            Precio Base (COP)
+                            {tipo === 'TOUR_COMPARTIDO' ? 'Precio por Persona (COP)' : 'Precio Base (COP)'}
                         </label>
                         <input
                             type="number"
                             value={precioBase}
                             onChange={(e) => setPrecioBase(Number(e.target.value))}
                             min="0"
-
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
                         />
                         <p className="text-sm text-gray-500 mt-1">
-                            Este precio se usa como referencia. El precio real depende del vehículo seleccionado.
+                            {tipo === 'TOUR_COMPARTIDO'
+                                ? 'Este es el precio que pagará cada participante del tour compartido.'
+                                : 'Este precio se usa como referencia. El precio real depende del vehículo seleccionado.'}
                         </p>
                     </div>
 

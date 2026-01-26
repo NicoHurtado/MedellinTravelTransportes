@@ -194,10 +194,12 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                         </p>
                     </div>
 
-                    <div>
-                        <span className="text-gray-600">{t('reservas.paso4_municipio', language)}:</span>
-                        <p className="font-medium">{municipioLabels[formData.municipio]}</p>
-                    </div>
+                    {formData.municipio && (
+                        <div>
+                            <span className="text-gray-600">{t('reservas.paso4_municipio', language)}:</span>
+                            <p className="font-medium">{municipioLabels[formData.municipio]}</p>
+                        </div>
+                    )}
                     <div>
                         <span className="text-gray-600">{t('reservas.paso4_pasajeros', language)}:</span>
                         <p className="font-medium">{formData.numeroPasajeros} {t('comunes.personas', language)}</p>
@@ -208,6 +210,38 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                     </div>
                 </div>
             </div>
+
+            {/* Participants Summary (for Shared Tours or when assistants exist) */}
+            {formData.asistentes && formData.asistentes.length > 0 && formData.asistentes[0].nombre && (
+                <div className="bg-gray-50 rounded-lg p-6 space-y-3">
+                    <h3 className="font-bold text-lg mb-2">{language === 'es' ? 'Participantes' : 'Participants'}</h3>
+                    <div className="text-sm space-y-2 max-h-60 overflow-y-auto">
+                        {formData.asistentes.map((asistente, idx) => (
+                            <div key={idx} className="border-b border-gray-200 last:border-0 pb-2 last:pb-0">
+                                <p className="font-medium text-gray-900">{idx + 1}. {asistente.nombre}</p>
+                                <p className="text-xs text-gray-500">
+                                    {asistente.tipoDocumento} {asistente.numeroDocumento}
+                                    {asistente.email && ` • ${asistente.email}`}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Shared Tour Information Box */}
+            {service.tipo === 'TOUR_COMPARTIDO' && (
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                        🚌 {language === 'es' ? 'Información del Tour Compartido' : 'Shared Tour Information'}
+                    </h3>
+                    <div className="text-sm text-amber-900 space-y-2">
+                        <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                        <p><strong>{language === 'es' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
+                        <p className="italic">{language === 'es' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
+                    </div>
+                </div>
+            )}
 
             {/* Contact Info */}
             <div className="bg-gray-50 rounded-lg p-6 space-y-2">

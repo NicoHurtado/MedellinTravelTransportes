@@ -20,7 +20,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
         updateFormData({
             asistentes: [
                 ...formData.asistentes,
-                { nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '' }
+                { nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' }
             ]
         });
     };

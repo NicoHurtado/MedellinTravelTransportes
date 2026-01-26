@@ -106,3 +106,55 @@ export const exportarReservasPDF = (data: any[], viewMode: 'nueva' | 'antigua', 
     // 6. Descargar
     doc.save(`Reporte_Reservas_${new Date().toISOString().split('T')[0]}.pdf`);
 };
+
+import * as XLSX from 'xlsx';
+
+export const exportarReservasExcel = (data: any[], viewMode: 'nueva' | 'antigua') => {
+    let excelData = [];
+
+    if (viewMode === 'nueva') {
+        excelData = data.map((row: any) => ({
+            'CÓDIGO': row.codigo,
+            'CLIENTE': row.nombreCliente,
+            'EMAIL': row.emailCliente,
+            'WHATSAPP': row.whatsappCliente,
+            'SERVICIO': row.servicio?.nombre ? getLocalizedText(row.servicio.nombre, 'ES') : '-',
+            'FECHA': new Date(row.fecha).toLocaleDateString('es-CO'),
+            'HORA': row.hora,
+            'ESTADO': getStateLabel(row.estado),
+            'ALIADO': row.aliado?.nombre || 'Independiente',
+            'COMISIÓN': Number(row.comisionAliado) || 0,
+            'TOTAL': Number(row.precioTotal) || 0,
+            'NOTAS': row.notas || row.notasEspeciales || '' // Columna de Notas Adicionales
+        }));
+    } else {
+        excelData = data.map((row: any) => ({
+            'CANAL': row.canal || '-',
+            'NOMBRE': row.nombre,
+            'IDIOMA': row.idioma,
+            'SERVICIO': row.servicio,
+            'FECHA': row.fecha ? new Date(row.fecha).toLocaleDateString('es-CO') : '-',
+            'HORA': row.hora ? new Date(row.hora).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '-',
+            'COTIZACIÓN': row.cotizacion,
+            'ESTADO': row.estado_servicio || '-',
+            'COMISIÓN': row.comision,
+            'NOTAS': row.informacion_adicional || '' // Columna de Notas Adicionales
+        }));
+    }
+
+    // Crear Workbook y Sheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Ajustar ancho de columnas
+    const colWidths = viewMode === 'nueva'
+        ? [10, 20, 25, 15, 25, 12, 8, 15, 15, 12, 12, 40] // Anchos estimados
+        : [15, 20, 8, 20, 12, 10, 12, 15, 12, 40];
+
+    ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Reservas');
+
+    // Descargar
+    XLSX.writeFile(wb, `Reporte_Reservas_${new Date().toISOString().split('T')[0]}.xlsx`);
+};

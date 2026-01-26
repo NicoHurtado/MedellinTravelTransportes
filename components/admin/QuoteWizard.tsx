@@ -51,7 +51,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
         nombreCliente: '',
         whatsappCliente: '',
         emailCliente: '',
-        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '' }],
+        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' }],
         precioBase: 0,
         precioAdicionales: 0,
         recargoNocturno: 0,
@@ -483,8 +483,8 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                                 <button
                                     onClick={() => setActiveTab('interno')}
                                     className={`flex-1 py-3 px-4 font-semibold transition-all ${activeTab === 'interno'
-                                            ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
+                                        : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
                                     Uso Interno
@@ -492,8 +492,8 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                                 <button
                                     onClick={() => setActiveTab('tercero')}
                                     className={`flex-1 py-3 px-4 font-semibold transition-all ${activeTab === 'tercero'
-                                            ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
-                                            : 'text-gray-500 hover:text-gray-700'
+                                        ? 'border-b-2 border-[#D6A75D] text-[#D6A75D]'
+                                        : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                 >
                                     Para Tercero

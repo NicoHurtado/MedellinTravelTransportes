@@ -30,6 +30,7 @@ enum TipoServicio {
   TOUR_OCCIDENTE
   TRANSPORTE_POR_HORAS
   TRANSPORTE_MUNICIPAL
+  TOUR_COMPARTIDO
   OTRO
 }
 
@@ -167,6 +168,7 @@ model Servicio {
   esAeropuerto    Boolean @default(false) // Shows airport buttons UI in wizard
   esPorHoras      Boolean @default(false) // Habilita flujo especial de WhatsApp
   destinoAutoFill String? // If set, auto-fills destination field (e.g., "Guatapé")
+  orden           Int     @default(999) // Display order on reservations page (lower = higher priority)
 
   // 🔥 CRITICAL: Dynamic Fields Configuration (JSONB Approach)
   // Array de objetos que define campos personalizados
@@ -251,7 +253,7 @@ model Reserva {
   fecha           DateTime
   hora            String
   idioma          Idioma
-  municipio       Municipio
+  municipio       Municipio? // Nullable for TOUR_COMPARTIDO
   otroMunicipio   String? // si municipio = OTRO
   numeroPasajeros Int
   vehiculoId      String?
@@ -346,6 +348,8 @@ model Asistente {
   nombre          String
   tipoDocumento   TipoDocumento
   numeroDocumento String
+  email           String?
+  telefono        String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

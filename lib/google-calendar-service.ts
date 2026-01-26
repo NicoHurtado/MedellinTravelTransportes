@@ -61,7 +61,7 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
     if (reserva.municipio === 'OTRO' && reserva.otroMunicipio) {
         municipio = reserva.otroMunicipio;
     } else {
-        municipio = reserva.municipio;
+        municipio = reserva.municipio || '';
     }
 
     if (reserva.aeropuertoTipo === 'DESDE') {
@@ -81,7 +81,7 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
         origen = reserva.lugarRecogida || 'Por definir';
         destino = reserva.municipio === 'OTRO' && reserva.otroMunicipio
             ? reserva.otroMunicipio
-            : reserva.municipio;
+            : reserva.municipio || '';
     }
 
     // Construir descripción detallada

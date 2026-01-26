@@ -74,7 +74,19 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Validar campos requeridos
+        // Get service first to check type
+        const servicio = await prisma.servicio.findUnique({
+            where: { id: body.servicioId }
+        });
+
+        if (!servicio) {
+            return NextResponse.json(
+                { error: 'Servicio no encontrado' },
+                { status: 404 }
+            );
+        }
+
+        // Validar campos requeridos (municipio no es requerido para TOUR_COMPARTIDO)
         const requiredFields = [
             'servicioId',
             'fecha',
@@ -83,8 +95,12 @@ export async function POST(request: Request) {
             'whatsappCliente',
             'emailCliente',
             'numeroPasajeros',
-            'municipio',
         ];
+
+        // Add municipio to required fields only if NOT a shared tour
+        if (servicio.tipo !== 'TOUR_COMPARTIDO') {
+            requiredFields.push('municipio');
+        }
 
         for (const field of requiredFields) {
             if (!body[field]) {
@@ -131,6 +147,11 @@ export async function POST(request: Request) {
                 if (servicio?.tipo === 'TRANSPORTE_MUNICIPAL') {
                     comisionAliado = subtotal * 0.10; // 10% del subtotal
                     console.log('💰 [Transporte Municipal] Comisión 10%:', comisionAliado, 'de', subtotal);
+                }
+                // Comisión para Tour Compartido: 10% del subtotal
+                else if (servicio?.tipo === 'TOUR_COMPARTIDO') {
+                    comisionAliado = subtotal * 0.10;
+                    console.log('💰 [Tour Compartido] Comisión 10%:', comisionAliado, 'de', subtotal);
                 }
                 // Comisión normal para otros servicios (basada en precio de vehículo)
                 else if (body.vehiculoId) {
@@ -196,7 +217,7 @@ export async function POST(request: Request) {
                 whatsappCliente: body.whatsappCliente,
                 emailCliente: body.emailCliente,
                 idioma: body.idioma || 'ES',
-                municipio: body.municipio,
+                municipio: body.municipio || null,
                 otroMunicipio: body.otroMunicipio || null,
                 numeroPasajeros: parseInt(body.numeroPasajeros),
                 vehiculoId: body.vehiculoId || null,
@@ -245,6 +266,8 @@ export async function POST(request: Request) {
                         nombre: a.nombre,
                         tipoDocumento: a.tipoDocumento,
                         numeroDocumento: a.numeroDocumento,
+                        email: a.email,
+                        telefono: a.telefono,
                     }))
                 } : undefined,
             },
@@ -258,9 +281,14 @@ export async function POST(request: Request) {
 
         // Enviar email de confirmación
         try {
-            const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail } = await import('@/lib/email-service');
+            const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
 
-            if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
+            // Obtain service again if not already available in scope (though prisma.reserva.create returns it included)
+            // But we can check body.servicioId to know the type immediately if we cached it, or just rely on 'reserva.servicio.tipo'
+
+            if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
+            } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
                 await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
             } else {
                 await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES');

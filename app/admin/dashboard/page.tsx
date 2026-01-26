@@ -29,6 +29,7 @@ export default function AdminDashboard() {
 
     // Filters
     const [estadoFilter, setEstadoFilter] = useState<string>('');
+    const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Pagination
@@ -91,6 +92,9 @@ export default function AdminDashboard() {
             reserva.nombreCliente.toLowerCase().includes(query) ||
             servicioNombre.includes(query)
         );
+    }).filter((reserva) => {
+        if (!serviceTypeFilter) return true;
+        return reserva.servicio?.tipo === serviceTypeFilter;
     }).sort((a, b) => {
         // Sort by creation date descending (newest first)
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -99,7 +103,7 @@ export default function AdminDashboard() {
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [estadoFilter, searchQuery]);
+    }, [estadoFilter, searchQuery, serviceTypeFilter]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredReservas.length / itemsPerPage);
@@ -230,6 +234,20 @@ export default function AdminDashboard() {
         { value: 'CANCELADA', label: 'Cancelada' },
     ];
 
+    const serviceTypes = [
+        { value: '', label: 'Todos los tipos' },
+        { value: 'TRANSPORTE_MUNICIPAL', label: 'Transporte Municipal' },
+        { value: 'TRANSPORTE_AEROPUERTO', label: 'Aeropuerto' },
+        { value: 'CITY_TOUR', label: 'City Tour' },
+        { value: 'TOUR_GUATAPE', label: 'Guatapé' },
+        { value: 'TOUR_PARAPENTE', label: 'Parapente' },
+        { value: 'TOUR_ATV', label: 'ATV' },
+        { value: 'TOUR_HACIENDA_NAPOLES', label: 'Hacienda Nápoles' },
+        { value: 'TOUR_OCCIDENTE', label: 'Occidente' },
+        { value: 'TOUR_COMPARTIDO', label: 'Tour Compartido' },
+        { value: 'OTRO', label: 'Otro' },
+    ];
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -293,7 +311,7 @@ export default function AdminDashboard() {
                         <FiFilter className="text-gray-400" size={18} />
                         <h2 className="text-base sm:text-lg font-semibold text-gray-900">Filtros</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                         {/* Search */}
                         <div className="relative">
                             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -315,6 +333,19 @@ export default function AdminDashboard() {
                             {estados.map((estado) => (
                                 <option key={estado.value} value={estado.value}>
                                     {estado.label}
+                                </option>
+                            ))}
+                        </select>
+
+                        {/* Service Type Filter */}
+                        <select
+                            value={serviceTypeFilter}
+                            onChange={(e) => setServiceTypeFilter(e.target.value)}
+                            className="px-3 sm:px-4 py-2 sm:py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        >
+                            {serviceTypes.map((type) => (
+                                <option key={type.value} value={type.value}>
+                                    {type.label}
                                 </option>
                             ))}
                         </select>

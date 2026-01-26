@@ -460,6 +460,18 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                         </div>
                                                     )}
 
+                                                    {/* Shared Tour Information Box */}
+                                                    {reserva.servicio?.tipo === 'TOUR_COMPARTIDO' && (
+                                                        <div className="col-span-2 bg-amber-50 border-l-4 border-amber-500 p-3 rounded">
+                                                            <p className="font-semibold text-amber-800 mb-2">🚌 {lang === 'ES' ? 'Información del Tour Compartido' : 'Shared Tour Information'}</p>
+                                                            <div className="text-sm text-amber-900 space-y-1">
+                                                                <p><strong>{lang === 'ES' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                                                                <p><strong>{lang === 'ES' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
+                                                                <p className="italic">{lang === 'ES' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
                                                     {/* Notas */}
                                                     {reserva.notas && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
@@ -747,15 +759,17 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                     </p>
                                 </div>
 
-                                {/* Municipio */}
-                                <div>
-                                    <p className="text-sm text-gray-600">{t.municipio}</p>
-                                    <p className="font-semibold">
-                                        {reserva.municipio === 'OTRO' && reserva.otroMunicipio
-                                            ? reserva.otroMunicipio
-                                            : reserva.municipio.replace(/_/g, ' ')}
-                                    </p>
-                                </div>
+                                {/* Municipio - Only show if not null */}
+                                {reserva.municipio && (
+                                    <div>
+                                        <p className="text-sm text-gray-600">{t.municipio}</p>
+                                        <p className="font-semibold">
+                                            {reserva.municipio === 'OTRO' && reserva.otroMunicipio
+                                                ? reserva.otroMunicipio
+                                                : reserva.municipio.replace(/_/g, ' ')}
+                                        </p>
+                                    </div>
+                                )}
                                 {reserva.vehiculo && (
                                     <div>
                                         <p className="text-sm text-gray-600">{t.vehiculo}</p>
@@ -777,6 +791,20 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                     <div>
                                         <p className="text-sm text-gray-600">{t.duracion}</p>
                                         <p className="font-semibold">{reserva.servicio.duracion}</p>
+                                    </div>
+                                )}
+
+                                {/* Shared Tour Information Box */}
+                                {reserva.servicio?.tipo === 'TOUR_COMPARTIDO' && (
+                                    <div className="md:col-span-2 mt-2 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                                        <h3 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+                                            🚌 {lang === 'ES' ? 'Información del Tour Compartido' : 'Shared Tour Information'}
+                                        </h3>
+                                        <div className="text-sm text-amber-900 space-y-2">
+                                            <p><strong>{lang === 'ES' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                                            <p><strong>{lang === 'ES' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
+                                            <p className="italic">{lang === 'ES' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
+                                        </div>
                                     </div>
                                 )}
                             </div>

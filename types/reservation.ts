@@ -4,6 +4,8 @@ export interface Asistente {
     nombre: string;
     tipoDocumento: TipoDocumento;
     numeroDocumento: string;
+    email: string;
+    telefono: string;
 }
 
 export interface ReservationFormData {
