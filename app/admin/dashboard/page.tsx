@@ -31,6 +31,8 @@ export default function AdminDashboard() {
     const [estadoFilter, setEstadoFilter] = useState<string>('');
     const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [tourCompartidoFilter, setTourCompartidoFilter] = useState(false); // NEW: Tour Compartido special filter
+
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -50,13 +52,29 @@ export default function AdminDashboard() {
     }, [status]);
 
     useEffect(() => {
-        // Filter reservas when estadoFilter changes
-        if (estadoFilter) {
+        // Filter reservas when estadoFilter or tourCompartidoFilter changes
+        if (tourCompartidoFilter) {
+            // Show only Tour Compartido that are:
+            // 1. Paid (PAGADA_PENDIENTE_ASIGNACION or later states)
+            // 2. OR Cash payment from hotels (CONFIRMADA_PENDIENTE_ASIGNACION with metodoPago EFECTIVO)
+            const tourCompartidoReservas = allReservas.filter(r => {
+                const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
+                if (!isTourCompartido) return false;
+
+                const isPaid = r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
+                    r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
+                    r.estado === 'COMPLETADA';
+                const isCashPayment = r.metodoPago === 'EFECTIVO' && r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION';
+
+                return isPaid || isCashPayment;
+            });
+            setReservas(tourCompartidoReservas);
+        } else if (estadoFilter) {
             setReservas(allReservas.filter(r => r.estado === estadoFilter));
         } else {
             setReservas(allReservas);
         }
-    }, [estadoFilter, allReservas]);
+    }, [estadoFilter, tourCompartidoFilter, allReservas]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -73,8 +91,22 @@ export default function AdminDashboard() {
             if (res.ok) {
                 const data = await res.json();
                 const allData = data.data || [];
-                setAllReservas(allData);
-                setReservas(allData);
+
+                // Filter out Tour Compartido that are pending payment (not cash)
+                // Keep Tour Compartido that are:
+                // 1. Paid (any state except CONFIRMADA_PENDIENTE_PAGO)
+                // 2. Cash payment (CONFIRMADA_PENDIENTE_ASIGNACION with metodoPago EFECTIVO)
+                const filteredData = allData.filter((r: any) => {
+                    const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
+                    if (!isTourCompartido) return true; // Keep all non-Tour Compartido
+
+                    // For Tour Compartido, exclude if pending payment with Bold
+                    const isPendingBoldPayment = r.estado === 'CONFIRMADA_PENDIENTE_PAGO' && r.metodoPago === 'BOLD';
+                    return !isPendingBoldPayment;
+                });
+
+                setAllReservas(filteredData);
+                setReservas(filteredData);
             }
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -103,7 +135,7 @@ export default function AdminDashboard() {
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [estadoFilter, searchQuery, serviceTypeFilter]);
+    }, [estadoFilter, searchQuery, serviceTypeFilter, tourCompartidoFilter]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredReservas.length / itemsPerPage);
@@ -164,6 +196,19 @@ export default function AdminDashboard() {
     const completadas = allReservas.filter(r => r.estado === 'COMPLETADA').length;
     const canceladas = allReservas.filter(r => r.estado === 'CANCELADA').length;
 
+    // 🚌 Tour Compartido Pagado: Count only paid Tour Compartido or cash payments
+    const tourCompartidoPagado = allReservas.filter(r => {
+        const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
+        if (!isTourCompartido) return false;
+
+        const isPaid = r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
+            r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
+            r.estado === 'COMPLETADA';
+        const isCashPayment = r.metodoPago === 'EFECTIVO' && r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION';
+
+        return isPaid || isCashPayment;
+    }).length;
+
     const kpis = [
         {
             title: 'Pendiente Cotización',
@@ -171,7 +216,8 @@ export default function AdminDashboard() {
             estado: 'PENDIENTE_COTIZACION',
             icon: FiClock,
             bgColor: 'bg-yellow-50',
-            textColor: 'text-yellow-600'
+            textColor: 'text-yellow-600',
+            isTourCompartido: false
         },
         {
             title: 'Confirmada - Pendiente Pago',
@@ -179,7 +225,8 @@ export default function AdminDashboard() {
             estado: 'CONFIRMADA_PENDIENTE_PAGO',
             icon: FiDollarSign,
             bgColor: 'bg-gray-50',
-            textColor: 'text-gray-600'
+            textColor: 'text-gray-600',
+            isTourCompartido: false
         },
         {
             title: 'Hotel - Pendiente Asignación',
@@ -187,7 +234,8 @@ export default function AdminDashboard() {
             estado: 'CONFIRMADA_PENDIENTE_ASIGNACION',
             icon: FiCalendar,
             bgColor: 'bg-green-50',
-            textColor: 'text-green-600'
+            textColor: 'text-green-600',
+            isTourCompartido: false
         },
         {
             title: 'Pagada - Pendiente Asignación',
@@ -195,7 +243,17 @@ export default function AdminDashboard() {
             estado: 'PAGADA_PENDIENTE_ASIGNACION',
             icon: FiCalendar,
             bgColor: 'bg-blue-50',
-            textColor: 'text-blue-600'
+            textColor: 'text-blue-600',
+            isTourCompartido: false
+        },
+        {
+            title: '🚌 Tour Compartido',
+            value: tourCompartidoPagado,
+            estado: null, // Special filter
+            icon: FiCheckCircle,
+            bgColor: 'bg-amber-50',
+            textColor: 'text-amber-600',
+            isTourCompartido: true
         },
         {
             title: 'Asignada - Pendiente Completar',
@@ -203,7 +261,8 @@ export default function AdminDashboard() {
             estado: 'ASIGNADA_PENDIENTE_COMPLETAR',
             icon: FiTrendingUp,
             bgColor: 'bg-green-50',
-            textColor: 'text-green-600'
+            textColor: 'text-green-600',
+            isTourCompartido: false
         },
         {
             title: 'Completada',
@@ -211,7 +270,8 @@ export default function AdminDashboard() {
             estado: 'COMPLETADA',
             icon: FiCheckCircle,
             bgColor: 'bg-green-50',
-            textColor: 'text-green-700'
+            textColor: 'text-green-700',
+            isTourCompartido: false
         },
         {
             title: 'Cancelada',
@@ -219,7 +279,8 @@ export default function AdminDashboard() {
             estado: 'CANCELADA',
             icon: FiClock,
             bgColor: 'bg-red-50',
-            textColor: 'text-red-600'
+            textColor: 'text-red-600',
+            isTourCompartido: false
         },
     ];
 
@@ -276,11 +337,21 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                     {kpis.map((kpi, index) => {
                         const Icon = kpi.icon;
-                        const isActive = estadoFilter === kpi.estado;
+                        const isActive = kpi.isTourCompartido ? tourCompartidoFilter : estadoFilter === kpi.estado;
                         return (
                             <button
                                 key={index}
-                                onClick={() => setEstadoFilter(estadoFilter === kpi.estado ? '' : kpi.estado)}
+                                onClick={() => {
+                                    if (kpi.isTourCompartido) {
+                                        // Toggle Tour Compartido filter
+                                        setTourCompartidoFilter(!tourCompartidoFilter);
+                                        setEstadoFilter(''); // Clear estado filter
+                                    } else {
+                                        // Toggle estado filter
+                                        setEstadoFilter(estadoFilter === kpi.estado ? '' : (kpi.estado || ''));
+                                        setTourCompartidoFilter(false); // Clear Tour Compartido filter
+                                    }
+                                }}
                                 className={`bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-sm border transition-all text-left w-full ${isActive
                                     ? 'border-[#D6A75D] shadow-lg ring-2 ring-[#D6A75D] ring-opacity-50'
                                     : 'border-gray-100 hover:shadow-md hover:border-gray-300'

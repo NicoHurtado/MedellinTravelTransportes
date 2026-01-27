@@ -350,8 +350,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 throw new Error(data.error || 'Error al crear reserva');
             }
 
+            // Redirigir a la página de tracking
             setReservationCode(data.data.codigo);
-            // Redirect directly to tracking page
             router.push(`/tracking/${data.data.codigo}`);
         } catch (error: any) {
             showError(error.message || (language === 'es' ? 'Error al crear la reserva' : 'Error creating reservation'));

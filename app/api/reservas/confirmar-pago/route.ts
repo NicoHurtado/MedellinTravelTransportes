@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
     try {
-        const { orderId, status } = await req.json();
+        const body = await req.json();
+        const { orderId, status } = body;
 
         if (!orderId) {
             return NextResponse.json(
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Buscar la reserva
+        // Buscar la reserva existente
         const reserva = await prisma.reserva.findUnique({
             where: { codigo: orderId }
         });
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
 
         console.log(`✅ Reserva ${orderId} actualizada a PAGADA_PENDIENTE_ASIGNACION`);
 
-        // TODO: Aquí se puede disparar el envío de email de confirmación (Fase 4 del proyecto)
+        // TODO: Enviar email de confirmación de pago
         // await sendPaymentConfirmationEmail(updated);
 
         return NextResponse.json({
@@ -72,3 +73,4 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+

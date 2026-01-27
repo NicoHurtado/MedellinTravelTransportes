@@ -136,6 +136,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     // Cancellation state
     const [cancelling, setCancelling] = useState(false);
 
+    // Payment method selection state (for Tour Compartido hotels)
+    const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+
     // Expanded services state (for pedido view)
     const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
 
@@ -261,6 +264,32 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
             alert(error.message);
         } finally {
             setCancelling(false);
+        }
+    };
+
+    const handlePaymentMethodSelect = async (method: 'EFECTIVO' | 'BOLD') => {
+        setIsUpdatingPayment(true);
+        try {
+            const res = await fetch('/api/reservas/seleccionar-metodo-pago', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    codigoReserva: reserva.codigo,
+                    metodoPago: method
+                })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Error al seleccionar método de pago');
+            }
+
+            // Refresh the page to show updated status
+            window.location.reload();
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsUpdatingPayment(false);
         }
     };
 
@@ -985,6 +1014,66 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                 </p>
                             </div>
                         )}
+
+                        {/* Payment Method Selection for Tour Compartido Hotels */}
+                        {reserva.servicio?.tipo === 'TOUR_COMPARTIDO' &&
+                            isHotelAlly &&
+                            reserva.estado === 'CONFIRMADA_PENDIENTE_PAGO' &&
+                            metodoPago === 'BOLD' && (
+                                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold mb-2 text-amber-900">
+                                        💳 {lang === 'ES' ? 'Seleccione Método de Pago' : 'Select Payment Method'}
+                                    </h3>
+                                    <p className="text-gray-700 mb-4">
+                                        {lang === 'ES'
+                                            ? 'Como aliado hotelero, puede elegir pagar en efectivo o mediante pago en línea.'
+                                            : 'As a hotel partner, you can choose to pay in cash or via online payment.'}
+                                    </p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Efectivo Option */}
+                                        <button
+                                            onClick={() => handlePaymentMethodSelect('EFECTIVO')}
+                                            disabled={isUpdatingPayment}
+                                            className="flex flex-col items-center justify-center p-6 bg-white border-2 border-green-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-4xl mb-2">💵</span>
+                                            <span className="font-bold text-lg text-green-700">
+                                                {lang === 'ES' ? 'Pago en Efectivo' : 'Cash Payment'}
+                                            </span>
+                                            <span className="text-sm text-gray-600 mt-2 text-center">
+                                                {lang === 'ES'
+                                                    ? 'Pagar al recibir el servicio'
+                                                    : 'Pay when receiving the service'}
+                                            </span>
+                                        </button>
+
+                                        {/* Bold Option */}
+                                        <button
+                                            onClick={() => handlePaymentMethodSelect('BOLD')}
+                                            disabled={isUpdatingPayment}
+                                            className="flex flex-col items-center justify-center p-6 bg-white border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-4xl mb-2">💳</span>
+                                            <span className="font-bold text-lg text-blue-700">
+                                                {lang === 'ES' ? 'Pago en Línea (Bold)' : 'Online Payment (Bold)'}
+                                            </span>
+                                            <span className="text-sm text-gray-600 mt-2 text-center">
+                                                {lang === 'ES'
+                                                    ? 'Pagar ahora con tarjeta'
+                                                    : 'Pay now with card'}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    {isUpdatingPayment && (
+                                        <div className="mt-4 text-center text-amber-700">
+                                            <span className="inline-block animate-spin mr-2">⏳</span>
+                                            {lang === 'ES' ? 'Actualizando método de pago...' : 'Updating payment method...'}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                         {/* Botón de Pago Bold */}
                         {mostrarBotonPago && boldConfig && reserva.hashPago && (

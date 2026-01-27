@@ -27,7 +27,7 @@ function PaymentResultContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     orderId: orderIdParam,
-                    status: 'APPROVED'
+                    status: 'APPROVED',
                 })
             })
                 .then(res => res.json())

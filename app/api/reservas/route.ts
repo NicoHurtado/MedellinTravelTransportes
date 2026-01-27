@@ -111,6 +111,14 @@ export async function POST(request: Request) {
             }
         }
 
+        // 🔥 TOUR COMPARTIDO - FLUJO MODIFICADO
+        // Para usuarios regulares de Tour Compartido, crear la reserva con estado CONFIRMADA_PENDIENTE_PAGO
+        // El usuario verá la página de tracking con el botón de pago
+        const isTourCompartido = servicio.tipo === 'TOUR_COMPARTIDO';
+        const isRegularUser = !body.esReservaAliado && !body.aliadoId;
+        const metodoPago = body.metodoPago || 'BOLD';
+
+        // Para hoteles o servicios normales, continuar con el flujo normal
         // Generar código único de 8 caracteres
         const codigo = await generateUniqueCodigo();
 
@@ -122,12 +130,20 @@ export async function POST(request: Request) {
             (parseFloat(body.tarifaMunicipio) || 0) -
             (parseFloat(body.descuentoAliado) || 0);
 
-        // Determinar método de pago (default: BOLD)
-        const metodoPago = body.metodoPago || 'BOLD';
+        // 🔥 SPECIAL CASE: Tour Compartido for Hotels
+        // Determine finalMetodoPago BEFORE calculating Bold commission
+        const isHotelTourCompartido = isTourCompartido && body.esReservaAliado;
+        let finalMetodoPago = metodoPago;
+
+        if (isHotelTourCompartido) {
+            // Force BOLD method for hotel Tour Compartido (they'll choose on tracking page)
+            finalMetodoPago = 'BOLD';
+        }
 
         // Calcular comisión de Bold (6% del subtotal para pagos con Bold)
+        // Use finalMetodoPago instead of metodoPago
         let comisionBold = 0;
-        if (metodoPago === 'BOLD') {
+        if (finalMetodoPago === 'BOLD') {
             comisionBold = subtotal * 0.06;
         }
 
@@ -188,12 +204,16 @@ export async function POST(request: Request) {
         let estadoInicial: EstadoReserva;
         let estadoPago: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'PROCESANDO' | null = null;
 
-        if (body.municipio === 'OTRO') {
+        // Determine estado inicial based on finalMetodoPago (already determined above)
+        if (isHotelTourCompartido) {
+            estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
+            estadoPago = 'PENDIENTE';
+        } else if (body.municipio === 'OTRO') {
             // Municipio personalizado requiere cotización
             estadoInicial = EstadoReserva.PENDIENTE_COTIZACION;
             estadoPago = null;
         } else if (metodoPago === 'EFECTIVO') {
-            // Pago en efectivo (HOTEL) va a CONFIRMADA pendiente de asignación
+            // Pago en efectivo (NON-Tour Compartido) va a CONFIRMADA pendiente de asignación
             estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION;
             estadoPago = null;
         } else {
@@ -249,7 +269,7 @@ export async function POST(request: Request) {
                 estadoPago: estadoPago,
 
                 // Método de Pago
-                metodoPago: metodoPago,
+                metodoPago: finalMetodoPago,
 
                 // Aliado
                 aliadoId: body.aliadoId || null,
