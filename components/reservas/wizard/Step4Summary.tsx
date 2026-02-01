@@ -236,7 +236,7 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                         🚌 {language === 'es' ? 'Información del Tour Compartido' : 'Shared Tour Information'}
                     </h3>
                     <div className="text-sm text-amber-900 space-y-2">
-                        <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                        <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Casa del Reloj<br />Carrera 35 con Calle 7 en Provenza.</p>
                         <p><strong>{language === 'es' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
                         <p className="italic">{language === 'es' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
                     </div>

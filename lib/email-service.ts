@@ -841,12 +841,12 @@ export async function sendTourCompartidoConfirmationEmail(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const trackingUrl = `${appUrl}/tracking/${reserva.codigo}`;
   const serviceName = getLocalizedName(reserva.servicio.nombre, language);
-  
+
   // Specific logistics for Shared Tour
-  const meetingPoint = "Esquina de la Carrera 35 con Calle 7 en Provenza";
+  const meetingPoint = "Casa del Reloj, Carrera 35 con Calle 7 en Provenza";
   const meetingTime = "7:50 AM";
   const locationMapLink = "https://maps.google.com/?q=Carrera+35+y+Calle+7+Medellin+Provenza";
-  
+
   const content = language === 'ES' ? `
     <h1>¡Reserva de Tour Compartido Confirmada! 🚌</h1>
     <p>Hola <strong>${reserva.nombreCliente}</strong>,</p>

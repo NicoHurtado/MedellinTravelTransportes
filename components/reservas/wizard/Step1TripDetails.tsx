@@ -241,8 +241,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
             if (formData.hora !== '07:50') {
                 updateFormData({ hora: '07:50' });
             }
-            if (formData.lugarRecogida !== 'Esquina Carrera 35 con Calle 7, Provenza') {
-                updateFormData({ lugarRecogida: 'Esquina Carrera 35 con Calle 7, Provenza' });
+            if (formData.lugarRecogida !== 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza') {
+                updateFormData({ lugarRecogida: 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza' });
             }
             if (formData.municipio !== null) {
                 // For shared tours, municipio should be null (no pickup municipality)
@@ -446,7 +446,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                             🚌 {language === 'es' ? 'Información del Tour Compartido' : 'Shared Tour Information'}
                         </h3>
                         <div className="text-sm text-amber-900 space-y-2">
-                            <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                            <p><strong>{language === 'es' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Casa del Reloj<br />Carrera 35 con Calle 7 en Provenza.</p>
                             <p><strong>{language === 'es' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
                             <p className="italic">{language === 'es' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
                         </div>
@@ -552,9 +552,10 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                                 }}
                                                 className="w-1/3 px-3 py-2 border border-gray-300 rounded-md"
                                             >
-                                                <option value="CC">CC</option>
-                                                <option value="CE">CE</option>
-                                                <option value="PASAPORTE">Pass</option>
+                                                <option value="CC">{language === 'es' ? 'Cédula' : 'ID Card'}</option>
+                                                <option value="PASAPORTE">{language === 'es' ? 'Pasaporte' : 'Passport'}</option>
+                                                <option value="TI">{language === 'es' ? 'T. Identidad' : 'Teen ID'}</option>
+                                                <option value="CE">{language === 'es' ? 'C. Extranjería' : 'Alien ID'}</option>
                                             </select>
                                             <input
                                                 type="text"
@@ -994,82 +995,84 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     </div>
                 )}
 
-                {/* Municipio */}
-                <div className="md:col-span-2 relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {language === 'es' ? 'Municipio donde estás ubicado' : 'Municipality where you are located'} *
-                    </label>
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={() => setIsMunicipalityOpen(!isMunicipalityOpen)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none bg-white text-left flex justify-between items-center"
-                        >
-                            <span className={formData.municipio ? 'text-gray-900' : 'text-gray-500'}>
-                                {formData.municipio ? (() => {
-                                    const names: Record<string, string> = {
-                                        [Municipio.MEDELLIN]: 'Medellín',
-                                        [Municipio.POBLADO]: 'El Poblado',
-                                        [Municipio.LAURELES]: 'Laureles',
-                                        [Municipio.SABANETA]: 'Sabaneta',
-                                        [Municipio.BELLO]: 'Bello',
-                                        [Municipio.ITAGUI]: 'Itagüí',
-                                        [Municipio.ENVIGADO]: 'Envigado',
-                                        [Municipio.OTRO]: 'Otro'
-                                    };
-                                    return names[formData.municipio] || formData.municipio;
-                                })() : 'Seleccionar...'}
-                            </span>
-                            <svg className={`w-4 h-4 text-gray-500 transition-transform ${isMunicipalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
+                {/* Municipio - Hidden for Shared Tours */}
+                {!isSharedTour && (
+                    <div className="md:col-span-2 relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'es' ? 'Municipio donde estás ubicado' : 'Municipality where you are located'} *
+                        </label>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsMunicipalityOpen(!isMunicipalityOpen)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none bg-white text-left flex justify-between items-center"
+                            >
+                                <span className={formData.municipio ? 'text-gray-900' : 'text-gray-500'}>
+                                    {formData.municipio ? (() => {
+                                        const names: Record<string, string> = {
+                                            [Municipio.MEDELLIN]: 'Medellín',
+                                            [Municipio.POBLADO]: 'El Poblado',
+                                            [Municipio.LAURELES]: 'Laureles',
+                                            [Municipio.SABANETA]: 'Sabaneta',
+                                            [Municipio.BELLO]: 'Bello',
+                                            [Municipio.ITAGUI]: 'Itagüí',
+                                            [Municipio.ENVIGADO]: 'Envigado',
+                                            [Municipio.OTRO]: 'Otro'
+                                        };
+                                        return names[formData.municipio] || formData.municipio;
+                                    })() : 'Seleccionar...'}
+                                </span>
+                                <svg className={`w-4 h-4 text-gray-500 transition-transform ${isMunicipalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
 
-                        {isMunicipalityOpen && (
-                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                {[
-                                    Municipio.MEDELLIN,
-                                    Municipio.ENVIGADO,
-                                    Municipio.SABANETA,
-                                    Municipio.ITAGUI,
-                                    Municipio.BELLO,
-                                    Municipio.OTRO
-                                ].map((m) => {
-                                    const names: Record<string, string> = {
-                                        [Municipio.MEDELLIN]: 'Medellín',
-                                        [Municipio.POBLADO]: 'El Poblado',
-                                        [Municipio.LAURELES]: 'Laureles',
-                                        [Municipio.SABANETA]: 'Sabaneta',
-                                        [Municipio.BELLO]: 'Bello',
-                                        [Municipio.ITAGUI]: 'Itagüí',
-                                        [Municipio.ENVIGADO]: 'Envigado',
-                                        [Municipio.OTRO]: 'Otro'
-                                    };
+                            {isMunicipalityOpen && (
+                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    {[
+                                        Municipio.MEDELLIN,
+                                        Municipio.ENVIGADO,
+                                        Municipio.SABANETA,
+                                        Municipio.ITAGUI,
+                                        Municipio.BELLO,
+                                        Municipio.OTRO
+                                    ].map((m) => {
+                                        const names: Record<string, string> = {
+                                            [Municipio.MEDELLIN]: 'Medellín',
+                                            [Municipio.POBLADO]: 'El Poblado',
+                                            [Municipio.LAURELES]: 'Laureles',
+                                            [Municipio.SABANETA]: 'Sabaneta',
+                                            [Municipio.BELLO]: 'Bello',
+                                            [Municipio.ITAGUI]: 'Itagüí',
+                                            [Municipio.ENVIGADO]: 'Envigado',
+                                            [Municipio.OTRO]: 'Otro'
+                                        };
 
-                                    const isSelected = formData.municipio === m;
+                                        const isSelected = formData.municipio === m;
 
-                                    return (
-                                        <button
-                                            key={m}
-                                            type="button"
-                                            onClick={() => {
-                                                updateFormData({ municipio: m as Municipio });
-                                                setIsMunicipalityOpen(false);
-                                            }}
-                                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${isSelected ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
-                                        >
-                                            <span>
-                                                {names[m]}
-                                                {m === Municipio.OTRO && ` (${t('reservas.paso1_requiere_cotizacion', language)})`}
-                                            </span>
-                                            {isSelected && <FiCheck />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        return (
+                                            <button
+                                                key={m}
+                                                type="button"
+                                                onClick={() => {
+                                                    updateFormData({ municipio: m as Municipio });
+                                                    setIsMunicipalityOpen(false);
+                                                }}
+                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${isSelected ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
+                                            >
+                                                <span>
+                                                    {names[m]}
+                                                    {m === Municipio.OTRO && ` (${t('reservas.paso1_requiere_cotizacion', language)})`}
+                                                </span>
+                                                {isSelected && <FiCheck />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Other Municipality */}
                 {formData.municipio === Municipio.OTRO && (

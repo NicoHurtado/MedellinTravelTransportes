@@ -494,7 +494,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                         <div className="col-span-2 bg-amber-50 border-l-4 border-amber-500 p-3 rounded">
                                                             <p className="font-semibold text-amber-800 mb-2">🚌 {lang === 'ES' ? 'Información del Tour Compartido' : 'Shared Tour Information'}</p>
                                                             <div className="text-sm text-amber-900 space-y-1">
-                                                                <p><strong>{lang === 'ES' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Esquina de la Carrera 35 con Calle 7 en Provenza.</p>
+                                                                <p><strong>{lang === 'ES' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Casa del Reloj<br />Carrera 35 con Calle 7 en Provenza.</p>
                                                                 <p><strong>{lang === 'ES' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
                                                                 <p className="italic">{lang === 'ES' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
                                                             </div>

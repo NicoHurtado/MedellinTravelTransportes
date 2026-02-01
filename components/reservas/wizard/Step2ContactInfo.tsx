@@ -44,7 +44,11 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
             formData.nombreCliente.trim().length >= 3 &&
             formData.whatsappCliente.trim().length >= 10 &&
             formData.emailCliente.includes('@') &&
-            formData.asistentes.every(a => a.nombre.trim().length >= 2)
+            formData.asistentes.length > 0 &&
+            formData.asistentes.every(a =>
+                a.nombre.trim().length >= 2 &&
+                a.numeroDocumento.trim().length >= 4
+            )
         );
     };
 
@@ -136,7 +140,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                                     type="text"
                                     value={asistente.nombre}
                                     onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
-                                    placeholder={t('reservas.paso2_nombre_asistente', language)}
+                                    placeholder={t('reservas.paso2_nombre_asistente', language) + ' *'}
                                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
                                 />
                                 <select
@@ -153,7 +157,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                                     type="text"
                                     value={asistente.numeroDocumento}
                                     onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
-                                    placeholder={t('reservas.paso2_numero_doc', language)}
+                                    placeholder={t('reservas.paso2_numero_doc', language) + ' *'}
                                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
                                 />
                             </div>
