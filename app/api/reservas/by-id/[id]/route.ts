@@ -93,19 +93,20 @@ export async function PUT(
             updateData.vehiculoId = body.vehiculoId;
         }
         if (body.municipio !== undefined) {
-            updateData.municipio = body.municipio;
+            // Convert empty string to null for Tour Compartido (municipio is optional)
+            updateData.municipio = body.municipio === '' ? null : body.municipio;
         }
         if (body.numeroVuelo !== undefined) {
-            updateData.numeroVuelo = body.numeroVuelo;
+            updateData.numeroVuelo = body.numeroVuelo === '' ? null : body.numeroVuelo;
         }
         if (body.lugarRecogida !== undefined) {
-            updateData.lugarRecogida = body.lugarRecogida;
+            updateData.lugarRecogida = body.lugarRecogida === '' ? null : body.lugarRecogida;
         }
         if (body.notas !== undefined) {
-            updateData.notas = body.notas;
+            updateData.notas = body.notas === '' ? null : body.notas;
         }
         if (body.aeropuertoNombre !== undefined) {
-            updateData.aeropuertoNombre = body.aeropuertoNombre;
+            updateData.aeropuertoNombre = body.aeropuertoNombre === '' ? null : body.aeropuertoNombre;
         }
 
         // Pricing updates (for quotes)

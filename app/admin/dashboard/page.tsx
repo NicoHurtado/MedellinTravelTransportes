@@ -54,20 +54,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         // Filter reservas when estadoFilter or tourCompartidoFilter changes
         if (tourCompartidoFilter) {
-            // Show only Tour Compartido that are:
-            // 1. Paid (PAGADA_PENDIENTE_ASIGNACION or later states)
-            // 2. OR Cash payment from hotels (CONFIRMADA_PENDIENTE_ASIGNACION with metodoPago EFECTIVO)
-            const tourCompartidoReservas = allReservas.filter(r => {
-                const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
-                if (!isTourCompartido) return false;
-
-                const isPaid = r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
-                    r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
-                    r.estado === 'COMPLETADA';
-                const isCashPayment = r.metodoPago === 'EFECTIVO' && r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION';
-
-                return isPaid || isCashPayment;
-            });
+            // Show ALL Tour Compartido reservations
+            const tourCompartidoReservas = allReservas.filter(r => r.servicio?.tipo === 'TOUR_COMPARTIDO');
             setReservas(tourCompartidoReservas);
         } else if (estadoFilter) {
             setReservas(allReservas.filter(r => r.estado === estadoFilter));
@@ -92,21 +80,9 @@ export default function AdminDashboard() {
                 const data = await res.json();
                 const allData = data.data || [];
 
-                // Filter out Tour Compartido that are pending payment (not cash)
-                // Keep Tour Compartido that are:
-                // 1. Paid (any state except CONFIRMADA_PENDIENTE_PAGO)
-                // 2. Cash payment (CONFIRMADA_PENDIENTE_ASIGNACION with metodoPago EFECTIVO)
-                const filteredData = allData.filter((r: any) => {
-                    const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
-                    if (!isTourCompartido) return true; // Keep all non-Tour Compartido
-
-                    // For Tour Compartido, exclude if pending payment with Bold
-                    const isPendingBoldPayment = r.estado === 'CONFIRMADA_PENDIENTE_PAGO' && r.metodoPago === 'BOLD';
-                    return !isPendingBoldPayment;
-                });
-
-                setAllReservas(filteredData);
-                setReservas(filteredData);
+                // Show ALL reservations to admins (no filtering)
+                setAllReservas(allData);
+                setReservas(allData);
             }
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -196,18 +172,8 @@ export default function AdminDashboard() {
     const completadas = allReservas.filter(r => r.estado === 'COMPLETADA').length;
     const canceladas = allReservas.filter(r => r.estado === 'CANCELADA').length;
 
-    // 🚌 Tour Compartido Pagado: Count only paid Tour Compartido or cash payments
-    const tourCompartidoPagado = allReservas.filter(r => {
-        const isTourCompartido = r.servicio?.tipo === 'TOUR_COMPARTIDO';
-        if (!isTourCompartido) return false;
-
-        const isPaid = r.estado === 'PAGADA_PENDIENTE_ASIGNACION' ||
-            r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR' ||
-            r.estado === 'COMPLETADA';
-        const isCashPayment = r.metodoPago === 'EFECTIVO' && r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION';
-
-        return isPaid || isCashPayment;
-    }).length;
+    // 🚌 Tour Compartido: Count ALL Tour Compartido reservations
+    const tourCompartidoCount = allReservas.filter(r => r.servicio?.tipo === 'TOUR_COMPARTIDO').length;
 
     const kpis = [
         {
@@ -248,7 +214,7 @@ export default function AdminDashboard() {
         },
         {
             title: '🚌 Tour Compartido',
-            value: tourCompartidoPagado,
+            value: tourCompartidoCount,
             estado: null, // Special filter
             icon: FiCheckCircle,
             bgColor: 'bg-amber-50',
