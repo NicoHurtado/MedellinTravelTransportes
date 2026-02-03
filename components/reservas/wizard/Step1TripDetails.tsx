@@ -484,10 +484,34 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     updateFormData({ fecha: date });
                                 }
                             }}
-                            min={new Date().toISOString().split('T')[0]}
+                            min={(() => {
+                                // 🚌 Tour Compartido: después de las 9 PM, no permitir reservar para mañana
+                                const now = new Date();
+                                const currentHour = now.getHours();
+
+                                // Si es después de las 9 PM (21:00), el mínimo es pasado mañana
+                                if (currentHour >= 21) {
+                                    const minDate = new Date(now);
+                                    minDate.setDate(minDate.getDate() + 2); // 2 días adelante
+                                    return minDate.toISOString().split('T')[0];
+                                }
+
+                                // Durante el día, el mínimo es mañana
+                                const tomorrow = new Date(now);
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                return tomorrow.toISOString().split('T')[0];
+                            })()}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         />
+                        {/* Mensaje informativo después de las 9 PM */}
+                        {new Date().getHours() >= 21 && (
+                            <p className="text-xs text-amber-600 mt-1">
+                                {language === 'es'
+                                    ? '⚠️ Después de las 9 PM, las reservas son a partir de pasado mañana.'
+                                    : '⚠️ After 9 PM, reservations start from the day after tomorrow.'}
+                            </p>
+                        )}
                     </div>
 
 
