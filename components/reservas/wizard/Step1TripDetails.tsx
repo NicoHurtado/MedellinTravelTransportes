@@ -232,30 +232,46 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
 
         // 🔥 SHARED TOUR PRICING LOGIC
         if (service.tipo === 'TOUR_COMPARTIDO') {
-            // Price is fixed per person: 195.000 (Hardcoded or from basePrice if user edited it to 195k)
-            // Assuming basePrice in DB is 195000.
+            // Price is fixed per person from service precioBase
             const pricePerPerson = Number(service.precioBase);
             const totalShared = pricePerPerson * formData.numeroPasajeros;
 
-            // Auto-set hardcoded values for Shared Tour
-            if (formData.hora !== '07:50') {
-                updateFormData({ hora: '07:50' });
-            }
-            if (formData.lugarRecogida !== 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza') {
-                updateFormData({ lugarRecogida: 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza' });
-            }
-            if (formData.municipio !== null) {
-                // For shared tours, municipio should be null (no pickup municipality)
-                updateFormData({ municipio: null as any });
+            // Get destino from service name if available
+            let destinoNombre = 'Guatapé';
+            if (typeof service.nombre === 'object') {
+                const nombreES = service.nombre?.es || service.nombre?.ES || '';
+                // Extract destination from name (e.g., "Tour compartido Guatapé" -> "Guatapé")
+                const match = nombreES.match(/tour\s+compartido\s+(.+)/i);
+                if (match) {
+                    destinoNombre = match[1].trim();
+                }
             }
 
-            updateFormData({
+            // Auto-set all fixed values for Shared Tour in one update to avoid loops
+            const updates: Partial<ReservationFormData> = {
                 precioBase: totalShared,
                 recargoNocturno: 0,
                 tarifaMunicipio: 0,
                 precioAdicionales: 0,
                 precioTotal: totalShared,
-            });
+            };
+
+            // Set fixed values only if they differ (to avoid infinite loop)
+            if (formData.hora !== '07:50') {
+                updates.hora = '07:50';
+            }
+            if (formData.lugarRecogida !== 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza') {
+                updates.lugarRecogida = 'Casa del Reloj, Carrera 35 con Calle 7 en Provenza';
+            }
+            if (formData.trasladoDestino !== destinoNombre) {
+                updates.trasladoDestino = destinoNombre;
+            }
+            if (formData.municipio !== null) {
+                // For shared tours, municipio should be null (no pickup municipality)
+                updates.municipio = null as any;
+            }
+
+            updateFormData(updates);
             return;
         }
 
@@ -455,7 +471,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                     {/* Date Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t('reservas.paso1_fecha', language)} *
+                            {language === 'es' ? 'Fecha' : 'Date'} *
                         </label>
                         <DateInput
                             value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
@@ -516,65 +532,8 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                         </div>
                     </div>
 
-                    {/* Participant Details Forms */}
-                    {formData.numeroPasajeros > 0 && (
-                        <div className="space-y-4 border-t pt-4">
-                            <h4 className="font-bold text-gray-900">
-                                {language === 'es' ? 'Datos de los Participantes' : 'Participants Details'}
-                            </h4>
-                            {Array.from({ length: formData.numeroPasajeros }).map((_, index) => (
-                                <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h5 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-                                        <FiUser /> {language === 'es' ? `Participante ${index + 1}` : `Participant ${index + 1}`}
-                                    </h5>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <input
-                                            type="text"
-                                            placeholder={language === 'es' ? 'Nombre Completo *' : 'Full Name *'}
-                                            value={formData.asistentes?.[index]?.nombre || ''}
-                                            onChange={(e) => {
-                                                const newAsistentes = [...(formData.asistentes || [])];
-                                                if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
-                                                newAsistentes[index].nombre = e.target.value;
-                                                updateFormData({ asistentes: newAsistentes });
-                                            }}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                        />
-                                        <div className="flex gap-2">
-                                            <select
-                                                value={formData.asistentes?.[index]?.tipoDocumento || 'CC'}
-                                                onChange={(e) => {
-                                                    const newAsistentes = [...(formData.asistentes || [])];
-                                                    if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
-                                                    // @ts-ignore
-                                                    newAsistentes[index].tipoDocumento = e.target.value;
-                                                    updateFormData({ asistentes: newAsistentes });
-                                                }}
-                                                className="w-1/3 px-3 py-2 border border-gray-300 rounded-md"
-                                            >
-                                                <option value="CC">{language === 'es' ? 'Cédula' : 'ID Card'}</option>
-                                                <option value="PASAPORTE">{language === 'es' ? 'Pasaporte' : 'Passport'}</option>
-                                                <option value="TI">{language === 'es' ? 'T. Identidad' : 'Teen ID'}</option>
-                                                <option value="CE">{language === 'es' ? 'C. Extranjería' : 'Alien ID'}</option>
-                                            </select>
-                                            <input
-                                                type="text"
-                                                placeholder={language === 'es' ? 'No. Documento *' : 'Doc Number *'}
-                                                value={formData.asistentes?.[index]?.numeroDocumento || ''}
-                                                onChange={(e) => {
-                                                    const newAsistentes = [...(formData.asistentes || [])];
-                                                    if (!newAsistentes[index]) newAsistentes[index] = { nombre: '', tipoDocumento: 'CC', numeroDocumento: '' } as any;
-                                                    newAsistentes[index].numeroDocumento = e.target.value;
-                                                    updateFormData({ asistentes: newAsistentes });
-                                                }}
-                                                className="w-2/3 px-3 py-2 border border-gray-300 rounded-md"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+
+                    {/* Participant details have been moved to Step 2 (Contact Info) */}
 
                 </div>
             )}
@@ -941,376 +900,378 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                 </div>
             )}
 
-            {/* Common Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Origen fijo para hoteles en servicios NO aeropuerto y NO traslado */}
-                {!service.esAeropuerto && !isTransporteMunicipal && !isTraslado && isHotel && (
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('reservas.paso1_origen', language)} *
-                        </label>
-                        <input
-                            type="text"
-                            value={hotelName}
-                            readOnly
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
-                        />
-                    </div>
-                )}
+            {/* Common Fields - Hidden for Tour Compartido since it has its own dedicated section */}
+            {!isSharedTour && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Origen fijo para hoteles en servicios NO aeropuerto y NO traslado */}
+                    {!service.esAeropuerto && !isTransporteMunicipal && !isTraslado && isHotel && (
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reservas.paso1_origen', language)} *
+                            </label>
+                            <input
+                                type="text"
+                                value={hotelName}
+                                readOnly
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                            />
+                        </div>
+                    )}
 
-                {/* Destino (Auto-fill or Select) - Only show if NOT airport service AND NOT municipal transport AND NOT traslado */}
-                {service.destinoAutoFill && !service.esAeropuerto && !isTransporteMunicipal && !isTraslado ? (
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'es' ? 'Destino' : 'Destination'}
-                        </label>
-                        <input
-                            type="text"
-                            value={service.destinoAutoFill}
-                            readOnly
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
-                        />
-                    </div>
-                ) : null}
+                    {/* Destino (Auto-fill or Select) - Only show if NOT airport service AND NOT municipal transport AND NOT traslado */}
+                    {service.destinoAutoFill && !service.esAeropuerto && !isTransporteMunicipal && !isTraslado ? (
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {language === 'es' ? 'Destino' : 'Destination'}
+                            </label>
+                            <input
+                                type="text"
+                                value={service.destinoAutoFill}
+                                readOnly
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none"
+                            />
+                        </div>
+                    ) : null}
 
-                {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport AND NOT traslado */}
-                {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && !isTraslado && (
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('reservas.paso1_lugar_recogida', language)} *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.lugarRecogida || ''}
-                            onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
-                            placeholder="Ej: Hotel Dann Carlton, Parque Lleras, etc."
-                            disabled={isSharedTour}
-                            className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none ${isSharedTour ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                        />
-                        {isSharedTour && (
-                            <p className="text-sm text-gray-500 mt-1">
-                                {language === 'es' ? '📍 Punto de encuentro fijo para este tour compartido' : '📍 Fixed meeting point for this shared tour'}
-                            </p>
-                        )}
-                    </div>
-                )}
+                    {/* Lugar de Recogida - Only show if NOT airport service AND NOT hotel AND NOT municipal transport AND NOT traslado */}
+                    {!service.esAeropuerto && !isHotel && !isTransporteMunicipal && !isTraslado && (
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reservas.paso1_lugar_recogida', language)} *
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.lugarRecogida || ''}
+                                onChange={(e) => updateFormData({ lugarRecogida: e.target.value })}
+                                placeholder="Ej: Hotel Dann Carlton, Parque Lleras, etc."
+                                disabled={isSharedTour}
+                                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none ${isSharedTour ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            />
+                            {isSharedTour && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {language === 'es' ? '📍 Punto de encuentro fijo para este tour compartido' : '📍 Fixed meeting point for this shared tour'}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
-                {/* Municipio - Hidden for Shared Tours */}
-                {!isSharedTour && (
-                    <div className="md:col-span-2 relative">
+                    {/* Municipio - Hidden for Shared Tours */}
+                    {!isSharedTour && (
+                        <div className="md:col-span-2 relative">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {language === 'es' ? 'Municipio donde estás ubicado' : 'Municipality where you are located'} *
+                            </label>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsMunicipalityOpen(!isMunicipalityOpen)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none bg-white text-left flex justify-between items-center"
+                                >
+                                    <span className={formData.municipio ? 'text-gray-900' : 'text-gray-500'}>
+                                        {formData.municipio ? (() => {
+                                            const names: Record<string, string> = {
+                                                [Municipio.MEDELLIN]: 'Medellín',
+                                                [Municipio.POBLADO]: 'El Poblado',
+                                                [Municipio.LAURELES]: 'Laureles',
+                                                [Municipio.SABANETA]: 'Sabaneta',
+                                                [Municipio.BELLO]: 'Bello',
+                                                [Municipio.ITAGUI]: 'Itagüí',
+                                                [Municipio.ENVIGADO]: 'Envigado',
+                                                [Municipio.OTRO]: 'Otro'
+                                            };
+                                            return names[formData.municipio] || formData.municipio;
+                                        })() : 'Seleccionar...'}
+                                    </span>
+                                    <svg className={`w-4 h-4 text-gray-500 transition-transform ${isMunicipalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                {isMunicipalityOpen && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        {[
+                                            Municipio.MEDELLIN,
+                                            Municipio.ENVIGADO,
+                                            Municipio.SABANETA,
+                                            Municipio.ITAGUI,
+                                            Municipio.BELLO,
+                                            Municipio.OTRO
+                                        ].map((m) => {
+                                            const names: Record<string, string> = {
+                                                [Municipio.MEDELLIN]: 'Medellín',
+                                                [Municipio.POBLADO]: 'El Poblado',
+                                                [Municipio.LAURELES]: 'Laureles',
+                                                [Municipio.SABANETA]: 'Sabaneta',
+                                                [Municipio.BELLO]: 'Bello',
+                                                [Municipio.ITAGUI]: 'Itagüí',
+                                                [Municipio.ENVIGADO]: 'Envigado',
+                                                [Municipio.OTRO]: 'Otro'
+                                            };
+
+                                            const isSelected = formData.municipio === m;
+
+                                            return (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        updateFormData({ municipio: m as Municipio });
+                                                        setIsMunicipalityOpen(false);
+                                                    }}
+                                                    className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${isSelected ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
+                                                >
+                                                    <span>
+                                                        {names[m]}
+                                                        {m === Municipio.OTRO && ` (${t('reservas.paso1_requiere_cotizacion', language)})`}
+                                                    </span>
+                                                    {isSelected && <FiCheck />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Other Municipality */}
+                    {formData.municipio === Municipio.OTRO && (
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reservas.paso1_municipio', language)} (Especificar) *
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.otroMunicipio || ''}
+                                onChange={(e) => updateFormData({ otroMunicipio: e.target.value })}
+                                placeholder="Ej: Rionegro, Guatapé, etc."
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            />
+                        </div>
+                    )}
+                    {/* Language */}
+                    <div className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'es' ? 'Municipio donde estás ubicado' : 'Municipality where you are located'} *
+                            {t('reservas.paso1_idioma', language)} *
                         </label>
                         <div className="relative">
                             <button
                                 type="button"
-                                onClick={() => setIsMunicipalityOpen(!isMunicipalityOpen)}
+                                onClick={() => setIsLanguageOpen(!isLanguageOpen)}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none bg-white text-left flex justify-between items-center"
                             >
-                                <span className={formData.municipio ? 'text-gray-900' : 'text-gray-500'}>
-                                    {formData.municipio ? (() => {
-                                        const names: Record<string, string> = {
-                                            [Municipio.MEDELLIN]: 'Medellín',
-                                            [Municipio.POBLADO]: 'El Poblado',
-                                            [Municipio.LAURELES]: 'Laureles',
-                                            [Municipio.SABANETA]: 'Sabaneta',
-                                            [Municipio.BELLO]: 'Bello',
-                                            [Municipio.ITAGUI]: 'Itagüí',
-                                            [Municipio.ENVIGADO]: 'Envigado',
-                                            [Municipio.OTRO]: 'Otro'
-                                        };
-                                        return names[formData.municipio] || formData.municipio;
-                                    })() : 'Seleccionar...'}
+                                <span className="text-gray-900">
+                                    {formData.idioma === Idioma.ES ? 'Español' : 'English'}
                                 </span>
-                                <svg className={`w-4 h-4 text-gray-500 transition-transform ${isMunicipalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-4 h-4 text-gray-500 transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
 
-                            {isMunicipalityOpen && (
-                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                    {[
-                                        Municipio.MEDELLIN,
-                                        Municipio.ENVIGADO,
-                                        Municipio.SABANETA,
-                                        Municipio.ITAGUI,
-                                        Municipio.BELLO,
-                                        Municipio.OTRO
-                                    ].map((m) => {
-                                        const names: Record<string, string> = {
-                                            [Municipio.MEDELLIN]: 'Medellín',
-                                            [Municipio.POBLADO]: 'El Poblado',
-                                            [Municipio.LAURELES]: 'Laureles',
-                                            [Municipio.SABANETA]: 'Sabaneta',
-                                            [Municipio.BELLO]: 'Bello',
-                                            [Municipio.ITAGUI]: 'Itagüí',
-                                            [Municipio.ENVIGADO]: 'Envigado',
-                                            [Municipio.OTRO]: 'Otro'
-                                        };
-
-                                        const isSelected = formData.municipio === m;
-
-                                        return (
-                                            <button
-                                                key={m}
-                                                type="button"
-                                                onClick={() => {
-                                                    updateFormData({ municipio: m as Municipio });
-                                                    setIsMunicipalityOpen(false);
-                                                }}
-                                                className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${isSelected ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
-                                            >
-                                                <span>
-                                                    {names[m]}
-                                                    {m === Municipio.OTRO && ` (${t('reservas.paso1_requiere_cotizacion', language)})`}
-                                                </span>
-                                                {isSelected && <FiCheck />}
-                                            </button>
-                                        );
-                                    })}
+                            {isLanguageOpen && (
+                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                                    <button
+                                        type="button"
+                                        onClick={() => { updateFormData({ idioma: Idioma.ES }); setIsLanguageOpen(false); }}
+                                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${formData.idioma === Idioma.ES ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
+                                    >
+                                        Español
+                                        {formData.idioma === Idioma.ES && <FiCheck />}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { updateFormData({ idioma: Idioma.EN }); setIsLanguageOpen(false); }}
+                                        className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${formData.idioma === Idioma.EN ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
+                                    >
+                                        English
+                                        {formData.idioma === Idioma.EN && <FiCheck />}
+                                    </button>
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
 
-                {/* Other Municipality */}
-                {formData.municipio === Municipio.OTRO && (
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('reservas.paso1_municipio', language)} (Especificar) *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.otroMunicipio || ''}
-                            onChange={(e) => updateFormData({ otroMunicipio: e.target.value })}
-                            placeholder="Ej: Rionegro, Guatapé, etc."
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        />
-                    </div>
-                )}
-                {/* Language */}
-                <div className="relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('reservas.paso1_idioma', language)} *
-                    </label>
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={() => setIsLanguageOpen(!isLanguageOpen)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none bg-white text-left flex justify-between items-center"
-                        >
-                            <span className="text-gray-900">
-                                {formData.idioma === Idioma.ES ? 'Español' : 'English'}
-                            </span>
-                            <svg className={`w-4 h-4 text-gray-500 transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-
-                        {isLanguageOpen && (
-                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
-                                <button
-                                    type="button"
-                                    onClick={() => { updateFormData({ idioma: Idioma.ES }); setIsLanguageOpen(false); }}
-                                    className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${formData.idioma === Idioma.ES ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
-                                >
-                                    Español
-                                    {formData.idioma === Idioma.ES && <FiCheck />}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { updateFormData({ idioma: Idioma.EN }); setIsLanguageOpen(false); }}
-                                    className={`w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between ${formData.idioma === Idioma.EN ? 'bg-gray-50 text-[#D6A75D] font-medium' : 'text-gray-700'}`}
-                                >
-                                    English
-                                    {formData.idioma === Idioma.EN && <FiCheck />}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Date */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('tracking.fecha', language)} *
-                    </label>
-                    <DateInput
-                        value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
-                        onChange={(value) => {
-                            if (value) {
-                                const [year, month, day] = value.split('-').map(Number);
-                                updateFormData({ fecha: new Date(Date.UTC(year, month - 1, day, 12, 0, 0)) });
-                            } else {
-                                updateFormData({ fecha: null });
-                            }
-                        }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        required
-                    />
-                </div>
-
-                {/* Time */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('tracking.hora', language)} *
-                    </label>
-                    <TimeInput
-                        value={formData.hora}
-                        onChange={(value) => updateFormData({ hora: value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        required
-                    />
-                    {showNightSurcharge && (
-                        <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                            <FiAlertCircle /> +{formatPrice(formData.recargoNocturno)} {t('reservas.paso4_recargo', language)}
-                        </p>
-                    )}
-                </div>
-
-
-
-                {/* Passengers */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('reservas.paso1_pasajeros', language)} *
-                    </label>
-                    <input
-                        type="number"
-                        min="1"
-                        max="15"
-                        value={formData.numeroPasajeros === 0 ? '' : formData.numeroPasajeros}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            updateFormData({ numeroPasajeros: val === '' ? 0 : parseInt(val) });
-                        }}
-                        placeholder="0"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                    />
-                </div>
-
-                {/* Hours (for hourly services) */}
-                {service.esPorHoras && (
+                    {/* Date */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
+                            {t('tracking.fecha', language)} *
+                        </label>
+                        <DateInput
+                            value={formData.fecha ? formData.fecha.toISOString().split('T')[0] : ''}
+                            onChange={(value) => {
+                                if (value) {
+                                    const [year, month, day] = value.split('-').map(Number);
+                                    updateFormData({ fecha: new Date(Date.UTC(year, month - 1, day, 12, 0, 0)) });
+                                } else {
+                                    updateFormData({ fecha: null });
+                                }
+                            }}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            required
+                        />
+                    </div>
+
+                    {/* Time */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('tracking.hora', language)} *
+                        </label>
+                        <TimeInput
+                            value={formData.hora}
+                            onChange={(value) => updateFormData({ hora: value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            required
+                        />
+                        {showNightSurcharge && (
+                            <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                                <FiAlertCircle /> +{formatPrice(formData.recargoNocturno)} {t('reservas.paso4_recargo', language)}
+                            </p>
+                        )}
+                    </div>
+
+
+
+                    {/* Passengers */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('reservas.paso1_pasajeros', language)} *
                         </label>
                         <input
-                            type="text"
-                            inputMode="numeric"
-                            value={formData.cantidadHoras === 4 ? '' : (formData.cantidadHoras || '')}
+                            type="number"
+                            min="1"
+                            max="15"
+                            value={formData.numeroPasajeros === 0 ? '' : formData.numeroPasajeros}
                             onChange={(e) => {
                                 const val = e.target.value;
-                                // Allow only numbers or empty
-                                if (val === '') {
-                                    updateFormData({ cantidadHoras: undefined });
-                                } else if (/^\d+$/.test(val)) {
-                                    updateFormData({ cantidadHoras: parseInt(val) });
-                                }
+                                updateFormData({ numeroPasajeros: val === '' ? 0 : parseInt(val) });
                             }}
-                            onBlur={(e) => {
-                                // On blur, ensure minimum value of 4
-                                const val = e.target.value;
-                                if (val === '' || parseInt(val) < 4) {
-                                    updateFormData({ cantidadHoras: 4 });
-                                }
-                            }}
-                            placeholder="4"
+                            placeholder="0"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {language === 'es' ? 'Mínimo 4 horas' : 'Minimum 4 hours'}
-                        </p>
                     </div>
-                )}
 
-                {/* Vehicle Selection */}
-                <div className="md:col-span-2 space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                        {t('reservas.paso1_vehiculo', language)} *
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {availableVehicles.map((vehiculo: any) => {
-                            const isSelected = formData.vehiculoId === vehiculo.id;
-                            const isRecommended = recommendedVehicle?.id === vehiculo.id;
-                            const isCapacityCompatible = vehiculo.capacidadMaxima >= formData.numeroPasajeros;
+                    {/* Hours (for hourly services) */}
+                    {service.esPorHoras && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
+                            </label>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={formData.cantidadHoras === 4 ? '' : (formData.cantidadHoras || '')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    // Allow only numbers or empty
+                                    if (val === '') {
+                                        updateFormData({ cantidadHoras: undefined });
+                                    } else if (/^\d+$/.test(val)) {
+                                        updateFormData({ cantidadHoras: parseInt(val) });
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    // On blur, ensure minimum value of 4
+                                    const val = e.target.value;
+                                    if (val === '' || parseInt(val) < 4) {
+                                        updateFormData({ cantidadHoras: 4 });
+                                    }
+                                }}
+                                placeholder="4"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {language === 'es' ? 'Mínimo 4 horas' : 'Minimum 4 hours'}
+                            </p>
+                        </div>
+                    )}
 
-                            return (
-                                <div
-                                    key={vehiculo.id}
-                                    onClick={() => updateFormData({ vehiculoId: vehiculo.id })}
-                                    className={`relative border rounded-xl p-4 cursor-pointer transition-all ${isSelected
-                                        ? 'border-[#D6A75D] bg-[#D6A75D]/5 ring-1 ring-[#D6A75D]'
-                                        : 'border-gray-200 hover:border-[#D6A75D]/50 hover:shadow-md'
-                                        } ${!isCapacityCompatible && formData.numeroPasajeros > 0 ? 'opacity-60' : ''}`}
-                                >
-                                    {isRecommended && (
-                                        <div className="absolute -top-3 left-4 bg-[#D6A75D] text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm z-10">
-                                            {t('reservas.recomendado', language)}
-                                        </div>
-                                    )}
+                    {/* Vehicle Selection */}
+                    <div className="md:col-span-2 space-y-3">
+                        <label className="block text-sm font-medium text-gray-700">
+                            {t('reservas.paso1_vehiculo', language)} *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {availableVehicles.map((vehiculo: any) => {
+                                const isSelected = formData.vehiculoId === vehiculo.id;
+                                const isRecommended = recommendedVehicle?.id === vehiculo.id;
+                                const isCapacityCompatible = vehiculo.capacidadMaxima >= formData.numeroPasajeros;
 
-                                    <div className="flex gap-4">
-                                        <div className="relative w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                            {vehiculo.imagen ? (
-                                                <Image
-                                                    src={vehiculo.imagen}
-                                                    alt={vehiculo.nombre}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                    <FiUser size={24} />
+                                return (
+                                    <div
+                                        key={vehiculo.id}
+                                        onClick={() => updateFormData({ vehiculoId: vehiculo.id })}
+                                        className={`relative border rounded-xl p-4 cursor-pointer transition-all ${isSelected
+                                            ? 'border-[#D6A75D] bg-[#D6A75D]/5 ring-1 ring-[#D6A75D]'
+                                            : 'border-gray-200 hover:border-[#D6A75D]/50 hover:shadow-md'
+                                            } ${!isCapacityCompatible && formData.numeroPasajeros > 0 ? 'opacity-60' : ''}`}
+                                    >
+                                        {isRecommended && (
+                                            <div className="absolute -top-3 left-4 bg-[#D6A75D] text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm z-10">
+                                                {t('reservas.recomendado', language)}
+                                            </div>
+                                        )}
+
+                                        <div className="flex gap-4">
+                                            <div className="relative w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                                {vehiculo.imagen ? (
+                                                    <Image
+                                                        src={vehiculo.imagen}
+                                                        alt={vehiculo.nombre}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                        <FiUser size={24} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{vehiculo.nombre}</h4>
+                                                    {isSelected && <FiCheck className="text-[#D6A75D] flex-shrink-0" />}
                                                 </div>
-                                            )}
+                                                <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                                    <FiUsers size={12} />
+                                                    <span className={!isCapacityCompatible && formData.numeroPasajeros > 0 ? 'text-red-500 font-medium' : ''}>
+                                                        {vehiculo.capacidadMinima}-{vehiculo.capacidadMaxima} {t('comunes.personas', language)}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[#D6A75D] font-bold mt-2">
+                                                    ${Number(vehiculo.precio).toLocaleString()}
+                                                </p>
+                                            </div>
                                         </div>
-
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {availableVehicles.length === 0 && (
+                            isSharedTour ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex gap-4">
                                         <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <h4 className="font-bold text-gray-900 text-sm line-clamp-1">{vehiculo.nombre}</h4>
-                                                {isSelected && <FiCheck className="text-[#D6A75D] flex-shrink-0" />}
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                                <FiUsers size={12} />
-                                                <span className={!isCapacityCompatible && formData.numeroPasajeros > 0 ? 'text-red-500 font-medium' : ''}>
-                                                    {vehiculo.capacidadMinima}-{vehiculo.capacidadMaxima} {t('comunes.personas', language)}
-                                                </span>
-                                            </div>
-                                            <p className="text-[#D6A75D] font-bold mt-2">
-                                                ${Number(vehiculo.precio).toLocaleString()}
+                                            <h4 className="font-bold text-gray-900 mb-2">
+                                                {language === 'es' ? '🚐 Van con capacidad de 15 personas' : '🚐 Van with capacity for 15 people'}
+                                            </h4>
+                                            <p className="text-sm text-gray-600">
+                                                {language === 'es'
+                                                    ? 'Este tour compartido se realiza en una van cómoda con capacidad para hasta 15 pasajeros.'
+                                                    : 'This shared tour is conducted in a comfortable van with capacity for up to 15 passengers.'}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            ) : (
+                                <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
+                                    <FiAlertCircle /> {t('reservas.no_vehiculos', language)}
+                                </p>
+                            )
+                        )}
                     </div>
-                    {availableVehicles.length === 0 && (
-                        isSharedTour ? (
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="flex gap-4">
-                                    <div className="flex-1">
-                                        <h4 className="font-bold text-gray-900 mb-2">
-                                            {language === 'es' ? '🚐 Van con capacidad de 15 personas' : '🚐 Van with capacity for 15 people'}
-                                        </h4>
-                                        <p className="text-sm text-gray-600">
-                                            {language === 'es'
-                                                ? 'Este tour compartido se realiza en una van cómoda con capacidad para hasta 15 pasajeros.'
-                                                : 'This shared tour is conducted in a comfortable van with capacity for up to 15 passengers.'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg flex items-center gap-2">
-                                <FiAlertCircle /> {t('reservas.no_vehiculos', language)}
-                            </p>
-                        )
-                    )}
                 </div>
-            </div>
+            )}
 
             {/* 🔥 NEW: Dynamic Fields with updated interface */}
             {dynamicFields.length > 0 && (
@@ -1334,14 +1295,16 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                 </div>
             )}
 
-            {/* WhatsApp Assistance */}
-            <button
-                type="button"
-                onClick={handleWhatsAppAssistance}
-                className="text-sm text-gray-600 hover:text-[#D6A75D] underline"
-            >
-                {t('reservas.paso1_asistencia', language)}
-            </button>
+            {/* WhatsApp Assistance - Only for Airport Services */}
+            {service.esAeropuerto && (
+                <button
+                    type="button"
+                    onClick={handleWhatsAppAssistance}
+                    className="text-sm text-gray-600 hover:text-[#D6A75D] underline"
+                >
+                    {t('reservas.paso1_asistencia', language)}
+                </button>
+            )}
         </div>
     );
 }

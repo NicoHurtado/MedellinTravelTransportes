@@ -35,6 +35,8 @@ export interface ReservationFormData {
     nombreCliente: string;
     whatsappCliente: string;
     emailCliente: string;
+    tipoDocumentoCliente?: TipoDocumento;
+    numeroDocumentoCliente?: string;
     asistentes: Asistente[];
 
     // Step 3: Notes

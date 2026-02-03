@@ -170,18 +170,26 @@ export async function PUT(
         // Sync with Google Calendar if needed
         if (body.estado || body.conductorId || body.fecha || body.hora) {
             try {
-                const { updateCalendarEvent, deleteCalendarEvent } = await import('@/lib/google-calendar-service');
-                if (reserva.googleCalendarEventId) {
-                    if (reserva.estado === EstadoReserva.CANCELADA) {
-                        await deleteCalendarEvent(reserva.googleCalendarEventId);
+                // Check if this is a Tour Compartido reservation
+                if (reserva.servicio?.tipo === 'TOUR_COMPARTIDO') {
+                    // Use consolidation function to update/maintain all reservations for the day
+                    const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                    await createOrUpdateTourCompartidoEvent(reserva as any);
+                } else {
+                    // Regular services: update individual event
+                    const { updateCalendarEvent, deleteCalendarEvent } = await import('@/lib/google-calendar-service');
+                    if (reserva.googleCalendarEventId) {
+                        if (reserva.estado === EstadoReserva.CANCELADA) {
+                            await deleteCalendarEvent(reserva.googleCalendarEventId);
 
-                        // Clean up the ID from our database since it's gone from Calendar
-                        await prisma.reserva.update({
-                            where: { id: params.id },
-                            data: { googleCalendarEventId: null }
-                        });
-                    } else {
-                        await updateCalendarEvent(reserva as any);
+                            // Clean up the ID from our database since it's gone from Calendar
+                            await prisma.reserva.update({
+                                where: { id: params.id },
+                                data: { googleCalendarEventId: null }
+                            });
+                        } else {
+                            await updateCalendarEvent(reserva as any);
+                        }
                     }
                 }
             } catch (calendarError) {

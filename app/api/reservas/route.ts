@@ -320,16 +320,26 @@ export async function POST(request: Request) {
 
         // Crear evento en Google Calendar
         try {
-            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
-            const eventId = await createCalendarEvent(reserva as any);
+            const { createCalendarEvent, createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
 
-            // Actualizar reserva con el eventId si se creó exitosamente
-            if (eventId) {
-                await prisma.reserva.update({
-                    where: { id: reserva.id },
-                    data: { googleCalendarEventId: eventId }
-                });
-                console.log('✅ [Reserva] Google Calendar event created and linked:', eventId);
+            let eventId: string | null = null;
+
+            if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                // Para Tour Compartido, usar función de consolidación
+                eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                console.log('🚌 [Reserva] Tour Compartido calendar event processed:', eventId);
+            } else {
+                // Para otros servicios, crear evento individual
+                eventId = await createCalendarEvent(reserva as any);
+
+                // Actualizar reserva con el eventId si se creó exitosamente
+                if (eventId) {
+                    await prisma.reserva.update({
+                        where: { id: reserva.id },
+                        data: { googleCalendarEventId: eventId }
+                    });
+                    console.log('✅ [Reserva] Google Calendar event created and linked:', eventId);
+                }
             }
         } catch (calendarError) {
             console.error('❌ [Reserva] Error creating calendar event:', calendarError);

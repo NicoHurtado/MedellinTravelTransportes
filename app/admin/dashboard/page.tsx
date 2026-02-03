@@ -17,6 +17,7 @@ import {
 import { EstadoReserva } from '@prisma/client';
 import { getStateLabel, getStateColor } from '@/lib/state-transitions';
 import { getLocalizedText } from '@/types/multi-language';
+import TourCompartidoView from '@/components/admin/TourCompartidoView';
 
 export default function AdminDashboard() {
     const { data: session, status } = useSession();
@@ -101,6 +102,8 @@ export default function AdminDashboard() {
             servicioNombre.includes(query)
         );
     }).filter((reserva) => {
+        // Skip serviceTypeFilter if Tour Compartido KPI button is active
+        if (tourCompartidoFilter) return true;
         if (!serviceTypeFilter) return true;
         return reserva.servicio?.tipo === serviceTypeFilter;
     }).sort((a, b) => {
@@ -312,6 +315,7 @@ export default function AdminDashboard() {
                                         // Toggle Tour Compartido filter
                                         setTourCompartidoFilter(!tourCompartidoFilter);
                                         setEstadoFilter(''); // Clear estado filter
+                                        setServiceTypeFilter(''); // Clear service type filter
                                     } else {
                                         // Toggle estado filter
                                         setEstadoFilter(estadoFilter === kpi.estado ? '' : (kpi.estado || ''));
@@ -389,216 +393,220 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Reservations Table */}
-                <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <h2 className="text-base sm:text-lg font-semibold text-gray-900">
-                            Reservas ({filteredReservas.length})
-                        </h2>
-                        {filteredReservas.length > 0 && (
-                            <p className="text-xs sm:text-sm text-gray-500">
-                                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredReservas.length)} de {filteredReservas.length}
-                            </p>
-                        )}
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[800px]">
-                            <thead className="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Creada
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Código
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Cliente
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Servicio
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Fecha
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Estado
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Aliado
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Total
-                                    </th>
-                                    <th className="px-3 sm:px-6 py-2 sm:py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
-                                        Acciones
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {paginatedReservas.length === 0 ? (
+                {/* Tour Compartido Grouped View OR Regular Table */}
+                {tourCompartidoFilter ? (
+                    <TourCompartidoView reservas={filteredReservas} />
+                ) : (
+                    <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+                                Reservas ({filteredReservas.length})
+                            </h2>
+                            {filteredReservas.length > 0 && (
+                                <p className="text-xs sm:text-sm text-gray-500">
+                                    Mostrando {startIndex + 1}-{Math.min(endIndex, filteredReservas.length)} de {filteredReservas.length}
+                                </p>
+                            )}
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[800px]">
+                                <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
-                                        <td colSpan={9} className="px-4 sm:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm">
-                                            No se encontraron reservas
-                                        </td>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Creada
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Código
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Cliente
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Servicio
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Fecha
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Estado
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Aliado
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Total
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Acciones
+                                        </th>
                                     </tr>
-                                ) : (
-                                    paginatedReservas.map((reserva) => (
-                                        <tr
-                                            key={reserva.id}
-                                            onClick={() => router.push(`/admin/dashboard/reservas/${reserva.id}`)}
-                                            className="hover:bg-gray-50 transition-colors cursor-pointer"
-                                        >
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <div>
-                                                    <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                                                        {new Date(reserva.createdAt).toLocaleDateString('es-CO', {
-                                                            day: '2-digit',
-                                                            month: '2-digit',
-                                                            year: 'numeric'
-                                                        })}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 whitespace-nowrap">
-                                                        {new Date(reserva.createdAt).toLocaleTimeString('es-CO', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </p>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <span className="font-mono text-xs sm:text-sm font-semibold text-[#D6A75D] whitespace-nowrap">
-                                                    {reserva.codigo}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <div>
-                                                    <p className="text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">{reserva.nombreCliente}</p>
-                                                    <p className="text-xs text-gray-500 truncate max-w-[150px]">{reserva.emailCliente}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <span className="text-xs sm:text-sm text-gray-900">
-                                                    {reserva.servicio?.nombre ? getLocalizedText(reserva.servicio.nombre, 'ES') : 'N/A'}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <div>
-                                                    <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                                                        {(() => {
-                                                            const dateStr = new Date(reserva.fecha).toISOString().split('T')[0];
-                                                            const [year, month, day] = dateStr.split('-');
-                                                            return `${day}/${month}/${year}`;
-                                                        })()}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 whitespace-nowrap">{reserva.hora}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium ${getStateColor(reserva.estado)}`}>
-                                                    {getStateLabel(reserva.estado)}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                {reserva.esReservaAliado && reserva.aliado ? (
-                                                    <div>
-                                                        <p className="text-xs sm:text-sm font-medium text-blue-600 whitespace-nowrap">{reserva.aliado.nombre}</p>
-                                                        <p className="text-xs text-gray-500">Reserva de aliado</p>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs sm:text-sm text-gray-400">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                <span className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
-                                                    ${Number(reserva.precioTotal).toLocaleString('es-CO')}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        router.push(`/admin/dashboard/reservas/${reserva.id}`);
-                                                    }}
-                                                    className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
-                                                >
-                                                    <FiEye size={14} className="sm:w-4 sm:h-4" />
-                                                    Ver
-                                                </button>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {paginatedReservas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} className="px-4 sm:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm">
+                                                No se encontraron reservas
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination Controls */}
-                    {filteredReservas.length > 0 && (
-                        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-                            {/* Items per page selector */}
-                            <div className="flex items-center gap-2">
-                                <label htmlFor="itemsPerPage" className="text-xs sm:text-sm text-gray-600">
-                                    Mostrar:
-                                </label>
-                                <select
-                                    id="itemsPerPage"
-                                    value={itemsPerPage}
-                                    onChange={(e) => {
-                                        setItemsPerPage(Number(e.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                    <option value={50}>50</option>
-                                    <option value={100}>100</option>
-                                </select>
-                                <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">por página</span>
-                            </div>
-
-                            {/* Page navigation */}
-                            <div className="flex items-center gap-1 sm:gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    Ant
-                                </button>
-
-                                <div className="flex items-center gap-1">
-                                    {getPageNumbers().map((page, index) => (
-                                        page === '...' ? (
-                                            <span key={`ellipsis-${index}`} className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-500">
-                                                ...
-                                            </span>
-                                        ) : (
-                                            <button
-                                                key={page}
-                                                onClick={() => setCurrentPage(page as number)}
-                                                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
-                                                    ? 'bg-[#D6A75D] text-white'
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
+                                    ) : (
+                                        paginatedReservas.map((reserva) => (
+                                            <tr
+                                                key={reserva.id}
+                                                onClick={() => router.push(`/admin/dashboard/reservas/${reserva.id}`)}
+                                                className="hover:bg-gray-50 transition-colors cursor-pointer"
                                             >
-                                                {page}
-                                            </button>
-                                        )
-                                    ))}
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <div>
+                                                        <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                                                            {new Date(reserva.createdAt).toLocaleDateString('es-CO', {
+                                                                day: '2-digit',
+                                                                month: '2-digit',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 whitespace-nowrap">
+                                                            {new Date(reserva.createdAt).toLocaleTimeString('es-CO', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <span className="font-mono text-xs sm:text-sm font-semibold text-[#D6A75D] whitespace-nowrap">
+                                                        {reserva.codigo}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <div>
+                                                        <p className="text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">{reserva.nombreCliente}</p>
+                                                        <p className="text-xs text-gray-500 truncate max-w-[150px]">{reserva.emailCliente}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <span className="text-xs sm:text-sm text-gray-900">
+                                                        {reserva.servicio?.nombre ? getLocalizedText(reserva.servicio.nombre, 'ES') : 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <div>
+                                                        <p className="text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                                                            {(() => {
+                                                                const dateStr = new Date(reserva.fecha).toISOString().split('T')[0];
+                                                                const [year, month, day] = dateStr.split('-');
+                                                                return `${day}/${month}/${year}`;
+                                                            })()}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 whitespace-nowrap">{reserva.hora}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium ${getStateColor(reserva.estado)}`}>
+                                                        {getStateLabel(reserva.estado)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    {reserva.esReservaAliado && reserva.aliado ? (
+                                                        <div>
+                                                            <p className="text-xs sm:text-sm font-medium text-blue-600 whitespace-nowrap">{reserva.aliado.nombre}</p>
+                                                            <p className="text-xs text-gray-500">Reserva de aliado</p>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs sm:text-sm text-gray-400">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <span className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
+                                                        ${Number(reserva.precioTotal).toLocaleString('es-CO')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            router.push(`/admin/dashboard/reservas/${reserva.id}`);
+                                                        }}
+                                                        className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
+                                                    >
+                                                        <FiEye size={14} className="sm:w-4 sm:h-4" />
+                                                        Ver
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {filteredReservas.length > 0 && (
+                            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+                                {/* Items per page selector */}
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="itemsPerPage" className="text-xs sm:text-sm text-gray-600">
+                                        Mostrar:
+                                    </label>
+                                    <select
+                                        id="itemsPerPage"
+                                        value={itemsPerPage}
+                                        onChange={(e) => {
+                                            setItemsPerPage(Number(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                        className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                    >
+                                        <option value={10}>10</option>
+                                        <option value={20}>20</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                    </select>
+                                    <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">por página</span>
                                 </div>
 
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    Sig
-                                </button>
+                                {/* Page navigation */}
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Ant
+                                    </button>
+
+                                    <div className="flex items-center gap-1">
+                                        {getPageNumbers().map((page, index) => (
+                                            page === '...' ? (
+                                                <span key={`ellipsis-${index}`} className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-500">
+                                                    ...
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCurrentPage(page as number)}
+                                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
+                                                        ? 'bg-[#D6A75D] text-white'
+                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            )
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Sig
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
             </main>
         </div>
     );

@@ -2,9 +2,10 @@
 
 import { ReservationFormData, Asistente } from '@/types/reservation';
 import { TipoDocumento } from '@prisma/client';
-import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiUser, FiUsers, FiAlertCircle } from 'react-icons/fi';
 import { useLanguage, t } from '@/lib/i18n';
 import LegalNotice from '@/components/LegalNotice';
+import { useEffect } from 'react';
 
 interface Step2Props {
     formData: ReservationFormData;
@@ -16,36 +17,118 @@ interface Step2Props {
 export default function Step2ContactInfo({ formData, updateFormData, onNext, onBack }: Step2Props) {
     const { language } = useLanguage();
 
-    const addAsistente = () => {
-        updateFormData({
-            asistentes: [
-                ...formData.asistentes,
-                { nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' }
-            ]
-        });
+    // Number of additional passengers (beyond the main contact)
+    const additionalPassengersNeeded = Math.max(0, formData.numeroPasajeros - 1);
+
+    // Ensure we have the correct number of attendees based on numeroPasajeros
+    useEffect(() => {
+        const requiredAttendees = formData.numeroPasajeros;
+        const currentAttendees = formData.asistentes.length;
+
+        if (currentAttendees !== requiredAttendees) {
+            const newAsistentes: Asistente[] = [];
+
+            // First attendee is always the contact person
+            newAsistentes.push({
+                nombre: formData.nombreCliente || '',
+                tipoDocumento: formData.tipoDocumentoCliente || TipoDocumento.CC,
+                numeroDocumento: formData.numeroDocumentoCliente || '',
+                email: formData.emailCliente || '',
+                telefono: formData.whatsappCliente || ''
+            });
+
+            // Add additional attendees
+            for (let i = 1; i < requiredAttendees; i++) {
+                // Keep existing data if available
+                if (formData.asistentes[i]) {
+                    newAsistentes.push(formData.asistentes[i]);
+                } else {
+                    newAsistentes.push({
+                        nombre: '',
+                        tipoDocumento: TipoDocumento.CC,
+                        numeroDocumento: '',
+                        email: '',
+                        telefono: ''
+                    });
+                }
+            }
+
+            updateFormData({ asistentes: newAsistentes });
+        }
+    }, [formData.numeroPasajeros]);
+
+    // Sync contact info to first attendee when contact fields change
+    const updateContactAndFirstAttendee = (field: 'nombreCliente' | 'emailCliente' | 'whatsappCliente', value: string) => {
+        const updates: Partial<ReservationFormData> = { [field]: value };
+
+        // Also update first attendee
+        if (formData.asistentes.length > 0) {
+            const updatedAsistentes = [...formData.asistentes];
+            if (field === 'nombreCliente') {
+                updatedAsistentes[0] = { ...updatedAsistentes[0], nombre: value };
+            } else if (field === 'emailCliente') {
+                updatedAsistentes[0] = { ...updatedAsistentes[0], email: value };
+            } else if (field === 'whatsappCliente') {
+                updatedAsistentes[0] = { ...updatedAsistentes[0], telefono: value };
+            }
+            updates.asistentes = updatedAsistentes;
+        }
+
+        updateFormData(updates);
     };
 
-    const removeAsistente = (index: number) => {
-        if (formData.asistentes.length > 1) {
-            updateFormData({
-                asistentes: formData.asistentes.filter((_, i) => i !== index)
-            });
+    // Update document type for contact (synced to first attendee)
+    const updateDocumentoCliente = (field: 'tipoDocumentoCliente' | 'numeroDocumentoCliente', value: string) => {
+        const updates: Partial<ReservationFormData> = { [field]: value };
+
+        // Also update first attendee
+        if (formData.asistentes.length > 0) {
+            const updatedAsistentes = [...formData.asistentes];
+            if (field === 'tipoDocumentoCliente') {
+                updatedAsistentes[0] = { ...updatedAsistentes[0], tipoDocumento: value as TipoDocumento };
+            } else if (field === 'numeroDocumentoCliente') {
+                updatedAsistentes[0] = { ...updatedAsistentes[0], numeroDocumento: value };
+            }
+            updates.asistentes = updatedAsistentes;
         }
+
+        updateFormData(updates);
     };
 
     const updateAsistente = (index: number, field: keyof Asistente, value: string) => {
         const updated = [...formData.asistentes];
         updated[index] = { ...updated[index], [field]: value };
-        updateFormData({ asistentes: updated });
+
+        // If updating first attendee, also sync to contact fields
+        if (index === 0) {
+            const contactUpdates: Partial<ReservationFormData> = { asistentes: updated };
+            if (field === 'nombre') contactUpdates.nombreCliente = value;
+            if (field === 'email') contactUpdates.emailCliente = value;
+            if (field === 'telefono') contactUpdates.whatsappCliente = value;
+            if (field === 'tipoDocumento') contactUpdates.tipoDocumentoCliente = value as TipoDocumento;
+            if (field === 'numeroDocumento') contactUpdates.numeroDocumentoCliente = value;
+            updateFormData(contactUpdates);
+        } else {
+            updateFormData({ asistentes: updated });
+        }
     };
+
+    // Count how many passengers are complete
+    const completedPassengers = formData.asistentes.filter(a =>
+        a.nombre.trim().length >= 2 &&
+        a.numeroDocumento.trim().length >= 4
+    ).length;
 
     const isValid = () => {
         return (
             formData.nombreCliente.trim().length >= 3 &&
             formData.whatsappCliente.trim().length >= 10 &&
             formData.emailCliente.includes('@') &&
-            formData.asistentes.length > 0 &&
-            formData.asistentes.every(a =>
+            // Validate document for contact person
+            (formData.numeroDocumentoCliente?.trim().length || 0) >= 4 &&
+            // Validate all required attendees are filled
+            formData.asistentes.length >= formData.numeroPasajeros &&
+            formData.asistentes.slice(0, formData.numeroPasajeros).every(a =>
                 a.nombre.trim().length >= 2 &&
                 a.numeroDocumento.trim().length >= 4
             )
@@ -61,114 +144,210 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                 </p>
             </div>
 
-            {/* Contact fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('reservas.paso2_nombre', language)} *
-                    </label>
-                    <input
-                        type="text"
-                        value={formData.nombreCliente}
-                        onChange={(e) => updateFormData({ nombreCliente: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        placeholder="Juan Pérez"
-                        required
-                    />
-                </div>
-
+            {/* Passenger count indicator */}
+            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <FiUsers className="text-blue-600" size={24} />
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('reservas.paso2_whatsapp', language)} *
-                    </label>
-                    <input
-                        type="tel"
-                        value={formData.whatsappCliente}
-                        onChange={(e) => updateFormData({ whatsappCliente: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        placeholder="+57 300 123 4567"
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        {t('reservas.paso2_email', language)} *
-                    </label>
-                    <input
-                        type="email"
-                        value={formData.emailCliente}
-                        onChange={(e) => updateFormData({ emailCliente: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
-                        placeholder="juan@email.com"
-                        required
-                    />
+                    <p className="font-medium text-blue-900">
+                        {language === 'es'
+                            ? `${formData.numeroPasajeros} pasajero${formData.numeroPasajeros > 1 ? 's' : ''} en total`
+                            : `${formData.numeroPasajeros} passenger${formData.numeroPasajeros > 1 ? 's' : ''} total`}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                        {completedPassengers === formData.numeroPasajeros
+                            ? (language === 'es' ? '✓ Todos los datos completos' : '✓ All details complete')
+                            : (language === 'es'
+                                ? `Completa los datos de ${formData.numeroPasajeros - completedPassengers} pasajero(s)`
+                                : `Complete details for ${formData.numeroPasajeros - completedPassengers} passenger(s)`)}
+                    </p>
                 </div>
             </div>
 
-            {/* Asistentes */}
-            <div>
-                <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-bold">{t('reservas.paso2_asistentes_titulo', language)}</h3>
-                    <button
-                        onClick={addAsistente}
-                        className="flex items-center gap-2 text-[#D6A75D] hover:text-[#C5964A] font-medium text-sm"
-                    >
-                        <FiPlus /> {t('reservas.paso2_agregar_asistente', language)}
-                    </button>
+            {/* Contact fields - Main Passenger (Passenger 1) */}
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-[#D6A75D] rounded-full flex items-center justify-center text-white">
+                        <span className="font-bold text-sm">1</span>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-gray-900">
+                            {language === 'es' ? 'Tus Datos (Pasajero Principal)' : 'Your Info (Main Passenger)'}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                            {language === 'es' ? 'Persona de contacto y primer pasajero' : 'Contact person and first passenger'}
+                        </p>
+                    </div>
                 </div>
 
-                <div className="space-y-3">
-                    {formData.asistentes.map((asistente, index) => (
-                        <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700">
-                                    {language === 'es' ? 'Asistente' : 'Attendee'} {index + 1}
-                                </span>
-                                {formData.asistentes.length > 1 && (
-                                    <button
-                                        onClick={() => removeAsistente(index)}
-                                        className="text-red-500 hover:text-red-700"
-                                    >
-                                        <FiTrash2 size={18} />
-                                    </button>
-                                )}
-                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('reservas.paso2_nombre', language)} *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.nombreCliente}
+                            onChange={(e) => updateContactAndFirstAttendee('nombreCliente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            placeholder="Juan Pérez"
+                            required
+                        />
+                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <input
-                                    type="text"
-                                    value={asistente.nombre}
-                                    onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
-                                    placeholder={t('reservas.paso2_nombre_asistente', language) + ' *'}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
-                                />
-                                <select
-                                    value={asistente.tipoDocumento}
-                                    onChange={(e) => updateAsistente(index, 'tipoDocumento', e.target.value)}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('reservas.paso2_whatsapp', language)} *
+                        </label>
+                        <input
+                            type="tel"
+                            value={formData.whatsappCliente}
+                            onChange={(e) => updateContactAndFirstAttendee('whatsappCliente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            placeholder="+57 300 123 4567"
+                            required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {language === 'es'
+                                ? 'Este número lo usaremos para contactarte en caso de necesitarlo'
+                                : 'We will use this number to contact you if needed'}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('reservas.paso2_email', language)} *
+                        </label>
+                        <input
+                            type="email"
+                            value={formData.emailCliente}
+                            onChange={(e) => updateContactAndFirstAttendee('emailCliente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            placeholder="juan@email.com"
+                            required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            {language === 'es'
+                                ? 'A este correo te llegarán actualizaciones de tu servicio'
+                                : 'Service updates will be sent to this email'}
+                        </p>
+                    </div>
+
+                    {/* Document fields for contact person */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'es' ? 'Tipo de Documento' : 'Document Type'} *
+                        </label>
+                        <select
+                            value={formData.tipoDocumentoCliente || TipoDocumento.CC}
+                            onChange={(e) => updateDocumentoCliente('tipoDocumentoCliente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                        >
+                            <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
+                            <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
+                            <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
+                            <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'es' ? 'Número de Documento' : 'Document Number'} *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.numeroDocumentoCliente || ''}
+                            onChange={(e) => updateDocumentoCliente('numeroDocumentoCliente', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                            placeholder="1234567890"
+                            required
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Additional Passengers (automatically generated based on numeroPasajeros) */}
+            {additionalPassengersNeeded > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <FiUsers className="text-gray-600" />
+                        <h3 className="text-lg font-bold">
+                            {language === 'es'
+                                ? `Pasajeros Adicionales (${additionalPassengersNeeded})`
+                                : `Additional Passengers (${additionalPassengersNeeded})`}
+                        </h3>
+                    </div>
+
+                    <div className="space-y-3">
+                        {Array.from({ length: additionalPassengersNeeded }).map((_, idx) => {
+                            const index = idx + 1; // Real index in array (skip first which is contact)
+                            const asistente = formData.asistentes[index] || { nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' };
+                            const isComplete = asistente.nombre.trim().length >= 2 && asistente.numeroDocumento.trim().length >= 4;
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`p-4 border rounded-lg space-y-3 ${isComplete ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
                                 >
-                                    <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
-                                    <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
-                                    <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
-                                    <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    value={asistente.numeroDocumento}
-                                    onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
-                                    placeholder={t('reservas.paso2_numero_doc', language) + ' *'}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
-                                />
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold ${isComplete ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                            {index + 1}
+                                        </div>
+                                        <span className="font-medium text-gray-700">
+                                            {language === 'es' ? `Pasajero ${index + 1}` : `Passenger ${index + 1}`}
+                                        </span>
+                                        {isComplete && (
+                                            <span className="text-green-600 text-sm">✓</span>
+                                        )}
+                                    </div>
 
-                <p className="text-xs text-gray-500 mt-2">
-                    {t('reservas.paso2_asistentes_nota', language)}
-                </p>
-            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <input
+                                            type="text"
+                                            value={asistente.nombre}
+                                            onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
+                                            placeholder={(language === 'es' ? 'Nombre Completo' : 'Full Name') + ' *'}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                        />
+                                        <select
+                                            value={asistente.tipoDocumento}
+                                            onChange={(e) => updateAsistente(index, 'tipoDocumento', e.target.value)}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                        >
+                                            <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
+                                            <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
+                                            <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
+                                            <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            value={asistente.numeroDocumento}
+                                            onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
+                                            placeholder={(language === 'es' ? 'No. Documento' : 'Doc Number') + ' *'}
+                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Warning if not all passengers filled */}
+            {completedPassengers < formData.numeroPasajeros && formData.numeroPasajeros > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800">
+                    <FiAlertCircle size={20} />
+                    <p className="text-sm">
+                        {language === 'es'
+                            ? `Debes completar los datos de todos los ${formData.numeroPasajeros} pasajeros para continuar.`
+                            : `You must complete the details for all ${formData.numeroPasajeros} passengers to continue.`}
+                    </p>
+                </div>
+            )}
+
+            <p className="text-xs text-gray-500">
+                {t('reservas.paso2_asistentes_nota', language)}
+            </p>
 
             {/* Aviso Legal */}
             <LegalNotice />

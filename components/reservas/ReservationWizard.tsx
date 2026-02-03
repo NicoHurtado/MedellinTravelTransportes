@@ -162,22 +162,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     return false;
                 }
 
-                // Validate participants
-                if (!formData.asistentes || formData.asistentes.length !== formData.numeroPasajeros) {
-                    showError(language === 'es' ? 'Por favor completa los datos de todos los participantes' : 'Please complete details for all participants');
-                    return false;
-                }
-
-                for (let i = 0; i < formData.asistentes.length; i++) {
-                    const a = formData.asistentes[i];
-                    if (!a.nombre || !a.numeroDocumento) {
-                        showError(language === 'es'
-                            ? `Por favor completa todos los campos del participante ${i + 1}`
-                            : `Please complete all fields for participant ${i + 1}`);
-                        return false;
-                    }
-                }
-
+                // Participant details will be validated in Step 2 (Contact Info)
                 // If shared tour, we don't need vehicle or other checks
                 return true;
             }
@@ -275,16 +260,30 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 return false;
             }
 
-            // Validate asistentes if any
-            if (formData.asistentes && formData.asistentes.length > 0) {
-                for (const asistente of formData.asistentes) {
-                    if (asistente.nombre || asistente.numeroDocumento) {
-                        // If any field is filled, all fields must be filled
-                        if (!asistente.nombre || !asistente.numeroDocumento) {
-                            showError(language === 'es' ? 'Por favor completa la información de todos los asistentes o elimínalos' : 'Please complete all assistant information or remove them');
-                            return false;
-                        }
-                    }
+            // Validate document for contact person (required)
+            if (!formData.numeroDocumentoCliente || formData.numeroDocumentoCliente.trim().length < 4) {
+                showError(language === 'es' ? 'Por favor ingresa tu número de documento' : 'Please enter your document number');
+                return false;
+            }
+
+            // Validate all required passengers are complete (based on numeroPasajeros)
+            const requiredPassengers = formData.numeroPasajeros || 1;
+            if (formData.asistentes.length < requiredPassengers) {
+                showError(language === 'es'
+                    ? `Por favor completa los datos de los ${requiredPassengers} pasajeros`
+                    : `Please complete details for all ${requiredPassengers} passengers`);
+                return false;
+            }
+
+            // Validate each required passenger
+            for (let i = 0; i < requiredPassengers; i++) {
+                const asistente = formData.asistentes[i];
+                if (!asistente || !asistente.nombre || asistente.nombre.trim().length < 2 ||
+                    !asistente.numeroDocumento || asistente.numeroDocumento.trim().length < 4) {
+                    showError(language === 'es'
+                        ? `Por favor completa los datos del pasajero ${i + 1}`
+                        : `Please complete details for passenger ${i + 1}`);
+                    return false;
                 }
             }
 

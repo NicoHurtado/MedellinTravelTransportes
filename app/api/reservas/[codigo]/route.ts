@@ -182,17 +182,24 @@ export async function PUT(
         }
 
         // Actualizar evento en Google Calendar si cambió fecha/hora o se asignó conductor
-        if (reservaActualizada.googleCalendarEventId) {
-            const cambioRelevante = body.fecha || body.hora || body.conductorId || body.vehiculoId || body.estado;
+        const cambioRelevante = body.fecha || body.hora || body.conductorId || body.vehiculoId || body.estado;
 
-            if (cambioRelevante) {
-                try {
+        if (cambioRelevante) {
+            try {
+                // Check if this is a Tour Compartido reservation
+                if (reservaActualizada.servicio?.tipo === 'TOUR_COMPARTIDO') {
+                    // Use consolidation function to update/maintain all reservations for the day
+                    const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                    await createOrUpdateTourCompartidoEvent(reservaActualizada as any);
+                    console.log('✅ [Reserva] Tour Compartido consolidated calendar event updated');
+                } else if (reservaActualizada.googleCalendarEventId) {
+                    // Regular services: update individual event
                     const { updateCalendarEvent } = await import('@/lib/google-calendar-service');
                     await updateCalendarEvent(reservaActualizada as any);
                     console.log('✅ [Reserva] Google Calendar event updated');
-                } catch (calendarError) {
-                    console.error('❌ [Reserva] Error updating calendar event:', calendarError);
                 }
+            } catch (calendarError) {
+                console.error('❌ [Reserva] Error updating calendar event:', calendarError);
             }
         }
 
@@ -256,15 +263,22 @@ export async function DELETE(
         // Enviar email de cancelación
         await sendCambioEstadoEmail(reservaActualizada, reserva.estado);
 
-        // Eliminar evento de Google Calendar
-        if (reserva.googleCalendarEventId) {
-            try {
+        // Actualizar/eliminar evento de Google Calendar
+        try {
+            // Check if this is a Tour Compartido reservation
+            if (reservaActualizada.servicio?.tipo === 'TOUR_COMPARTIDO') {
+                // Update consolidation to reflect cancellation (will show updated status)
+                const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                await createOrUpdateTourCompartidoEvent(reservaActualizada as any);
+                console.log('✅ [Reserva] Tour Compartido consolidated calendar event updated after cancellation');
+            } else if (reserva.googleCalendarEventId) {
+                // Regular services: delete individual event
                 const { deleteCalendarEvent } = await import('@/lib/google-calendar-service');
                 await deleteCalendarEvent(reserva.googleCalendarEventId);
                 console.log('✅ [Reserva] Google Calendar event deleted');
-            } catch (calendarError) {
-                console.error('❌ [Reserva] Error deleting calendar event:', calendarError);
             }
+        } catch (calendarError) {
+            console.error('❌ [Reserva] Error updating/deleting calendar event:', calendarError);
         }
 
         return NextResponse.json({

@@ -344,6 +344,7 @@ export default function EditarServicioPage() {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
                             >
                                 <option value="TRANSPORTE_AEROPUERTO">Transporte Aeropuerto</option>
+                                <option value="TOUR_COMPARTIDO">Tour Compartido</option>
                                 <option value="CITY_TOUR">City Tour</option>
                                 <option value="TOUR_GUATAPE">Tour Guatapé</option>
                                 <option value="TOUR_PARAPENTE">Tour Parapente</option>
