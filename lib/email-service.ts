@@ -23,7 +23,8 @@ const getLocalizedName = (json: any, lang: 'ES' | 'EN') => {
 // ============================================
 export async function sendReservaConfirmadaEmail(
   reserva: ReservaWithRelations,
-  language: 'ES' | 'EN' = 'ES'
+  language: 'ES' | 'EN' = 'ES',
+  aliadoEmail?: string | null
 ) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const trackingUrl = `${appUrl}/tracking/${reserva.codigo}`;
@@ -130,9 +131,15 @@ export async function sendReservaConfirmadaEmail(
 
   const html = getEmailLayout(content, language);
 
+  // Build recipient list - always include client, optionally include ally
+  const toRecipients = [reserva.emailCliente];
+  if (aliadoEmail && aliadoEmail !== reserva.emailCliente) {
+    toRecipients.push(aliadoEmail);
+  }
+
   await transporter.sendMail({
     from: `"Transportes Medellín Travel" <${process.env.GMAIL_USER}>`,
-    to: reserva.emailCliente,
+    to: toRecipients.join(', '),
     subject: language === 'ES'
       ? `Reserva Confirmada - ${reserva.codigo}`
       : `Booking Confirmed - ${reserva.codigo}`,

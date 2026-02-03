@@ -258,13 +258,17 @@ export async function POST(request: Request) {
             console.log(`📧 [Pedido] Sending ${pedido.reservas.length} confirmation emails for pedido: ${pedido.codigo}`);
 
             // Enviar un email por cada reserva del pedido
+            // Include ally email so they also receive confirmation
+            const aliadoEmail = pedido.aliado?.email || null;
+
             for (const reserva of pedido.reservas) {
                 try {
                     await sendReservaConfirmadaEmail(
                         reserva as any,
-                        body.idioma || 'ES'
+                        body.idioma || 'ES',
+                        aliadoEmail
                     );
-                    console.log(`✅ [Pedido] Email sent successfully for reserva: ${reserva.codigo} to ${reserva.emailCliente}`);
+                    console.log(`✅ [Pedido] Email sent successfully for reserva: ${reserva.codigo} to ${reserva.emailCliente}${aliadoEmail ? ` + ally: ${aliadoEmail}` : ''}`);
                 } catch (emailError) {
                     console.error(`❌ [Pedido] Error sending email for reserva ${reserva.codigo}:`, emailError);
                     // Continuar enviando los demás emails aunque uno falle

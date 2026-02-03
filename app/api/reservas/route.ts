@@ -312,7 +312,9 @@ export async function POST(request: Request) {
             } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
                 await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
             } else {
-                await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES');
+                // Pass ally email so they also receive the confirmation
+                const aliadoEmail = reserva.aliado?.email || null;
+                await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
             }
         } catch (emailError) {
             console.error('Error sending confirmation email:', emailError);

@@ -144,7 +144,8 @@ export async function PUT(
 
                 switch (body.estado) {
                     case EstadoReserva.CONFIRMADA_PENDIENTE_PAGO:
-                        await emailService.sendReservaConfirmadaEmail(reserva as any, idioma);
+                        const aliadoEmail = reserva.aliado?.email || null;
+                        await emailService.sendReservaConfirmadaEmail(reserva as any, idioma, aliadoEmail);
                         break;
                     case EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION:
                         await emailService.sendPagoAprobadoEmail(reserva as any, idioma);
