@@ -31,7 +31,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
             // First attendee is always the contact person
             newAsistentes.push({
                 nombre: formData.nombreCliente || '',
-                tipoDocumento: formData.tipoDocumentoCliente || TipoDocumento.CC,
+                tipoDocumento: formData.tipoDocumentoCliente || TipoDocumento.PASAPORTE,
                 numeroDocumento: formData.numeroDocumentoCliente || '',
                 email: formData.emailCliente || '',
                 telefono: formData.whatsappCliente || ''
@@ -45,7 +45,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                 } else {
                     newAsistentes.push({
                         nombre: '',
-                        tipoDocumento: TipoDocumento.CC,
+                        tipoDocumento: TipoDocumento.PASAPORTE,
                         numeroDocumento: '',
                         email: '',
                         telefono: ''
@@ -238,7 +238,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                             {language === 'es' ? 'Tipo de Documento' : 'Document Type'} *
                         </label>
                         <select
-                            value={formData.tipoDocumentoCliente || TipoDocumento.CC}
+                            value={formData.tipoDocumentoCliente || TipoDocumento.PASAPORTE}
                             onChange={(e) => updateDocumentoCliente('tipoDocumentoCliente', e.target.value)}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
                         >
@@ -280,7 +280,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                     <div className="space-y-3">
                         {Array.from({ length: additionalPassengersNeeded }).map((_, idx) => {
                             const index = idx + 1; // Real index in array (skip first which is contact)
-                            const asistente = formData.asistentes[index] || { nombre: '', tipoDocumento: TipoDocumento.CC, numeroDocumento: '', email: '', telefono: '' };
+                            const asistente = formData.asistentes[index] || { nombre: '', tipoDocumento: TipoDocumento.PASAPORTE, numeroDocumento: '', email: '', telefono: '' };
                             const isComplete = asistente.nombre.trim().length >= 2 && asistente.numeroDocumento.trim().length >= 4;
 
                             return (

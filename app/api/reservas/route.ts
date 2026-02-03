@@ -50,6 +50,7 @@ export async function GET(request: Request) {
                 vehiculo: true,
                 aliado: true,
                 calificacion: true,
+                asistentes: true,
             },
             orderBy: {
                 fecha: 'desc',
@@ -319,18 +320,14 @@ export async function POST(request: Request) {
         }
 
         // Crear evento en Google Calendar
+        // 🚌 NOTA: Para Tour Compartido, el evento se crea al confirmar el pago (ver /api/reservas/confirmar-pago)
         try {
-            const { createCalendarEvent, createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
 
-            let eventId: string | null = null;
-
-            if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                // Para Tour Compartido, usar función de consolidación
-                eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
-                console.log('🚌 [Reserva] Tour Compartido calendar event processed:', eventId);
-            } else {
+            // Skip calendar event for Tour Compartido - it will be created upon payment confirmation
+            if (reserva.servicio.tipo !== 'TOUR_COMPARTIDO') {
                 // Para otros servicios, crear evento individual
-                eventId = await createCalendarEvent(reserva as any);
+                const eventId = await createCalendarEvent(reserva as any);
 
                 // Actualizar reserva con el eventId si se creó exitosamente
                 if (eventId) {
@@ -340,6 +337,8 @@ export async function POST(request: Request) {
                     });
                     console.log('✅ [Reserva] Google Calendar event created and linked:', eventId);
                 }
+            } else {
+                console.log('🚌 [Reserva] Tour Compartido - Calendar event will be created upon payment confirmation');
             }
         } catch (calendarError) {
             console.error('❌ [Reserva] Error creating calendar event:', calendarError);

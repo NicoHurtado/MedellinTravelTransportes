@@ -51,10 +51,37 @@ export async function POST(req: NextRequest) {
             data: {
                 estado: 'PAGADA_PENDIENTE_ASIGNACION',
                 estadoPago: 'APROBADO'
+            },
+            include: {
+                servicio: true,
+                conductor: true,
+                vehiculo: true,
+                aliado: true,
+                asistentes: true
             }
         });
 
         console.log(`✅ Reserva ${orderId} actualizada a PAGADA_PENDIENTE_ASIGNACION`);
+
+        // 🚌 Tour Compartido: Crear evento en Google Calendar AHORA que el pago está confirmado
+        if (updated.servicio?.tipo === 'TOUR_COMPARTIDO') {
+            try {
+                const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                const eventId = await createOrUpdateTourCompartidoEvent(updated as any);
+
+                if (eventId) {
+                    // Update reservation with calendar event ID
+                    await prisma.reserva.update({
+                        where: { id: updated.id },
+                        data: { googleCalendarEventId: eventId }
+                    });
+                    console.log(`📅 [Tour Compartido] Calendar event created/updated: ${eventId}`);
+                }
+            } catch (calendarError) {
+                console.error('❌ [Tour Compartido] Error creating calendar event:', calendarError);
+                // Don't fail the payment confirmation if calendar fails
+            }
+        }
 
         // TODO: Enviar email de confirmación de pago
         // await sendPaymentConfirmationEmail(updated);

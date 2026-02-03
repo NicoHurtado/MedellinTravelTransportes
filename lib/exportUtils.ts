@@ -158,3 +158,54 @@ export const exportarReservasExcel = (data: any[], viewMode: 'nueva' | 'antigua'
     // Descargar
     XLSX.writeFile(wb, `Reporte_Reservas_${new Date().toISOString().split('T')[0]}.xlsx`);
 };
+
+/**
+ * Exporta la lista de asistentes de Tour Compartido para una fecha específica
+ * @param asistentes - Array de asistentes con sus datos
+ * @param fecha - Fecha del tour para el nombre del archivo
+ * @param servicioNombre - Nombre del servicio
+ */
+export const exportarAsistentesTourCompartido = (
+    asistentes: Array<{
+        nombre: string;
+        tipoDocumento: string;
+        numeroDocumento: string;
+        reservaCodigo: string;
+        clienteNombre: string;
+    }>,
+    fecha: string,
+    servicioNombre: string
+) => {
+    // Mapear los tipos de documento a nombres legibles
+    const tipoDocumentoLabels: Record<string, string> = {
+        'CC': 'Cédula de Ciudadanía',
+        'PASAPORTE': 'Pasaporte',
+        'TI': 'Tarjeta de Identidad',
+        'CE': 'Cédula de Extranjería'
+    };
+
+    const excelData = asistentes.map((asistente, index) => ({
+        '#': index + 1,
+        'NOMBRE': asistente.nombre,
+        'TIPO DOCUMENTO': tipoDocumentoLabels[asistente.tipoDocumento] || asistente.tipoDocumento,
+        'NÚMERO DOCUMENTO': asistente.numeroDocumento,
+        'RESERVA': asistente.reservaCodigo,
+        'CLIENTE': asistente.clienteNombre
+    }));
+
+    // Crear Workbook y Sheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Ajustar ancho de columnas
+    const colWidths = [5, 30, 25, 20, 12, 25];
+    ws['!cols'] = colWidths.map(w => ({ wch: w }));
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Asistentes');
+
+    // Formatear fecha para nombre del archivo
+    const fechaFormateada = fecha.replace(/-/g, '');
+
+    // Descargar
+    XLSX.writeFile(wb, `Asistentes_${servicioNombre.replace(/\s+/g, '_')}_${fechaFormateada}.xlsx`);
+};

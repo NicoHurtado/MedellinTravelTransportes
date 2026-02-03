@@ -1,10 +1,11 @@
 'use client';
 
-import { FiEye, FiCalendar, FiUsers, FiMapPin } from 'react-icons/fi';
+import { FiEye, FiCalendar, FiUsers, FiMapPin, FiDownload } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { getLocalizedText } from '@/types/multi-language';
 import { getStateLabel, getStateColor } from '@/lib/state-transitions';
 import { EstadoReserva } from '@prisma/client';
+import { exportarAsistentesTourCompartido } from '@/lib/exportUtils';
 
 interface Reserva {
     id: string;
@@ -124,6 +125,27 @@ export default function TourCompartidoView({ reservas }: TourCompartidoViewProps
                                 <div className="text-sm text-gray-500">
                                     ({grupo.reservas.length} {grupo.reservas.length === 1 ? 'reserva' : 'reservas'})
                                 </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Recopilar todos los asistentes de las reservas del grupo
+                                        const asistentes = grupo.reservas.flatMap(reserva =>
+                                            (reserva.asistentes || []).map(asistente => ({
+                                                nombre: asistente.nombre,
+                                                tipoDocumento: asistente.tipoDocumento,
+                                                numeroDocumento: asistente.numeroDocumento,
+                                                reservaCodigo: reserva.codigo,
+                                                clienteNombre: reserva.nombreCliente
+                                            }))
+                                        );
+                                        exportarAsistentesTourCompartido(asistentes, grupo.fecha, grupo.servicioNombre);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+                                    title="Descargar lista de asistentes"
+                                >
+                                    <FiDownload size={16} />
+                                    <span className="hidden sm:inline">Excel</span>
+                                </button>
                             </div>
                         </div>
                     </div>

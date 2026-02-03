@@ -55,8 +55,11 @@ export default function AdminDashboard() {
     useEffect(() => {
         // Filter reservas when estadoFilter or tourCompartidoFilter changes
         if (tourCompartidoFilter) {
-            // Show ALL Tour Compartido reservations
-            const tourCompartidoReservas = allReservas.filter(r => r.servicio?.tipo === 'TOUR_COMPARTIDO');
+            // Show only PAID Tour Compartido reservations (exclude CONFIRMADA_PENDIENTE_PAGO)
+            const tourCompartidoReservas = allReservas.filter(r =>
+                r.servicio?.tipo === 'TOUR_COMPARTIDO' &&
+                r.estado !== 'CONFIRMADA_PENDIENTE_PAGO'
+            );
             setReservas(tourCompartidoReservas);
         } else if (estadoFilter) {
             setReservas(allReservas.filter(r => r.estado === estadoFilter));
@@ -105,6 +108,11 @@ export default function AdminDashboard() {
         // Skip serviceTypeFilter if Tour Compartido KPI button is active
         if (tourCompartidoFilter) return true;
         if (!serviceTypeFilter) return true;
+        // For Tour Compartido, also exclude pending payment reservations
+        if (serviceTypeFilter === 'TOUR_COMPARTIDO') {
+            return reserva.servicio?.tipo === 'TOUR_COMPARTIDO' &&
+                reserva.estado !== 'CONFIRMADA_PENDIENTE_PAGO';
+        }
         return reserva.servicio?.tipo === serviceTypeFilter;
     }).sort((a, b) => {
         // Sort by creation date descending (newest first)
@@ -175,8 +183,11 @@ export default function AdminDashboard() {
     const completadas = allReservas.filter(r => r.estado === 'COMPLETADA').length;
     const canceladas = allReservas.filter(r => r.estado === 'CANCELADA').length;
 
-    // 🚌 Tour Compartido: Count ALL Tour Compartido reservations
-    const tourCompartidoCount = allReservas.filter(r => r.servicio?.tipo === 'TOUR_COMPARTIDO').length;
+    // 🚌 Tour Compartido: Count only PAID Tour Compartido reservations (exclude CONFIRMADA_PENDIENTE_PAGO)
+    const tourCompartidoCount = allReservas.filter(r =>
+        r.servicio?.tipo === 'TOUR_COMPARTIDO' &&
+        r.estado !== 'CONFIRMADA_PENDIENTE_PAGO'
+    ).length;
 
     const kpis = [
         {

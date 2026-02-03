@@ -521,7 +521,7 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                     const newAsistentes = [...(formData.asistentes || [])];
                                     while (newAsistentes.length < newVal) {
                                         // @ts-ignore
-                                        newAsistentes.push({ nombre: '', tipoDocumento: 'CC', numeroDocumento: '', email: '', telefono: '' });
+                                        newAsistentes.push({ nombre: '', tipoDocumento: 'PASAPORTE', numeroDocumento: '', email: '', telefono: '' });
                                     }
                                     updateFormData({ numeroPasajeros: newVal, asistentes: newAsistentes });
                                 }}
