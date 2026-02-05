@@ -2,26 +2,49 @@
 
 import { ReservationFormData, Asistente } from '@/types/reservation';
 import { TipoDocumento } from '@prisma/client';
-import { FiUser, FiUsers, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiUsers, FiAlertCircle, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { useLanguage, t } from '@/lib/i18n';
 import LegalNotice from '@/components/LegalNotice';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Step2Props {
     formData: ReservationFormData;
     updateFormData: (updates: Partial<ReservationFormData>) => void;
     onNext: () => void;
     onBack: () => void;
+    esAeropuerto?: boolean; // Cuando es true, los pasajeros adicionales son opcionales
 }
 
-export default function Step2ContactInfo({ formData, updateFormData, onNext, onBack }: Step2Props) {
+export default function Step2ContactInfo({ formData, updateFormData, onNext, onBack, esAeropuerto = false }: Step2Props) {
     const { language } = useLanguage();
 
     // Number of additional passengers (beyond the main contact)
     const additionalPassengersNeeded = Math.max(0, formData.numeroPasajeros - 1);
 
+    // Para aeropuerto: cuántos pasajeros opcionales se han agregado manualmente
+    const [addedOptionalPassengers, setAddedOptionalPassengers] = useState(0);
+
     // Ensure we have the correct number of attendees based on numeroPasajeros
     useEffect(() => {
+        // Para servicios de aeropuerto, solo crear el primer asistente (representante)
+        if (esAeropuerto) {
+            const currentAttendees = formData.asistentes.length;
+            // Solo inicializar si no hay asistentes o si el representante no existe
+            if (currentAttendees === 0) {
+                updateFormData({
+                    asistentes: [{
+                        nombre: formData.nombreCliente || '',
+                        tipoDocumento: formData.tipoDocumentoCliente || TipoDocumento.PASAPORTE,
+                        numeroDocumento: formData.numeroDocumentoCliente || '',
+                        email: formData.emailCliente || '',
+                        telefono: formData.whatsappCliente || ''
+                    }]
+                });
+            }
+            return;
+        }
+
+        // Para otros servicios, comportamiento normal
         const requiredAttendees = formData.numeroPasajeros;
         const currentAttendees = formData.asistentes.length;
 
@@ -55,7 +78,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
 
             updateFormData({ asistentes: newAsistentes });
         }
-    }, [formData.numeroPasajeros]);
+    }, [formData.numeroPasajeros, esAeropuerto]);
 
     // Sync contact info to first attendee when contact fields change
     const updateContactAndFirstAttendee = (field: 'nombreCliente' | 'emailCliente' | 'whatsappCliente', value: string) => {
@@ -119,14 +142,47 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
         a.numeroDocumento.trim().length >= 4
     ).length;
 
+    // Función para agregar un pasajero opcional (solo para aeropuerto)
+    const addOptionalPassenger = () => {
+        if (addedOptionalPassengers < additionalPassengersNeeded) {
+            const updatedAsistentes = [...formData.asistentes];
+            updatedAsistentes.push({
+                nombre: '',
+                tipoDocumento: TipoDocumento.PASAPORTE,
+                numeroDocumento: '',
+                email: '',
+                telefono: ''
+            });
+            updateFormData({ asistentes: updatedAsistentes });
+            setAddedOptionalPassengers(prev => prev + 1);
+        }
+    };
+
+    // Función para eliminar un pasajero opcional
+    const removeOptionalPassenger = (index: number) => {
+        if (index > 0) { // Nunca eliminar el representante
+            const updatedAsistentes = formData.asistentes.filter((_, i) => i !== index);
+            updateFormData({ asistentes: updatedAsistentes });
+            setAddedOptionalPassengers(prev => Math.max(0, prev - 1));
+        }
+    };
+
     const isValid = () => {
-        return (
+        // Validación base del representante (siempre obligatorio)
+        const contactValid =
             formData.nombreCliente.trim().length >= 3 &&
             formData.whatsappCliente.trim().length >= 10 &&
             formData.emailCliente.includes('@') &&
-            // Validate document for contact person
-            (formData.numeroDocumentoCliente?.trim().length || 0) >= 4 &&
-            // Validate all required attendees are filled
+            (formData.numeroDocumentoCliente?.trim().length || 0) >= 4;
+
+        // Para servicios de aeropuerto, solo el representante es obligatorio
+        if (esAeropuerto) {
+            return contactValid;
+        }
+
+        // Para otros servicios, todos los pasajeros son obligatorios
+        return (
+            contactValid &&
             formData.asistentes.length >= formData.numeroPasajeros &&
             formData.asistentes.slice(0, formData.numeroPasajeros).every(a =>
                 a.nombre.trim().length >= 2 &&
@@ -154,11 +210,15 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                             : `${formData.numeroPasajeros} passenger${formData.numeroPasajeros > 1 ? 's' : ''} total`}
                     </p>
                     <p className="text-sm text-blue-700">
-                        {completedPassengers === formData.numeroPasajeros
-                            ? (language === 'es' ? '✓ Todos los datos completos' : '✓ All details complete')
-                            : (language === 'es'
-                                ? `Completa los datos de ${formData.numeroPasajeros - completedPassengers} pasajero(s)`
-                                : `Complete details for ${formData.numeroPasajeros - completedPassengers} passenger(s)`)}
+                        {esAeropuerto
+                            ? (language === 'es'
+                                ? 'Solo los datos del representante son obligatorios'
+                                : 'Only representative details are required')
+                            : (completedPassengers === formData.numeroPasajeros
+                                ? (language === 'es' ? '✓ Todos los datos completos' : '✓ All details complete')
+                                : (language === 'es'
+                                    ? `Completa los datos de ${formData.numeroPasajeros - completedPassengers} pasajero(s)`
+                                    : `Complete details for ${formData.numeroPasajeros - completedPassengers} passenger(s)`))}
                     </p>
                 </div>
             </div>
@@ -265,76 +325,185 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                 </div>
             </div>
 
-            {/* Additional Passengers (automatically generated based on numeroPasajeros) */}
+            {/* Additional Passengers - Different behavior for airport vs other services */}
             {additionalPassengersNeeded > 0 && (
                 <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <FiUsers className="text-gray-600" />
-                        <h3 className="text-lg font-bold">
-                            {language === 'es'
-                                ? `Pasajeros Adicionales (${additionalPassengersNeeded})`
-                                : `Additional Passengers (${additionalPassengersNeeded})`}
-                        </h3>
-                    </div>
-
-                    <div className="space-y-3">
-                        {Array.from({ length: additionalPassengersNeeded }).map((_, idx) => {
-                            const index = idx + 1; // Real index in array (skip first which is contact)
-                            const asistente = formData.asistentes[index] || { nombre: '', tipoDocumento: TipoDocumento.PASAPORTE, numeroDocumento: '', email: '', telefono: '' };
-                            const isComplete = asistente.nombre.trim().length >= 2 && asistente.numeroDocumento.trim().length >= 4;
-
-                            return (
-                                <div
-                                    key={index}
-                                    className={`p-4 border rounded-lg space-y-3 ${isComplete ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold ${isComplete ? 'bg-green-500' : 'bg-gray-400'}`}>
-                                            {index + 1}
-                                        </div>
-                                        <span className="font-medium text-gray-700">
-                                            {language === 'es' ? `Pasajero ${index + 1}` : `Passenger ${index + 1}`}
-                                        </span>
-                                        {isComplete && (
-                                            <span className="text-green-600 text-sm">✓</span>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <input
-                                            type="text"
-                                            value={asistente.nombre}
-                                            onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
-                                            placeholder={(language === 'es' ? 'Nombre Completo' : 'Full Name') + ' *'}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
-                                        />
-                                        <select
-                                            value={asistente.tipoDocumento}
-                                            onChange={(e) => updateAsistente(index, 'tipoDocumento', e.target.value)}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
-                                        >
-                                            <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
-                                            <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
-                                            <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
-                                            <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
-                                        </select>
-                                        <input
-                                            type="text"
-                                            value={asistente.numeroDocumento}
-                                            onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
-                                            placeholder={(language === 'es' ? 'No. Documento' : 'Doc Number') + ' *'}
-                                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
-                                        />
-                                    </div>
+                    {/* Para servicios de aeropuerto: Botón para agregar pasajeros opcionales */}
+                    {esAeropuerto ? (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <FiUsers className="text-gray-600" />
+                                    <h3 className="text-lg font-bold">
+                                        {language === 'es'
+                                            ? 'Pasajeros Adicionales (Opcional)'
+                                            : 'Additional Passengers (Optional)'}
+                                    </h3>
                                 </div>
-                            );
-                        })}
-                    </div>
+                                {formData.asistentes.length - 1 < additionalPassengersNeeded && (
+                                    <button
+                                        type="button"
+                                        onClick={addOptionalPassenger}
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#D6A75D] hover:bg-[#C5964A] text-black font-medium rounded-lg transition-colors"
+                                    >
+                                        <FiPlus size={18} />
+                                        {language === 'es' ? 'Agregar Pasajero' : 'Add Passenger'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {formData.asistentes.length > 1 && (
+                                <p className="text-sm text-gray-600">
+                                    {language === 'es'
+                                        ? `${formData.asistentes.length - 1} de ${additionalPassengersNeeded} pasajeros adicionales agregados`
+                                        : `${formData.asistentes.length - 1} of ${additionalPassengersNeeded} additional passengers added`}
+                                </p>
+                            )}
+
+                            {/* Pasajeros agregados manualmente */}
+                            <div className="space-y-3">
+                                {formData.asistentes.slice(1).map((asistente, idx) => {
+                                    const index = idx + 1;
+                                    const isComplete = asistente.nombre.trim().length >= 2 && asistente.numeroDocumento.trim().length >= 4;
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`p-4 border rounded-lg space-y-3 ${isComplete ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold ${isComplete ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                                        {index + 1}
+                                                    </div>
+                                                    <span className="font-medium text-gray-700">
+                                                        {language === 'es' ? `Pasajero ${index + 1}` : `Passenger ${index + 1}`}
+                                                    </span>
+                                                    {isComplete && (
+                                                        <span className="text-green-600 text-sm">✓</span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeOptionalPassenger(index)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title={language === 'es' ? 'Eliminar pasajero' : 'Remove passenger'}
+                                                >
+                                                    <FiTrash2 size={18} />
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={asistente.nombre}
+                                                    onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
+                                                    placeholder={language === 'es' ? 'Nombre Completo' : 'Full Name'}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                />
+                                                <select
+                                                    value={asistente.tipoDocumento}
+                                                    onChange={(e) => updateAsistente(index, 'tipoDocumento', e.target.value)}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                >
+                                                    <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
+                                                    <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
+                                                    <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
+                                                    <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
+                                                </select>
+                                                <input
+                                                    type="text"
+                                                    value={asistente.numeroDocumento}
+                                                    onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
+                                                    placeholder={language === 'es' ? 'No. Documento' : 'Doc Number'}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {formData.asistentes.length === 1 && (
+                                <p className="text-sm text-gray-500 italic">
+                                    {language === 'es'
+                                        ? 'Puedes agregar los datos de los demás pasajeros si lo deseas, pero no es obligatorio.'
+                                        : 'You can add other passengers\' details if you wish, but it\'s not required.'}
+                                </p>
+                            )}
+                        </>
+                    ) : (
+                        /* Para otros servicios: Mostrar todos los pasajeros (obligatorios) */
+                        <>
+                            <div className="flex items-center gap-2">
+                                <FiUsers className="text-gray-600" />
+                                <h3 className="text-lg font-bold">
+                                    {language === 'es'
+                                        ? `Pasajeros Adicionales (${additionalPassengersNeeded})`
+                                        : `Additional Passengers (${additionalPassengersNeeded})`}
+                                </h3>
+                            </div>
+
+                            <div className="space-y-3">
+                                {Array.from({ length: additionalPassengersNeeded }).map((_, idx) => {
+                                    const index = idx + 1;
+                                    const asistente = formData.asistentes[index] || { nombre: '', tipoDocumento: TipoDocumento.PASAPORTE, numeroDocumento: '', email: '', telefono: '' };
+                                    const isComplete = asistente.nombre.trim().length >= 2 && asistente.numeroDocumento.trim().length >= 4;
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`p-4 border rounded-lg space-y-3 ${isComplete ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-bold ${isComplete ? 'bg-green-500' : 'bg-gray-400'}`}>
+                                                    {index + 1}
+                                                </div>
+                                                <span className="font-medium text-gray-700">
+                                                    {language === 'es' ? `Pasajero ${index + 1}` : `Passenger ${index + 1}`}
+                                                </span>
+                                                {isComplete && (
+                                                    <span className="text-green-600 text-sm">✓</span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <input
+                                                    type="text"
+                                                    value={asistente.nombre}
+                                                    onChange={(e) => updateAsistente(index, 'nombre', e.target.value)}
+                                                    placeholder={(language === 'es' ? 'Nombre Completo' : 'Full Name') + ' *'}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                />
+                                                <select
+                                                    value={asistente.tipoDocumento}
+                                                    onChange={(e) => updateAsistente(index, 'tipoDocumento', e.target.value)}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                >
+                                                    <option value={TipoDocumento.CC}>{t('tipoDocumento.CC', language)}</option>
+                                                    <option value={TipoDocumento.PASAPORTE}>{t('tipoDocumento.PASAPORTE', language)}</option>
+                                                    <option value={TipoDocumento.TI}>{t('tipoDocumento.TI', language)}</option>
+                                                    <option value={TipoDocumento.CE}>{t('tipoDocumento.CE', language)}</option>
+                                                </select>
+                                                <input
+                                                    type="text"
+                                                    value={asistente.numeroDocumento}
+                                                    onChange={(e) => updateAsistente(index, 'numeroDocumento', e.target.value)}
+                                                    placeholder={(language === 'es' ? 'No. Documento' : 'Doc Number') + ' *'}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
-            {/* Warning if not all passengers filled */}
-            {completedPassengers < formData.numeroPasajeros && formData.numeroPasajeros > 0 && (
+            {/* Warning if not all passengers filled - Only show for non-airport services */}
+            {!esAeropuerto && completedPassengers < formData.numeroPasajeros && formData.numeroPasajeros > 0 && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800">
                     <FiAlertCircle size={20} />
                     <p className="text-sm">

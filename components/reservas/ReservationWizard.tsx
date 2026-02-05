@@ -266,7 +266,12 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 return false;
             }
 
-            // Validate all required passengers are complete (based on numeroPasajeros)
+            // Para servicios de aeropuerto, solo el representante es obligatorio
+            if (service.esAeropuerto) {
+                return true;
+            }
+
+            // Para otros servicios, todos los pasajeros son obligatorios
             const requiredPassengers = formData.numeroPasajeros || 1;
             if (formData.asistentes.length < requiredPassengers) {
                 showError(language === 'es'
@@ -555,6 +560,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                             updateFormData={updateFormData}
                             onNext={handleNext}
                             onBack={handleBack}
+                            esAeropuerto={service.esAeropuerto}
                         />
                     )}
                     {currentStep === 3 && (
