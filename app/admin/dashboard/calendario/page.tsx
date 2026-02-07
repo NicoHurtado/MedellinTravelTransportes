@@ -27,7 +27,13 @@ interface CalendarEvent {
         whatsappCliente: string;
         lugarRecogida: string;
         lugarDestino: string;
+
         estadoPago: string;
+        asistentes: Array<{
+            nombre: string;
+            tipoDocumento: string;
+            numeroDocumento: string;
+        }>;
     };
 }
 
@@ -141,7 +147,10 @@ export default function CalendarioPage() {
                         whatsappCliente: reserva.whatsappCliente || 'No especificado',
                         lugarRecogida,
                         lugarDestino,
-                        estadoPago: reserva.estadoPago || 'PENDIENTE'
+
+
+                        estadoPago: reserva.estadoPago || 'PENDIENTE',
+                        asistentes: reserva.asistentes || []
                     }
                 };
             });
@@ -342,6 +351,25 @@ export default function CalendarioPage() {
                                         {selectedEvent.extendedProps.estadoPago}
                                     </span>
                                 </div>
+
+                                {/* Asistentes */}
+                                {selectedEvent.extendedProps.asistentes && selectedEvent.extendedProps.asistentes.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                                            Pasajeros Registrados ({selectedEvent.extendedProps.asistentes.length})
+                                        </p>
+                                        <div className="bg-gray-50 rounded-lg p-2 max-h-32 overflow-y-auto space-y-2">
+                                            {selectedEvent.extendedProps.asistentes.map((asistente, index) => (
+                                                <div key={index} className="text-sm border-b border-gray-100 last:border-0 pb-1 last:pb-0">
+                                                    <p className="font-semibold text-gray-900">{asistente.nombre}</p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {asistente.tipoDocumento}: {asistente.numeroDocumento}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Footer */}

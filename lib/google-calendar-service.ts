@@ -7,6 +7,11 @@ type ReservaConRelaciones = Reserva & {
     conductor?: Conductor | null;
     vehiculo?: Vehiculo | null;
     aliado?: Aliado | null;
+    asistentes?: Array<{
+        nombre: string;
+        tipoDocumento: string;
+        numeroDocumento: string;
+    }>;
 };
 
 /**
@@ -104,6 +109,22 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
         `💰 Precio Total: $${Number(reserva.precioTotal).toLocaleString('es-CO')} COP`,
         ``,
     ];
+
+    // Información de Pasajeros (Asistentes)
+    if (reserva.asistentes && reserva.asistentes.length > 0) {
+        descripcionParts.push(
+            `👥 PASAJEROS REGISTRADOS`,
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+            ``
+        );
+        reserva.asistentes.forEach((asistente, index) => {
+            descripcionParts.push(
+                `${index + 1}. ${asistente.nombre}`,
+                `   ${asistente.tipoDocumento}: ${asistente.numeroDocumento}`,
+                ``
+            );
+        });
+    }
 
     // Información del vehículo
     if (reserva.vehiculo) {
@@ -378,6 +399,14 @@ function formatTourCompartidoEventDetails(
             `📊 Estado: ${reserva.estado.replace(/_/g, ' ')}`,
             `🔗 Tracking: ${APP_URL}/tracking/${reserva.codigo}`
         );
+
+        // Agregar asistentes si existen
+        if (reserva.asistentes && reserva.asistentes.length > 0) {
+            descripcionParts.push(``, `   👥 Pasajeros:`);
+            reserva.asistentes.forEach((asistente) => {
+                descripcionParts.push(`   - ${asistente.nombre} (${asistente.tipoDocumento}: ${asistente.numeroDocumento})`);
+            });
+        }
 
         // Agregar aliado si existe
         if (reserva.aliado) {

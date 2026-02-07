@@ -63,28 +63,52 @@ export async function POST(req: NextRequest) {
 
         console.log(`✅ Reserva ${orderId} actualizada a PAGADA_PENDIENTE_ASIGNACION`);
 
-        // 🚌 Tour Compartido: Crear evento en Google Calendar AHORA que el pago está confirmado
-        if (updated.servicio?.tipo === 'TOUR_COMPARTIDO') {
-            try {
+        // Determine if this is an external reservation (not from an ally)
+        const isExternalReservation = !updated.esReservaAliado && !updated.aliadoId;
+
+        // 📅 Crear evento en Google Calendar AHORA que el pago está confirmado
+        // Para Tour Compartido usamos el evento consolidado, para otros el individual
+        try {
+            if (updated.servicio?.tipo === 'TOUR_COMPARTIDO') {
                 const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
                 const eventId = await createOrUpdateTourCompartidoEvent(updated as any);
 
                 if (eventId) {
-                    // Update reservation with calendar event ID
                     await prisma.reserva.update({
                         where: { id: updated.id },
                         data: { googleCalendarEventId: eventId }
                     });
                     console.log(`📅 [Tour Compartido] Calendar event created/updated: ${eventId}`);
                 }
-            } catch (calendarError) {
-                console.error('❌ [Tour Compartido] Error creating calendar event:', calendarError);
-                // Don't fail the payment confirmation if calendar fails
+            } else if (isExternalReservation) {
+                // External reservation (non-ally) - create individual calendar event now
+                const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                const eventId = await createCalendarEvent(updated as any);
+
+                if (eventId) {
+                    await prisma.reserva.update({
+                        where: { id: updated.id },
+                        data: { googleCalendarEventId: eventId }
+                    });
+                    console.log(`📅 [Reserva Externa] Calendar event created: ${eventId}`);
+                }
             }
+        } catch (calendarError) {
+            console.error('❌ Error creating calendar event:', calendarError);
+            // Don't fail the payment confirmation if calendar fails
         }
 
-        // TODO: Enviar email de confirmación de pago
-        // await sendPaymentConfirmationEmail(updated);
+        // 📧 Enviar email de confirmación de pago para reservas externas
+        if (isExternalReservation) {
+            try {
+                const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+                await sendReservaConfirmadaEmail(updated as any, updated.idioma || 'ES', null);
+                console.log(`📧 [Reserva Externa] Email de confirmación enviado`);
+            } catch (emailError) {
+                console.error('❌ Error sending confirmation email:', emailError);
+                // Don't fail if email fails
+            }
+        }
 
         return NextResponse.json({
             success: true,

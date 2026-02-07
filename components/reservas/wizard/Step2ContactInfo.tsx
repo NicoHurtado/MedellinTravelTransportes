@@ -13,9 +13,10 @@ interface Step2Props {
     onNext: () => void;
     onBack: () => void;
     esAeropuerto?: boolean; // Cuando es true, los pasajeros adicionales son opcionales
+    isAlly?: boolean; // Cuando es true, los pasajeros adicionales son opcionales
 }
 
-export default function Step2ContactInfo({ formData, updateFormData, onNext, onBack, esAeropuerto = false }: Step2Props) {
+export default function Step2ContactInfo({ formData, updateFormData, onNext, onBack, esAeropuerto = false, isAlly = false }: Step2Props) {
     const { language } = useLanguage();
 
     // Number of additional passengers (beyond the main contact)
@@ -26,8 +27,8 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
 
     // Ensure we have the correct number of attendees based on numeroPasajeros
     useEffect(() => {
-        // Para servicios de aeropuerto, solo crear el primer asistente (representante)
-        if (esAeropuerto) {
+        // Para servicios de aeropuerto O aliados, solo crear el primer asistente (representante)
+        if (esAeropuerto || isAlly) {
             const currentAttendees = formData.asistentes.length;
             // Solo inicializar si no hay asistentes o si el representante no existe
             if (currentAttendees === 0) {
@@ -78,7 +79,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
 
             updateFormData({ asistentes: newAsistentes });
         }
-    }, [formData.numeroPasajeros, esAeropuerto]);
+    }, [formData.numeroPasajeros, esAeropuerto, isAlly]);
 
     // Sync contact info to first attendee when contact fields change
     const updateContactAndFirstAttendee = (field: 'nombreCliente' | 'emailCliente' | 'whatsappCliente', value: string) => {
@@ -175,8 +176,8 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
             formData.emailCliente.includes('@') &&
             (formData.numeroDocumentoCliente?.trim().length || 0) >= 4;
 
-        // Para servicios de aeropuerto, solo el representante es obligatorio
-        if (esAeropuerto) {
+        // Para servicios de aeropuerto O aliados, solo el representante es obligatorio
+        if (esAeropuerto || isAlly) {
             return contactValid;
         }
 
@@ -210,7 +211,7 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                             : `${formData.numeroPasajeros} passenger${formData.numeroPasajeros > 1 ? 's' : ''} total`}
                     </p>
                     <p className="text-sm text-blue-700">
-                        {esAeropuerto
+                        {esAeropuerto || isAlly
                             ? (language === 'es'
                                 ? 'Solo los datos del representante son obligatorios'
                                 : 'Only representative details are required')
@@ -325,11 +326,11 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                 </div>
             </div>
 
-            {/* Additional Passengers - Different behavior for airport vs other services */}
+            {/* Additional Passengers - Different behavior for airport/ally vs other services */}
             {additionalPassengersNeeded > 0 && (
                 <div className="space-y-4">
-                    {/* Para servicios de aeropuerto: Botón para agregar pasajeros opcionales */}
-                    {esAeropuerto ? (
+                    {/* Para servicios de aeropuerto O aliados: Botón para agregar pasajeros opcionales */}
+                    {esAeropuerto || isAlly ? (
                         <>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -502,8 +503,8 @@ export default function Step2ContactInfo({ formData, updateFormData, onNext, onB
                 </div>
             )}
 
-            {/* Warning if not all passengers filled - Only show for non-airport services */}
-            {!esAeropuerto && completedPassengers < formData.numeroPasajeros && formData.numeroPasajeros > 0 && (
+            {/* Warning if not all passengers filled - Only show for non-airport/non-ally services */}
+            {!esAeropuerto && !isAlly && completedPassengers < formData.numeroPasajeros && formData.numeroPasajeros > 0 && (
                 <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg text-amber-800">
                     <FiAlertCircle size={20} />
                     <p className="text-sm">

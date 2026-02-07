@@ -266,8 +266,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 return false;
             }
 
-            // Para servicios de aeropuerto, solo el representante es obligatorio
-            if (service.esAeropuerto) {
+            // Para servicios de aeropuerto O para aliados, solo el representante es obligatorio
+            if (service.esAeropuerto || !!aliadoId) {
                 return true;
             }
 
@@ -561,6 +561,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                             onNext={handleNext}
                             onBack={handleBack}
                             esAeropuerto={service.esAeropuerto}
+                            isAlly={!!aliadoId}
                         />
                     )}
                     {currentStep === 3 && (

@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         }
 
         // Buscar reservas
-        const reservas = await prisma.reserva.findMany({
+        const allReservas = await prisma.reserva.findMany({
             where,
             include: {
                 servicio: true,
@@ -55,6 +55,24 @@ export async function GET(request: Request) {
             orderBy: {
                 fecha: 'desc',
             },
+        });
+
+        // 🔒 Filtrar reservas externas no pagadas
+        // Las reservas de aliados (esReservaAliado=true) siempre se muestran.
+        // Las reservas externas (esReservaAliado=false) solo se muestran si:
+        //   - estadoPago === 'APROBADO' (ya pagaron)
+        //   - estado === 'COMPLETADA' o 'CANCELADA' (estados finales)
+        const reservas = allReservas.filter((reserva) => {
+            // Ally reservations are always visible
+            if (reserva.esReservaAliado) {
+                return true;
+            }
+
+            // External reservations: only show if paid or in final state
+            const isPaid = reserva.estadoPago === 'APROBADO';
+            const isFinalState = reserva.estado === 'COMPLETADA' || reserva.estado === 'CANCELADA';
+
+            return isPaid || isFinalState;
         });
 
         return NextResponse.json({ data: reservas });
@@ -300,47 +318,54 @@ export async function POST(request: Request) {
             },
         });
 
-        // Enviar email de confirmación
+        // 📧 Enviar email de confirmación
+        // 🔒 Para reservas EXTERNAS (no aliados), el email se envía al confirmar el pago
+        const isExternalReservation = !body.esReservaAliado && !body.aliadoId;
+
         try {
             const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
 
-            // Obtain service again if not already available in scope (though prisma.reserva.create returns it included)
-            // But we can check body.servicioId to know the type immediately if we cached it, or just rely on 'reserva.servicio.tipo'
-
             if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                // Tour Compartido siempre recibe email de confirmación con link de pago
                 await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
             } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
                 await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
-            } else {
-                // Pass ally email so they also receive the confirmation
+            } else if (!isExternalReservation) {
+                // Solo enviar email de confirmación INMEDIATO para aliados
                 const aliadoEmail = reserva.aliado?.email || null;
                 await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
+            } else {
+                console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
             }
         } catch (emailError) {
             console.error('Error sending confirmation email:', emailError);
             // Don't fail the reservation if email fails
         }
 
-        // Crear evento en Google Calendar
-        // 🚌 NOTA: Para Tour Compartido, el evento se crea al confirmar el pago (ver /api/reservas/confirmar-pago)
+        // 📅 Crear evento en Google Calendar
+        // 🔒 Para reservas EXTERNAS (no aliados) Y Tour Compartido, el evento se crea al confirmar el pago
         try {
             const { createCalendarEvent } = await import('@/lib/google-calendar-service');
 
-            // Skip calendar event for Tour Compartido - it will be created upon payment confirmation
-            if (reserva.servicio.tipo !== 'TOUR_COMPARTIDO') {
-                // Para otros servicios, crear evento individual
+            // Skip calendar event for Tour Compartido and External reservations
+            // Both will have events created upon payment confirmation
+            const shouldSkipCalendar = reserva.servicio.tipo === 'TOUR_COMPARTIDO' || isExternalReservation;
+
+            if (!shouldSkipCalendar) {
+                // Solo crear evento inmediato para aliados (no Tour Compartido)
                 const eventId = await createCalendarEvent(reserva as any);
 
-                // Actualizar reserva con el eventId si se creó exitosamente
                 if (eventId) {
                     await prisma.reserva.update({
                         where: { id: reserva.id },
                         data: { googleCalendarEventId: eventId }
                     });
-                    console.log('✅ [Reserva] Google Calendar event created and linked:', eventId);
+                    console.log('✅ [Reserva Aliado] Google Calendar event created and linked:', eventId);
                 }
+            } else if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                console.log('🚌 [Tour Compartido] Calendar event will be created upon payment confirmation');
             } else {
-                console.log('🚌 [Reserva] Tour Compartido - Calendar event will be created upon payment confirmation');
+                console.log('📅 [Reserva Externa] Calendar event will be created upon payment confirmation');
             }
         } catch (calendarError) {
             console.error('❌ [Reserva] Error creating calendar event:', calendarError);

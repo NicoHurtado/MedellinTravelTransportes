@@ -294,6 +294,39 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Lista de Asistentes */}
+                            {reserva.asistentes && reserva.asistentes.length > 0 && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <FiUsers className="text-[#D6A75D]" />
+                                        Pasajeros Registrados ({reserva.asistentes.length})
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {reserva.asistentes.map((asistente: any, index: number) => (
+                                            <div key={asistente.id || index} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className="w-6 h-6 rounded-full bg-[#D6A75D]/10 flex items-center justify-center text-[#D6A75D] text-xs font-bold">
+                                                        {index + 1}
+                                                    </div>
+                                                    <p className="font-semibold text-gray-900">{asistente.nombre}</p>
+                                                </div>
+                                                <div className="ml-8 space-y-0.5 text-xs text-gray-500">
+                                                    <p>
+                                                        <span className="font-medium">Doc:</span> {asistente.tipoDocumento} {asistente.numeroDocumento}
+                                                    </p>
+                                                    {(asistente.email || asistente.telefono) && (
+                                                        <p>
+                                                            {asistente.email && <span className="mr-2">✉️ {asistente.email}</span>}
+                                                            {asistente.telefono && <span>📞 {asistente.telefono}</span>}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Service Details */}
