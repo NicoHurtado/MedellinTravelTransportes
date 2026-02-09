@@ -484,9 +484,16 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </td>
                                                 <td className="px-3 sm:px-6 py-3 sm:py-4">
-                                                    <span className="font-mono text-xs sm:text-sm font-semibold text-[#D6A75D] whitespace-nowrap">
-                                                        {reserva.codigo}
-                                                    </span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="font-mono text-xs sm:text-sm font-semibold text-[#D6A75D] whitespace-nowrap">
+                                                            {reserva.codigo}
+                                                        </span>
+                                                        {reserva.esCotizacion && (
+                                                            <span className="inline-flex w-fit items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                                                Cotización
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                     <div>

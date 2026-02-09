@@ -58,13 +58,18 @@ export async function GET(request: Request) {
         });
 
         // 🔒 Filtrar reservas externas no pagadas
-        // Las reservas de aliados (esReservaAliado=true) siempre se muestran.
-        // Las reservas externas (esReservaAliado=false) solo se muestran si:
+        // Siempre se muestran: aliados (esReservaAliado=true) y cotizaciones del módulo admin (esCotizacion=true).
+        // Las reservas externas (no aliado, no cotización) solo se muestran si:
         //   - estadoPago === 'APROBADO' (ya pagaron)
         //   - estado === 'COMPLETADA' o 'CANCELADA' (estados finales)
         const reservas = allReservas.filter((reserva) => {
             // Ally reservations are always visible
             if (reserva.esReservaAliado) {
+                return true;
+            }
+
+            // Cotizaciones creadas desde el módulo de cotizaciones: siempre visibles en reservas (aunque no estén pagadas)
+            if (reserva.esCotizacion) {
                 return true;
             }
 
