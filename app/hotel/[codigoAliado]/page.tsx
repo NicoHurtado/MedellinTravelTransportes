@@ -8,6 +8,7 @@ import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import AllyHeader from '@/components/landing/AllyHeader';
 import AllyFooter from '@/components/landing/AllyFooter';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { sortServicesByPriority } from '@/lib/service-order';
@@ -158,7 +159,7 @@ export default function HotelPublicPage() {
                     ...sa.servicio,
                     vehiculosPermitidos: sa.servicio.vehiculosPermitidos
                 }));
-            
+
             // Sort services using custom priority order
             const sortedServices = sortServicesByPriority(activeServices) as Service[];
             setServices(sortedServices);
@@ -176,7 +177,7 @@ export default function HotelPublicPage() {
         try {
             const res = await fetch(`/api/servicios/${serviceId}`);
             const data = await res.json();
-            
+
             if (data.success) {
                 openWizard(data.data);
             }
@@ -219,77 +220,79 @@ export default function HotelPublicPage() {
 
     return (
         <>
-            <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo} />
+            <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo}>
+                <LanguageSwitcher />
+            </AllyHeader>
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     {/* Hotel Header */}
                     <div className="bg-white rounded-2xl p-8 shadow-sm mb-12 text-center border-b-4 border-[#D6A75D]">
-                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">Servicios de Transporte</p>
+                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">{t('hotel.servicios_transporte', language)}</p>
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                             {aliado?.nombre}
                         </h1>
                         <p className="text-gray-600">
-                            Servicios exclusivos para nuestros huéspedes
+                            {t('hotel.servicios_exclusivos', language)}
                         </p>
                         <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Pago en efectivo al recibir el servicio
+                            {t('hotel.pago_efectivo', language)}
                         </div>
                     </div>
 
                     {/* Services Catalog */}
                     {services.length === 0 ? (
                         <div className="text-center py-12">
-                            <p className="text-gray-500 text-lg">No hay servicios disponibles en este momento.</p>
+                            <p className="text-gray-500 text-lg">{t('hotel.no_servicios', language)}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {/* Servicios Prioritarios (Priority 1-8) */}
                             {serviciosRegulares
                                 .map((service) => (
-                                <div
-                                    key={service.id}
-                                    className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-                                    onClick={() => openWizard(service)}
-                                >
-                                    <div className="relative h-56 overflow-hidden">
-                                        <Image
-                                            src={service.imagen || '/medellin.jpg'}
-                                            alt={getLocalizedText(service.nombre, language)}
-                                            fill
-                                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                        />
-                                    </div>
+                                    <div
+                                        key={service.id}
+                                        className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                                        onClick={() => openWizard(service)}
+                                    >
+                                        <div className="relative h-56 overflow-hidden">
+                                            <Image
+                                                src={service.imagen || '/medellin.jpg'}
+                                                alt={getLocalizedText(service.nombre, language)}
+                                                fill
+                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                            />
+                                        </div>
 
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
-                                            {getLocalizedText(service.nombre, language)}
-                                        </h3>
-                                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {getLocalizedText(service.descripcion, language)}
-                                        </p>
+                                        <div className="p-6">
+                                            <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
+                                                {getLocalizedText(service.nombre, language)}
+                                            </h3>
+                                            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                                {getLocalizedText(service.descripcion, language)}
+                                            </p>
 
-                                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                                            {service.duracion && (
+                                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                                                {service.duracion && (
+                                                    <div className="flex items-center gap-1">
+                                                        <FiClock className="text-[#D6A75D]" />
+                                                        <span>{service.duracion}</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-1">
-                                                    <FiClock className="text-[#D6A75D]" />
-                                                    <span>{service.duracion}</span>
+                                                    <FiUsers className="text-[#D6A75D]" />
+                                                    <span>{t('landing.privado', language)}</span>
                                                 </div>
-                                            )}
-                                            <div className="flex items-center gap-1">
-                                                <FiUsers className="text-[#D6A75D]" />
-                                                <span>{t('landing.privado', language)}</span>
+                                            </div>
+
+                                            <div className="flex items-center justify-end">
+                                                <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors">
+                                                    {t('header.reservar', language)}
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center justify-end">
-                                            <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors">
-                                                {t('header.reservar', language)}
-                                            </button>
-                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
 
                             {/* Tarjeta Transporte Municipal - DESPUÉS DE SERVICIOS PRIORITARIOS */}
                             {serviciosMunicipales.length > 0 && (
@@ -300,7 +303,7 @@ export default function HotelPublicPage() {
                                     <div className="relative h-56 overflow-hidden">
                                         <Image
                                             src="/antioquia.jpg"
-                                            alt={language === 'es' ? 'Transporte Municipal Antioquia' : 'Antioquia Municipal Transport'}
+                                            alt={t('header.transporteMunicipal', language)}
                                             fill
                                             className="object-cover transition-transform duration-500 group-hover:scale-110"
                                         />
@@ -309,18 +312,16 @@ export default function HotelPublicPage() {
 
                                     <div className="p-6">
                                         <h3 className="text-xl font-bold mb-3 group-hover:text-[#D6A75D] transition-colors">
-                                            {language === 'es' ? 'Transporte Municipal' : 'Municipal Transport'}
+                                            {t('header.transporteMunicipal', language)}
                                         </h3>
                                         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                            {language === 'es' 
-                                                ? `${serviciosMunicipales.length} destinos disponibles` 
-                                                : `${serviciosMunicipales.length} destinations available`}
+                                            {`${serviciosMunicipales.length} ${t('hotel.destinos_disponibles', language)}`}
                                         </p>
 
                                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center gap-1">
                                                 <FiMapPin className="text-[#D6A75D]" />
-                                                <span>{language === 'es' ? 'Múltiples destinos' : 'Multiple destinations'}</span>
+                                                <span>{t('hotel.multiples_destinos', language)}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <FiUsers className="text-[#D6A75D]" />
@@ -330,7 +331,7 @@ export default function HotelPublicPage() {
 
                                         <div className="flex items-center justify-end">
                                             <button className="bg-gray-100 hover:bg-[#D6A75D] text-gray-800 hover:text-black font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
-                                                {language === 'es' ? 'Ver Destinos' : 'View Destinations'}
+                                                {t('hotel.ver_destinos', language)}
                                                 <FiChevronRight />
                                             </button>
                                         </div>

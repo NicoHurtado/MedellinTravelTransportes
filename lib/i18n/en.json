@@ -1,4 +1,13 @@
 {
+    "hotel": {
+        "servicios_transporte": "Transportation Services",
+        "servicios_exclusivos": "Exclusive services for our guests",
+        "pago_efectivo": "Cash payment upon service receipt",
+        "no_servicios": "No services available at this time.",
+        "ver_destinos": "View Destinations",
+        "multiples_destinos": "Multiple destinations",
+        "destinos_disponibles": "destinations available"
+    },
     "header": {
         "servicios": "Services",
         "comoFunciona": "How It Works",
@@ -6,7 +15,10 @@
         "reservar": "Book Now",
         "soyAliado": "Partner Code",
         "inicio": "Home",
-        "transporteMunicipal": "Municipal Transport"
+        "transporteMunicipal": "Municipal Transport",
+        "portal_exclusivo": "Exclusive Portal",
+        "exclusivo_hotel": "Exclusive Hotel",
+        "exclusivo_aliado": "Exclusive Partner"
     },
     "landing": {
         "hero_titulo": "Explore Medellín",

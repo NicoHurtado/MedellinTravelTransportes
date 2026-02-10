@@ -1,4 +1,13 @@
 {
+    "hotel": {
+        "servicios_transporte": "Servicios de Transporte",
+        "servicios_exclusivos": "Servicios exclusivos para nuestros huéspedes",
+        "pago_efectivo": "Pago en efectivo al recibir el servicio",
+        "no_servicios": "No hay servicios disponibles en este momento.",
+        "ver_destinos": "Ver Destinos",
+        "multiples_destinos": "Múltiples destinos",
+        "destinos_disponibles": "destinos disponibles"
+    },
     "header": {
         "servicios": "Servicios",
         "comoFunciona": "Cómo Funciona",
@@ -6,7 +15,10 @@
         "reservar": "Reservar",
         "soyAliado": "Código de Aliado",
         "inicio": "Inicio",
-        "transporteMunicipal": "Transporte Municipal"
+        "transporteMunicipal": "Transporte Municipal",
+        "portal_exclusivo": "Portal Exclusivo",
+        "exclusivo_hotel": "Exclusivo Hotel",
+        "exclusivo_aliado": "Exclusivo Aliado"
     },
     "landing": {
         "hero_titulo": "Explora Medellín",
