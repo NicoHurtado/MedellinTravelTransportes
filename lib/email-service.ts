@@ -2,6 +2,8 @@ import { transporter } from './email';
 import { getEmailLayout, formatPrice, formatDate } from './email-templates';
 import { Reserva, Servicio, Conductor, Vehiculo } from '@prisma/client';
 
+const ADMIN_EMAIL = 'medellintraveltransportes@gmail.com';
+
 type ReservaWithRelations = Reserva & {
   servicio: Servicio;
   conductor?: Conductor | null;
@@ -144,6 +146,7 @@ export async function sendReservaConfirmadaEmail(
       ? `Reserva Confirmada - ${reserva.codigo}`
       : `Booking Confirmed - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -235,6 +238,7 @@ export async function sendCambioEstadoEmail(
       ? `Actualización de Reserva - ${reserva.codigo}`
       : `Booking Update - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -301,6 +305,7 @@ export async function sendPagoAprobadoEmail(
       ? `Pago Confirmado - ${reserva.codigo}`
       : `Payment Confirmed - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -389,6 +394,7 @@ export async function sendConductorAsignadoEmail(
       ? `Conductor Asignado - ${reserva.codigo}`
       : `Driver Assigned - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -458,6 +464,7 @@ export async function sendServicioCompletadoEmail(
       ? `¡Gracias por Elegirnos! - ${reserva.codigo}`
       : `Thank You for Choosing Us! - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -557,6 +564,7 @@ export async function sendCotizacionPendienteEmail(
       ? `Reserva Recibida (Pendiente Cotización) - ${reserva.codigo}`
       : `Booking Received (Pending Quote) - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -637,6 +645,7 @@ export async function sendCotizacionListaEmail(
       ? `Cotización Lista - ${reserva.codigo}`
       : `Quote Ready - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -730,6 +739,7 @@ export async function sendCancelacionEmail(
       ? `Reserva Cancelada - ${reserva.codigo}`
       : `Booking Cancelled - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -835,6 +845,7 @@ export async function sendCotizacionGeneradaEmail(
       ? `Tu Cotización Está Lista - ${reserva.codigo}`
       : `Your Quote is Ready - ${reserva.codigo}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
 
@@ -971,5 +982,6 @@ export async function sendTourCompartidoConfirmationEmail(
       ? `Confirmación de Reserva - ${serviceName}`
       : `Booking Confirmation - ${serviceName}`,
     html,
+    bcc: ADMIN_EMAIL,
   });
 }
