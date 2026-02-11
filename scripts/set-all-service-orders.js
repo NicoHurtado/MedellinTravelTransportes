@@ -9,8 +9,8 @@ async function main() {
         // Define the desired order
         const serviceOrders = [
             { name: 'Traslado Privado Aeropuerto', orden: 1 },
-            { name: 'Tour a Guatapé y El Peñol', orden: 2 },
-            { name: 'Tour compartido Guatape', orden: 3 },
+            { name: 'Tour compartido Guatapé', orden: 2 },
+            { name: 'Tour a Guatapé y El Peñol', orden: 3 },
             { name: 'City Tour Medellín', orden: 4 },
             { name: 'Tour Comuna 13', orden: 5 },
             { name: 'Tour del Café', orden: 6 },

@@ -40,7 +40,7 @@ const SERVICE_ORDER_MAP: Record<string, number> = {
   'TRANSPORTE_AEROPUERTO': 1,
 
   // Tours in order of popularity
-  'TOUR_GUATAPE': 2,
+  'TOUR_GUATAPE': 3,
   'CITY_TOUR': 3,
   'TOUR_ATV': 6,
   'TOUR_PARAPENTE': 7,
@@ -63,6 +63,7 @@ const SERVICE_ORDER_MAP: Record<string, number> = {
 const NAME_ORDER_MAP: Record<string, number> = {
   // City Tour variations
   'comuna 13': 4,
+  'compartido': 2,
   'graffiti': 4,
   'café': 5,
   'coffee': 5,
