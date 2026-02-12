@@ -39,25 +39,66 @@ export async function POST(request: Request) {
             return sum + itemTotal;
         }, 0);
 
-        // Determinar método de pago y estado
-        const metodoPago = body.metodoPago || 'BOLD';
-        let estadoPago: EstadoPago | null = null;
-
-        let comisionBold = 0;
-
-        if (metodoPago === 'EFECTIVO') {
-            estadoPago = null; // Hoteles no tienen estado de pago
-            comisionBold = 0;
-        } else {
-            estadoPago = EstadoPago.PENDIENTE;
-            comisionBold = subtotal * 0.06;
-        }
-
-        const precioTotal = subtotal + comisionBold;
-
         // Verificar si todas las reservas son del mismo aliado
         const aliadoId = firstItem.aliadoId || null;
         const esReservaAliado = firstItem.esReservaAliado || false;
+
+        // Fetch ally type to determine behavior
+        let aliadoTipo: 'HOTEL' | 'AIRBNB' | 'AGENCIA' | null = null;
+        if (aliadoId) {
+            const aliado = await prisma.aliado.findUnique({
+                where: { id: aliadoId },
+                select: { tipo: true }
+            });
+            aliadoTipo = aliado?.tipo as any;
+        }
+
+        // Determinar método de pago y estado
+        // Default to what was sent or 'BOLD'
+        let metodoPago = body.metodoPago || 'BOLD';
+        let estadoPago: EstadoPago | null = null;
+        let comisionBold = 0;
+
+        // Flag to control immediate notifications (Email + Calendar)
+        let shouldSendNotifications = true;
+
+        if (aliadoTipo === 'AGENCIA') {
+            // AGENCY: Force EFECTIVO (No Bold Fee), Immediate Notifications
+            metodoPago = 'EFECTIVO';
+            estadoPago = null;
+            comisionBold = 0;
+            shouldSendNotifications = true;
+        } else if (aliadoTipo === 'AIRBNB') {
+            // AIRBNB: Force BOLD (With Fee), Delayed Notifications (until payment)
+            metodoPago = 'BOLD';
+            estadoPago = EstadoPago.PENDIENTE;
+            comisionBold = subtotal * 0.06;
+            shouldSendNotifications = false;
+        } else if (aliadoTipo === 'HOTEL') {
+            // HOTEL: Logic based on method (previously selected by context/link)
+            if (metodoPago === 'EFECTIVO') {
+                // Access Code / Cash: Immediate Notifications
+                estadoPago = null;
+                comisionBold = 0;
+                shouldSendNotifications = true;
+            } else {
+                // Public Link / Bold: Delayed Notifications
+                estadoPago = EstadoPago.PENDIENTE;
+                comisionBold = subtotal * 0.06;
+                shouldSendNotifications = false;
+            }
+        } else {
+            // STANDARD / NO ALLY
+            if (metodoPago === 'EFECTIVO') {
+                estadoPago = null;
+                comisionBold = 0;
+            } else {
+                estadoPago = EstadoPago.PENDIENTE;
+                comisionBold = subtotal * 0.06;
+            }
+        }
+
+        const precioTotal = subtotal + comisionBold;
 
         // Generar todos los códigos de reserva ANTES de la transacción
         // Esto evita problemas de timeout en la transacción
@@ -251,56 +292,61 @@ export async function POST(request: Request) {
             );
         }
 
-        // Enviar emails de confirmación individuales a cada cliente
-        try {
-            const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+        // Send notifications ONLY if allowed
+        if (shouldSendNotifications) {
+            // Enviar emails de confirmación individuales a cada cliente
+            try {
+                const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
 
-            console.log(`📧 [Pedido] Sending ${pedido.reservas.length} confirmation emails for pedido: ${pedido.codigo}`);
+                console.log(`📧 [Pedido] Sending ${pedido.reservas.length} confirmation emails for pedido: ${pedido.codigo}`);
 
-            // Enviar un email por cada reserva del pedido
-            // Include ally email so they also receive confirmation
-            const aliadoEmail = pedido.aliado?.email || null;
+                // Enviar un email por cada reserva del pedido
+                // Include ally email so they also receive confirmation
+                const aliadoEmail = pedido.aliado?.email || null;
 
-            for (const reserva of pedido.reservas) {
-                try {
-                    await sendReservaConfirmadaEmail(
-                        reserva as any,
-                        body.idioma || 'ES',
-                        aliadoEmail
-                    );
-                    console.log(`✅ [Pedido] Email sent successfully for reserva: ${reserva.codigo} to ${reserva.emailCliente}${aliadoEmail ? ` + ally: ${aliadoEmail}` : ''}`);
-                } catch (emailError) {
-                    console.error(`❌ [Pedido] Error sending email for reserva ${reserva.codigo}:`, emailError);
-                    // Continuar enviando los demás emails aunque uno falle
-                }
-            }
-
-            console.log(`✅ [Pedido] All confirmation emails processed for pedido: ${pedido.codigo}`);
-        } catch (emailError) {
-            console.error('❌ [Pedido] Error in email sending process:', emailError);
-            // No fallar la creación del pedido si los emails fallan
-        }
-
-        // Crear eventos en Google Calendar para cada reserva
-        try {
-            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
-
-            for (const reserva of pedido!.reservas) {
-                try {
-                    const eventId = await createCalendarEvent(reserva as any);
-                    if (eventId) {
-                        await prisma.reserva.update({
-                            where: { id: reserva.id },
-                            data: { googleCalendarEventId: eventId }
-                        });
-                        console.log('✅ [Pedido] Calendar event created for reserva:', reserva.codigo);
+                for (const reserva of pedido.reservas) {
+                    try {
+                        await sendReservaConfirmadaEmail(
+                            reserva as any,
+                            body.idioma || 'ES',
+                            aliadoEmail
+                        );
+                        console.log(`✅ [Pedido] Email sent successfully for reserva: ${reserva.codigo} to ${reserva.emailCliente}${aliadoEmail ? ` + ally: ${aliadoEmail}` : ''}`);
+                    } catch (emailError) {
+                        console.error(`❌ [Pedido] Error sending email for reserva ${reserva.codigo}:`, emailError);
+                        // Continuar enviando los demás emails aunque uno falle
                     }
-                } catch (calError) {
-                    console.error('❌ [Pedido] Error creating calendar event for reserva:', reserva.codigo, calError);
                 }
+
+                console.log(`✅ [Pedido] All confirmation emails processed for pedido: ${pedido.codigo}`);
+            } catch (emailError) {
+                console.error('❌ [Pedido] Error in email sending process:', emailError);
+                // No fallar la creación del pedido si los emails fallan
             }
-        } catch (calendarError) {
-            console.error('❌ [Pedido] Error in calendar integration:', calendarError);
+
+            // Crear eventos en Google Calendar para cada reserva
+            try {
+                const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+
+                for (const reserva of pedido!.reservas) {
+                    try {
+                        const eventId = await createCalendarEvent(reserva as any);
+                        if (eventId) {
+                            await prisma.reserva.update({
+                                where: { id: reserva.id },
+                                data: { googleCalendarEventId: eventId }
+                            });
+                            console.log('✅ [Pedido] Calendar event created for reserva:', reserva.codigo);
+                        }
+                    } catch (calError) {
+                        console.error('❌ [Pedido] Error creating calendar event for reserva:', reserva.codigo, calError);
+                    }
+                }
+            } catch (calendarError) {
+                console.error('❌ [Pedido] Error in calendar integration:', calendarError);
+            }
+        } else {
+            console.log(`🚫 [Pedido] Notifications SUPPRESSED for pedido: ${pedido.codigo} (Ally Type: ${aliadoTipo})`);
         }
 
         return NextResponse.json(

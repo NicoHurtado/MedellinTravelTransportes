@@ -172,21 +172,24 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         });
 
         // 1. Try custom pricing first
+        let vehicles: any[] = [];
         if (preciosPersonalizados && preciosPersonalizados[service.id]?.preciosVehiculos?.length > 0) {
-            return preciosPersonalizados[service.id].preciosVehiculos.map((pv: any) => ({
+            vehicles = preciosPersonalizados[service.id].preciosVehiculos.map((pv: any) => ({
                 ...pv.vehiculo,
                 precio: pv.precio, // Custom price
                 comision: pv.comision
             }));
         }
         // 2. Fallback to service allowed vehicles
-        if (service.vehiculosPermitidos?.length > 0) {
-            return service.vehiculosPermitidos.map((sv: any) => ({
+        else if (service.vehiculosPermitidos?.length > 0) {
+            vehicles = service.vehiculosPermitidos.map((sv: any) => ({
                 ...sv.vehiculo,
                 precio: sv.precio // Default price
             }));
         }
-        return [];
+
+        // Sort by capacity (ascending)
+        return vehicles.sort((a: any, b: any) => (a.capacidadMaxima || 0) - (b.capacidadMaxima || 0));
     })();
 
     // Show all available vehicles

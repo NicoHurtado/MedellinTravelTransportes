@@ -101,6 +101,9 @@ export async function POST(req: NextRequest) {
             // Enviar emails si el pago fue aprobado
             if (payment_status === 'approved') {
                 try {
+                    const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+
                     // Enviar un email por cada reserva del pedido
                     for (const reserva of pedido.reservas) {
                         const reservaActualizada = await prisma.reserva.findUnique({
@@ -109,14 +112,52 @@ export async function POST(req: NextRequest) {
                                 servicio: true,
                                 conductor: true,
                                 vehiculo: true,
+                                aliado: true, // Need ally info
                             },
                         });
 
                         if (reservaActualizada) {
+                            // 1. Send "Pago Aprobado" Email (Always)
                             await sendPagoAprobadoEmail(
                                 reservaActualizada,
                                 pedido.idioma as 'ES' | 'EN'
                             );
+
+                            // 2. Delayed Actions for AIRBNB / HOTEL (Public Link)
+                            // Used to send Confirmation Email & Create Calendar Event which were suppressed on creation
+                            const allyType = reservaActualizada.aliado?.tipo;
+                            if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
+                                console.log(`🔔 [Webhook] Triggering delayed notifications for ${allyType} reservation: ${reserva.codigo}`);
+
+                                // Send Confirmation Email (contains full details)
+                                try {
+                                    await sendReservaConfirmadaEmail(
+                                        reservaActualizada as any,
+                                        pedido.idioma as 'ES' | 'EN',
+                                        reservaActualizada.aliado?.email || null
+                                    );
+                                    console.log(`✅ [Webhook] Delayed Confirmation Email sent for: ${reserva.codigo}`);
+                                } catch (e) {
+                                    console.error('Error sending delayed confirmation email:', e);
+                                }
+
+                                // Create Calendar Event
+                                try {
+                                    // Only if not already created (though it shouldn't be for these types)
+                                    if (!reservaActualizada.googleCalendarEventId) {
+                                        const eventId = await createCalendarEvent(reservaActualizada as any);
+                                        if (eventId) {
+                                            await prisma.reserva.update({
+                                                where: { id: reserva.id },
+                                                data: { googleCalendarEventId: eventId }
+                                            });
+                                            console.log('✅ [Webhook] Delayed Calendar event created for:', reserva.codigo);
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('Error creating delayed calendar event:', e);
+                                }
+                            }
                         }
                     }
                 } catch (emailError) {
@@ -141,6 +182,7 @@ export async function POST(req: NextRequest) {
                     servicio: true,
                     conductor: true,
                     vehiculo: true,
+                    aliado: true,
                 },
             });
 
@@ -186,20 +228,58 @@ export async function POST(req: NextRequest) {
             // Enviar email si el pago fue aprobado
             if (payment_status === 'approved') {
                 try {
+                    const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+
                     const reservaActualizada = await prisma.reserva.findUnique({
                         where: { id: reserva.id },
                         include: {
                             servicio: true,
                             conductor: true,
                             vehiculo: true,
+                            aliado: true,
                         },
                     });
 
                     if (reservaActualizada) {
+                        // 1. Send "Pago Aprobado" Email
                         await sendPagoAprobadoEmail(
                             reservaActualizada,
                             reserva.idioma as 'ES' | 'EN'
                         );
+
+                        // 2. Delayed Actions for AIRBNB / HOTEL
+                        const allyType = reservaActualizada.aliado?.tipo;
+                        if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
+                            console.log(`🔔 [Webhook] Triggering delayed notifications for ${allyType} reservation: ${reserva.codigo}`);
+
+                            // Send Confirmation Email
+                            try {
+                                await sendReservaConfirmadaEmail(
+                                    reservaActualizada as any,
+                                    reserva.idioma as 'ES' | 'EN',
+                                    reservaActualizada.aliado?.email || null
+                                );
+                            } catch (e) {
+                                console.error('Error sending delayed confirmation email:', e);
+                            }
+
+                            // Create Calendar Event
+                            try {
+                                if (!reservaActualizada.googleCalendarEventId) {
+                                    const eventId = await createCalendarEvent(reservaActualizada as any);
+                                    if (eventId) {
+                                        await prisma.reserva.update({
+                                            where: { id: reserva.id },
+                                            data: { googleCalendarEventId: eventId }
+                                        });
+                                        console.log('✅ [Webhook] Delayed Calendar event created for:', reserva.codigo);
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error creating delayed calendar event:', e);
+                            }
+                        }
                     }
                 } catch (emailError) {
                     console.error('Error sending payment email:', emailError);
@@ -207,8 +287,9 @@ export async function POST(req: NextRequest) {
                 }
             }
 
-            // Enviar email de cambio de estado si hubo cambio
-            if (nuevoEstado && nuevoEstado !== estadoAnterior) {
+            // Enviar email de cambio de estado si hubo cambio (Only if NOT approved/paid, to avoid double noise, or keep standard)
+            // Ideally, status change email is for other movements. If we just sent "Approved" + "Confirmed", "Status Change" might be redundant but logic assumes it runs.
+            if (nuevoEstado && nuevoEstado !== estadoAnterior && payment_status !== 'approved') {
                 try {
                     const reservaActualizada = await prisma.reserva.findUnique({
                         where: { id: reserva.id },

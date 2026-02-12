@@ -615,6 +615,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     const isEfectivo = metodoPago === 'EFECTIVO';
 
     const isHotelAlly = reserva.esReservaAliado && (reserva.aliado?.tipo === 'HOTEL' || reserva.aliado?.tipo === 'AGENCIA');
+    const isAgency = reserva.aliado?.tipo === 'AGENCIA';
 
     let currentState = TIMELINE_STATES[reserva.estado as EstadoReserva];
     // Custom override for Cash Payments
@@ -715,8 +716,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         <span>{currentState.label}</span>
                                     </div>
                                     <p className="text-sm text-gray-600 mt-2">{currentState.description}</p>
-                                    {/* Cash Payment Badge */}
-                                    {isEfectivo && (
+                                    {/* Cash Payment Badge - Hide for Agencies */}
+                                    {isEfectivo && !isAgency && (
                                         <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg text-xs font-medium">
                                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                                             {lang === 'ES' ? 'Pago en Efectivo' : 'Cash Payment'}

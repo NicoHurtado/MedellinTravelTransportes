@@ -579,6 +579,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                             onConfirm={handleConfirmReservation}
                             onBack={handleBack}
                             loading={loading}
+                            aliadoTipo={aliadoTipo}
                         />
                     )}
                     {currentStep === 5 && (

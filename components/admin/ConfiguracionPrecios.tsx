@@ -71,7 +71,14 @@ export default function ConfiguracionPrecios({ aliadoId, onClose, onSave }: Conf
             // Fetch vehiculos
             const resVehiculos = await fetch('/api/vehiculos');
             const dataVehiculos = await resVehiculos.json();
-            setVehiculos(dataVehiculos.data || []);
+            const vehiculosData = dataVehiculos.data || [];
+
+            // Sort by capacity
+            const vehiculosSorted = vehiculosData.sort((a: any, b: any) =>
+                (a.capacidadMaxima || 0) - (b.capacidadMaxima || 0)
+            );
+
+            setVehiculos(vehiculosSorted);
 
             // Fetch configuración existente
             const resConfig = await fetch(`/api/aliados/${aliadoId}/servicios`);

@@ -10,9 +10,10 @@ interface Step4Props {
     onConfirm: () => void;
     onBack: () => void;
     loading: boolean;
+    aliadoTipo?: string | null;
 }
 
-export default function Step4Summary({ service, formData, onConfirm, onBack, loading }: Step4Props) {
+export default function Step4Summary({ service, formData, onConfirm, onBack, loading, aliadoTipo }: Step4Props) {
     const { language } = useLanguage();
 
     const municipioLabels: Record<string, string> = {
@@ -379,8 +380,8 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             </div>
                         )}
 
-                        {/* Comisión Bold 6% - Solo para servicios que no son por horas */}
-                        {!service.esPorHoras && (
+                        {/* Comisión Bold 6% - Solo para servicios que no son por horas Y NO son Agencia */}
+                        {!service.esPorHoras && aliadoTipo !== 'AGENCIA' && (
                             <div className="flex justify-between text-orange-600">
                                 <span>+ 6% {language === 'es' ? 'Impuestos del pago' : 'Payment taxes'}:</span>
                                 <span className="font-medium">{formatPrice(formData.precioTotal * 0.06)}</span>
@@ -391,7 +392,7 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             <div className="flex justify-between text-xl font-bold">
                                 <span>{t('reservas.paso4_total', language)}</span>
                                 <span className="text-[#D6A75D]">
-                                    {!service.esPorHoras
+                                    {!service.esPorHoras && aliadoTipo !== 'AGENCIA'
                                         ? formatPrice(formData.precioTotal * 1.06)
                                         : formatPrice(formData.precioTotal)}
                                 </span>
