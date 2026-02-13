@@ -16,12 +16,17 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
 
         const activoParam = searchParams.get('activo');
-        const activo = activoParam === null ? true : activoParam === 'true';
+
+        // Build where clause
+        const where: any = {};
+
+        // Only filter by active status if explicitly requested
+        if (activoParam !== null) {
+            where.activo = activoParam === 'true';
+        }
 
         const aliados = await prisma.aliado.findMany({
-            where: {
-                activo,
-            },
+            where,
             include: {
                 tarifas: {
                     include: {

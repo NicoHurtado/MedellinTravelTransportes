@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Input, Modal, ModalFooter } from '@/components/ui';
-import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiCopy, FiSettings, FiCheck } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiCopy, FiSettings, FiCheck, FiSearch } from 'react-icons/fi';
 import ConfiguracionPrecios from '@/components/admin/ConfiguracionPrecios';
 
 interface Aliado {
@@ -35,6 +35,13 @@ export default function AliadosPage() {
         contacto: '',
         activo: true
     });
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredAliados = aliados.filter(aliado =>
+        aliado.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        aliado.codigo.includes(searchTerm) ||
+        aliado.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     useEffect(() => {
         fetchAliados();
@@ -71,7 +78,7 @@ export default function AliadosPage() {
             if (res.ok) {
                 await fetchAliados();
                 handleCloseModal();
-                
+
                 // Ya no se abre automáticamente la configuración de precios
                 // El usuario debe hacer clic manualmente en "Configurar Precios"
             }
@@ -173,10 +180,22 @@ export default function AliadosPage() {
             </header>
 
             <main className="container mx-auto px-4 py-8">
-                <div className="mb-6 flex justify-between items-center">
-                    <p className="text-gray-600">
-                        Total de aliados: <span className="font-bold text-gray-900">{aliados.length}</span>
-                    </p>
+                <div className="mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <p className="text-gray-600 whitespace-nowrap">
+                            Total de aliados: <span className="font-bold text-gray-900">{filteredAliados.length}</span>
+                        </p>
+                        <div className="relative w-full md:w-64">
+                            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar alias..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
+                            />
+                        </div>
+                    </div>
                     <Button onClick={() => setIsModalOpen(true)}>
                         <FiPlus className="mr-2" />
                         Nuevo Aliado
@@ -184,17 +203,16 @@ export default function AliadosPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {aliados.map((aliado) => (
+                    {filteredAliados.map((aliado) => (
                         <Card key={aliado.id} hover>
                             <div className="flex items-start justify-between mb-4">
                                 <div>
                                     <h3 className="text-xl font-bold text-gray-900 mb-1">
                                         {aliado.nombre}
                                     </h3>
-                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                                        aliado.tipo === 'HOTEL'
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : aliado.tipo === 'AIRBNB'
+                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${aliado.tipo === 'HOTEL'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : aliado.tipo === 'AIRBNB'
                                             ? 'bg-purple-100 text-purple-800'
                                             : 'bg-green-100 text-green-800'
                                         }`}>

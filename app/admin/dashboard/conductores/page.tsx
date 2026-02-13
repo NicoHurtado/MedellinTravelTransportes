@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Input, Modal, ModalFooter } from '@/components/ui';
-import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiPhone } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiPhone, FiSearch } from 'react-icons/fi';
 
 interface Conductor {
     id: string;
@@ -35,6 +35,15 @@ export default function ConductoresPage() {
         activo: true
     });
     const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredConductores = conductores.filter(conductor =>
+        conductor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conductor.documento.includes(searchTerm) ||
+        conductor.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        conductor.telefono.includes(searchTerm)
+    );
 
     useEffect(() => {
         fetchConductores();
@@ -190,15 +199,25 @@ export default function ConductoresPage() {
 
             <main className="container mx-auto px-4 py-8">
                 <div className="mb-6 flex justify-between items-center">
-                    <div className="flex gap-6">
-                        <p className="text-gray-600">
-                            Total: <span className="font-bold text-gray-900">{conductores.length}</span>
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <p className="text-gray-600 whitespace-nowrap">
+                            Total: <span className="font-bold text-gray-900">{filteredConductores.length}</span>
                         </p>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 whitespace-nowrap hidden md:block">
                             Activos: <span className="font-bold text-green-600">
                                 {conductores.filter(c => c.activo).length}
                             </span>
                         </p>
+                        <div className="relative w-full md:w-64">
+                            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar conductor..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent"
+                            />
+                        </div>
                     </div>
                     <Button onClick={() => setIsModalOpen(true)}>
                         <FiPlus className="mr-2" />
@@ -207,7 +226,7 @@ export default function ConductoresPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {conductores.map((conductor) => (
+                    {filteredConductores.map((conductor) => (
                         <Card key={conductor.id} hover>
                             <div className="flex items-start gap-4 mb-4">
                                 {/* Photo */}
