@@ -59,6 +59,9 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
     const [whatsappCliente, setWhatsappCliente] = useState('');
     const [idioma, setIdioma] = useState('ES');
 
+    // Editable Asistentes (passengers)
+    const [asistentes, setAsistentes] = useState<any[]>([]);
+
     useEffect(() => {
         if (status === 'unauthenticated') {
             router.push('/admin/login');
@@ -85,6 +88,18 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
             setEmailCliente(dataReserva.emailCliente || '');
             setWhatsappCliente(dataReserva.whatsappCliente || '');
             setIdioma(dataReserva.idioma || 'ES');
+
+            // Initialize asistentes (passengers) for editing
+            if (dataReserva.asistentes && dataReserva.asistentes.length > 0) {
+                setAsistentes(dataReserva.asistentes.map((a: any) => ({
+                    id: a.id,
+                    nombre: a.nombre || '',
+                    tipoDocumento: a.tipoDocumento || 'PASAPORTE',
+                    numeroDocumento: a.numeroDocumento || '',
+                    email: a.email || '',
+                    telefono: a.telefono || '',
+                })));
+            }
 
             // Initialize service edit states
             setFecha(dataReserva.fecha ? new Date(dataReserva.fecha).toISOString().split('T')[0] : '');
@@ -148,7 +163,16 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                 numeroVuelo,
                 lugarRecogida,
                 notas,
-                aeropuertoNombre
+                aeropuertoNombre,
+                // Passengers (asistentes)
+                asistentes: asistentes.map((a) => ({
+                    id: a.id,
+                    nombre: a.nombre,
+                    tipoDocumento: a.tipoDocumento,
+                    numeroDocumento: a.numeroDocumento,
+                    email: a.email || null,
+                    telefono: a.telefono || null,
+                })),
             };
 
             // If updating price for quote
@@ -295,32 +319,98 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                                 </div>
                             </div>
 
-                            {/* Lista de Asistentes */}
-                            {reserva.asistentes && reserva.asistentes.length > 0 && (
+                            {/* Lista de Asistentes - Editable */}
+                            {asistentes.length > 0 && (
                                 <div className="mt-6 pt-6 border-t border-gray-100">
                                     <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
                                         <FiUsers className="text-[#D6A75D]" />
-                                        Pasajeros Registrados ({reserva.asistentes.length})
+                                        Pasajeros Registrados ({asistentes.length})
+                                        <span className="text-xs font-normal text-gray-400 ml-1">— Editable</span>
                                     </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {reserva.asistentes.map((asistente: any, index: number) => (
-                                            <div key={asistente.id || index} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="space-y-4">
+                                        {asistentes.map((asistente: any, index: number) => (
+                                            <div key={asistente.id || index} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                                <div className="flex items-center gap-2 mb-3">
                                                     <div className="w-6 h-6 rounded-full bg-[#D6A75D]/10 flex items-center justify-center text-[#D6A75D] text-xs font-bold">
                                                         {index + 1}
                                                     </div>
-                                                    <p className="font-semibold text-gray-900">{asistente.nombre}</p>
+                                                    <span className="font-semibold text-gray-700 text-sm">Pasajero {index + 1}</span>
                                                 </div>
-                                                <div className="ml-8 space-y-0.5 text-xs text-gray-500">
-                                                    <p>
-                                                        <span className="font-medium">Doc:</span> {asistente.tipoDocumento} {asistente.numeroDocumento}
-                                                    </p>
-                                                    {(asistente.email || asistente.telefono) && (
-                                                        <p>
-                                                            {asistente.email && <span className="mr-2">✉️ {asistente.email}</span>}
-                                                            {asistente.telefono && <span>📞 {asistente.telefono}</span>}
-                                                        </p>
-                                                    )}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-8">
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500 mb-1">Nombre</label>
+                                                        <input
+                                                            type="text"
+                                                            value={asistente.nombre}
+                                                            onChange={(e) => {
+                                                                const updated = [...asistentes];
+                                                                updated[index] = { ...updated[index], nombre: e.target.value };
+                                                                setAsistentes(updated);
+                                                            }}
+                                                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-5 gap-2">
+                                                        <div className="col-span-2">
+                                                            <label className="block text-xs text-gray-500 mb-1">Tipo Doc.</label>
+                                                            <select
+                                                                value={asistente.tipoDocumento}
+                                                                onChange={(e) => {
+                                                                    const updated = [...asistentes];
+                                                                    updated[index] = { ...updated[index], tipoDocumento: e.target.value };
+                                                                    setAsistentes(updated);
+                                                                }}
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                                            >
+                                                                <option value="PASAPORTE">Pasaporte</option>
+                                                                <option value="CC">Cédula (CC)</option>
+                                                                <option value="CE">Cédula Ext. (CE)</option>
+                                                                <option value="TI">Tarjeta Identidad</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="col-span-3">
+                                                            <label className="block text-xs text-gray-500 mb-1">Nro. Documento</label>
+                                                            <input
+                                                                type="text"
+                                                                value={asistente.numeroDocumento}
+                                                                onChange={(e) => {
+                                                                    const updated = [...asistentes];
+                                                                    updated[index] = { ...updated[index], numeroDocumento: e.target.value };
+                                                                    setAsistentes(updated);
+                                                                }}
+                                                                placeholder="Número de documento"
+                                                                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500 mb-1">Email (opcional)</label>
+                                                        <input
+                                                            type="email"
+                                                            value={asistente.email}
+                                                            onChange={(e) => {
+                                                                const updated = [...asistentes];
+                                                                updated[index] = { ...updated[index], email: e.target.value };
+                                                                setAsistentes(updated);
+                                                            }}
+                                                            placeholder="correo@ejemplo.com"
+                                                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500 mb-1">Teléfono (opcional)</label>
+                                                        <input
+                                                            type="text"
+                                                            value={asistente.telefono}
+                                                            onChange={(e) => {
+                                                                const updated = [...asistentes];
+                                                                updated[index] = { ...updated[index], telefono: e.target.value };
+                                                                setAsistentes(updated);
+                                                            }}
+                                                            placeholder="+57 300 000 0000"
+                                                            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] outline-none"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}

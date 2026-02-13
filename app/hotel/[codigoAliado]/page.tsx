@@ -8,6 +8,8 @@ import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import AllyHeader from '@/components/landing/AllyHeader';
 import AllyFooter from '@/components/landing/AllyFooter';
+import { CartIcon } from '@/components/carrito/CartIcon';
+import { CartModal } from '@/components/carrito/CartModal';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
@@ -54,6 +56,7 @@ export default function HotelPublicPage() {
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [wizardOpen, setWizardOpen] = useState(false);
     const [municipalModalOpen, setMunicipalModalOpen] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
 
     // Custom pricing state
     const [preciosPersonalizados, setPreciosPersonalizados] = useState<any>(null);
@@ -222,6 +225,7 @@ export default function HotelPublicPage() {
         <>
             <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo}>
                 <LanguageSwitcher />
+                <CartIcon onClick={() => setIsCartOpen(true)} />
             </AllyHeader>
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
@@ -343,6 +347,12 @@ export default function HotelPublicPage() {
                 </div>
             </main>
             <AllyFooter />
+
+            {/* Cart Modal */}
+            <CartModal
+                isOpen={isCartOpen}
+                onClose={() => setIsCartOpen(false)}
+            />
 
             {/* Modal Transporte Municipal */}
             <TransporteMunicipalModal

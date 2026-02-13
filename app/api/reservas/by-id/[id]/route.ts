@@ -117,6 +117,25 @@ export async function PUT(
             updateData.precioBase = parseFloat(body.precioBase);
         }
 
+        // Update asistentes (passengers) if provided
+        if (body.asistentes && Array.isArray(body.asistentes)) {
+            for (const asistente of body.asistentes) {
+                if (asistente.id) {
+                    // Update existing asistente
+                    await prisma.asistente.update({
+                        where: { id: asistente.id },
+                        data: {
+                            nombre: asistente.nombre,
+                            tipoDocumento: asistente.tipoDocumento,
+                            numeroDocumento: asistente.numeroDocumento,
+                            email: asistente.email || null,
+                            telefono: asistente.telefono || null,
+                        },
+                    });
+                }
+            }
+        }
+
         // Update reservation
         const reserva = await prisma.reserva.update({
             where: { id: params.id },
