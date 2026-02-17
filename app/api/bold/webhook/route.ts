@@ -59,6 +59,17 @@ export async function POST(req: NextRequest) {
                 );
             }
 
+            // Idempotency: if already APROBADO and webhook says approved, skip re-processing
+            if (pedido.estadoPago === 'APROBADO' && payment_status === 'approved') {
+                console.log(`✅ [Webhook] Pedido ${order_id} already APROBADO (idempotent skip)`);
+                return NextResponse.json({
+                    success: true,
+                    message: 'Pedido already processed',
+                    order_id,
+                    already_processed: true,
+                });
+            }
+
             // Mapear estado de Bold a nuestro sistema
             let nuevoEstadoPago: string | null = null;
             let nuevoEstadoReserva: string | null = null;
@@ -192,6 +203,17 @@ export async function POST(req: NextRequest) {
                     { error: 'Reserva not found' },
                     { status: 404 }
                 );
+            }
+
+            // Idempotency: if already APROBADO and webhook says approved, skip re-processing
+            if (reserva.estadoPago === 'APROBADO' && payment_status === 'approved') {
+                console.log(`✅ [Webhook] Reserva ${order_id} already APROBADO (idempotent skip)`);
+                return NextResponse.json({
+                    success: true,
+                    message: 'Reserva already processed',
+                    order_id,
+                    already_processed: true,
+                });
             }
 
             // Mapear estado de Bold a nuestro sistema

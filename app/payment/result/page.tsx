@@ -1,8 +1,55 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+/**
+ * Confirm payment with retry logic (up to 3 attempts with exponential backoff)
+ */
+async function confirmPaymentWithRetry(orderId: string, maxRetries = 3): Promise<{ success: boolean; data?: any; error?: string }> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔄 [Payment] Attempt ${attempt}/${maxRetries} to confirm payment for: ${orderId}`);
+
+            const res = await fetch('/api/reservas/confirmar-pago', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId,
+                    status: 'APPROVED',
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                console.log(`✅ [Payment] Payment confirmed on attempt ${attempt}:`, data);
+                return { success: true, data };
+            }
+
+            // If it's a 404, the order wasn't found - retrying won't help
+            if (res.status === 404) {
+                console.error(`❌ [Payment] Order ${orderId} not found (404)`);
+                return { success: false, error: data.error || 'Reserva no encontrada' };
+            }
+
+            // For other errors, retry
+            console.warn(`⚠️ [Payment] Attempt ${attempt} failed with status ${res.status}:`, data);
+        } catch (error) {
+            console.error(`❌ [Payment] Attempt ${attempt} network error:`, error);
+        }
+
+        // Wait before next retry (exponential backoff: 1s, 2s, 4s)
+        if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            console.log(`⏳ [Payment] Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+
+    return { success: false, error: 'No se pudo confirmar el pago después de varios intentos' };
+}
 
 function PaymentResultContent() {
     const searchParams = useSearchParams();
@@ -10,6 +57,9 @@ function PaymentResultContent() {
     const [loading, setLoading] = useState(true);
     const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
     const [orderId, setOrderId] = useState<string | null>(null);
+    const [confirmationStatus, setConfirmationStatus] = useState<'pending' | 'confirmed' | 'failed'>('pending');
+    const [confirmationError, setConfirmationError] = useState<string | null>(null);
+    const hasConfirmed = useRef(false);
 
     useEffect(() => {
         // Bold envía: ?bold-order-id=XXX&bold-tx-status=approved|rejected|pending
@@ -21,25 +71,39 @@ function PaymentResultContent() {
         setLoading(false);
 
         // Actualizar la base de datos si el pago fue aprobado
-        if (statusParam === 'approved' && orderIdParam) {
-            fetch('/api/reservas/confirmar-pago', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    orderId: orderIdParam,
-                    status: 'APPROVED',
-                })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    console.log('✅ Base de datos actualizada:', data);
-                })
-                .catch(error => {
-                    console.error('❌ Error actualizando base de datos:', error);
+        if (statusParam === 'approved' && orderIdParam && !hasConfirmed.current) {
+            hasConfirmed.current = true; // Prevent duplicate calls in React 18 strict mode
+
+            setConfirmationStatus('pending');
+            confirmPaymentWithRetry(orderIdParam)
+                .then(result => {
+                    if (result.success) {
+                        setConfirmationStatus('confirmed');
+                        console.log('✅ Base de datos actualizada:', result.data);
+                    } else {
+                        setConfirmationStatus('failed');
+                        setConfirmationError(result.error || 'Error desconocido');
+                        console.error('❌ Error actualizando base de datos:', result.error);
+                    }
                 });
         }
     }, [searchParams]);
 
+    // Manual retry handler
+    const handleRetryConfirmation = async () => {
+        if (!orderId) return;
+
+        setConfirmationStatus('pending');
+        setConfirmationError(null);
+
+        const result = await confirmPaymentWithRetry(orderId);
+        if (result.success) {
+            setConfirmationStatus('confirmed');
+        } else {
+            setConfirmationStatus('failed');
+            setConfirmationError(result.error || 'Error desconocido');
+        }
+    };
 
     if (loading) {
         return (
@@ -114,6 +178,36 @@ function PaymentResultContent() {
                             </>
                         )}
                     </div>
+
+                    {/* Confirmation Status (for approved payments) */}
+                    {isApproved && confirmationStatus === 'pending' && (
+                        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p className="text-blue-800 font-medium">Confirmando tu reserva...</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {isApproved && confirmationStatus === 'failed' && (
+                        <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <p className="text-orange-800 font-medium mb-2">
+                                ⚠️ Tu pago fue exitoso, pero hubo un problema actualizando tu reserva.
+                            </p>
+                            <p className="text-orange-700 text-sm mb-3">
+                                No te preocupes, tu pago está registrado en Bold. Nuestro equipo lo procesará pronto.
+                            </p>
+                            <button
+                                onClick={handleRetryConfirmation}
+                                className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors text-sm"
+                            >
+                                Reintentar Confirmación
+                            </button>
+                        </div>
+                    )}
 
                     {/* Order Info */}
                     {orderId && (

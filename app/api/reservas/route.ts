@@ -58,18 +58,25 @@ export async function GET(request: Request) {
         });
 
         // 🔒 Filtrar reservas externas no pagadas
-        // Siempre se muestran: aliados (esReservaAliado=true) y cotizaciones del módulo admin (esCotizacion=true).
-        // Las reservas externas (no aliado, no cotización) solo se muestran si:
+        // Siempre se muestran: aliados HOTEL/AGENCIA (esReservaAliado=true) y cotizaciones (esCotizacion=true).
+        // Las reservas de AIRBNB y externas solo se muestran si:
         //   - estadoPago === 'APROBADO' (ya pagaron)
         //   - estado === 'COMPLETADA' o 'CANCELADA' (estados finales)
         const reservas = allReservas.filter((reserva) => {
-            // Ally reservations are always visible
-            if (reserva.esReservaAliado) {
+            // Cotizaciones creadas desde el módulo de cotizaciones: siempre visibles
+            if (reserva.esCotizacion) {
                 return true;
             }
 
-            // Cotizaciones creadas desde el módulo de cotizaciones: siempre visibles en reservas (aunque no estén pagadas)
-            if (reserva.esCotizacion) {
+            // Ally reservations: depends on ally type
+            if (reserva.esReservaAliado) {
+                // AIRBNB allies: wait for payment (same as external)
+                if (reserva.aliado?.tipo === 'AIRBNB') {
+                    const isPaid = reserva.estadoPago === 'APROBADO';
+                    const isFinalState = reserva.estado === 'COMPLETADA' || reserva.estado === 'CANCELADA';
+                    return isPaid || isFinalState;
+                }
+                // HOTEL, AGENCIA, and future types (Punto de Venta): always visible
                 return true;
             }
 
@@ -348,27 +355,35 @@ export async function POST(request: Request) {
         }
 
         // 📅 Crear evento en Google Calendar
-        // 🔒 Para reservas EXTERNAS (no aliados) Y Tour Compartido, el evento se crea al confirmar el pago
+        // 🔒 Para reservas EXTERNAS (no aliados), el evento se crea al confirmar el pago
+        // ✅ Para aliados (incluido Tour Compartido), crear evento INMEDIATO
         try {
-            const { createCalendarEvent } = await import('@/lib/google-calendar-service');
-
-            // Skip calendar event for Tour Compartido and External reservations
-            // Both will have events created upon payment confirmation
-            const shouldSkipCalendar = reserva.servicio.tipo === 'TOUR_COMPARTIDO' || isExternalReservation;
+            const shouldSkipCalendar = isExternalReservation;
 
             if (!shouldSkipCalendar) {
-                // Solo crear evento inmediato para aliados (no Tour Compartido)
-                const eventId = await createCalendarEvent(reserva as any);
-
-                if (eventId) {
-                    await prisma.reserva.update({
-                        where: { id: reserva.id },
-                        data: { googleCalendarEventId: eventId }
-                    });
-                    console.log('✅ [Reserva Aliado] Google Calendar event created and linked:', eventId);
+                if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                    // Tour Compartido de aliados: usar consolidación
+                    const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                    const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                    if (eventId) {
+                        await prisma.reserva.update({
+                            where: { id: reserva.id },
+                            data: { googleCalendarEventId: eventId }
+                        });
+                        console.log('✅ [Tour Compartido Aliado] Calendar event created/updated:', eventId);
+                    }
+                } else {
+                    // Otros servicios de aliados: crear evento individual
+                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                    const eventId = await createCalendarEvent(reserva as any);
+                    if (eventId) {
+                        await prisma.reserva.update({
+                            where: { id: reserva.id },
+                            data: { googleCalendarEventId: eventId }
+                        });
+                        console.log('✅ [Reserva Aliado] Google Calendar event created:', eventId);
+                    }
                 }
-            } else if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                console.log('🚌 [Tour Compartido] Calendar event will be created upon payment confirmation');
             } else {
                 console.log('📅 [Reserva Externa] Calendar event will be created upon payment confirmation');
             }

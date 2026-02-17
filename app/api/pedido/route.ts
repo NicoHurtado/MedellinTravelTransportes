@@ -100,6 +100,22 @@ export async function POST(request: Request) {
 
         const precioTotal = subtotal + comisionBold;
 
+        // 🚌 Tour Compartido de aliados: forzar notificaciones inmediatas
+        // Los aliados (hoteles, agencias, punto de venta) necesitan que el servicio
+        // aparezca inmediatamente en el sistema sin esperar pago Bold
+        if (esReservaAliado && !shouldSendNotifications) {
+            const servicioIds: string[] = body.cartItems.map((item: any) => item.servicioId);
+            const servicios = await prisma.servicio.findMany({
+                where: { id: { in: servicioIds } },
+                select: { tipo: true }
+            });
+            const hasTourCompartido = servicios.some(s => s.tipo === 'TOUR_COMPARTIDO');
+            if (hasTourCompartido) {
+                shouldSendNotifications = true;
+                console.log('🚌 [Pedido] Ally Tour Compartido detected — forcing immediate notifications');
+            }
+        }
+
         // Generar todos los códigos de reserva ANTES de la transacción
         // Esto evita problemas de timeout en la transacción
         const codigosReservas: string[] = [];
