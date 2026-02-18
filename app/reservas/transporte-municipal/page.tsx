@@ -96,7 +96,6 @@ export default function TransporteMunicipalReservaPage() {
                             service={selectedService}
                             isOpen={true}
                             onClose={handleCloseWizard}
-                            metodoPago="BOLD"
                         />
                     </div>
                 ) : null}

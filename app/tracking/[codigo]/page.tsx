@@ -136,9 +136,6 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     // Cancellation state
     const [cancelling, setCancelling] = useState(false);
 
-    // Payment method selection state (for Tour Compartido hotels)
-    const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
-
     // Expanded services state (for pedido view)
     const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set());
 
@@ -267,32 +264,6 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
         }
     };
 
-    const handlePaymentMethodSelect = async (method: 'EFECTIVO' | 'BOLD') => {
-        setIsUpdatingPayment(true);
-        try {
-            const res = await fetch('/api/reservas/seleccionar-metodo-pago', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    codigoReserva: reserva.codigo,
-                    metodoPago: method
-                })
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Error al seleccionar método de pago');
-            }
-
-            // Refresh the page to show updated status
-            window.location.reload();
-        } catch (error: any) {
-            alert(error.message);
-        } finally {
-            setIsUpdatingPayment(false);
-        }
-    };
-
     // Toggle expanded service details (for pedido view)
     const toggleExpanded = (reservaId: string) => {
         setExpandedServices(prev => {
@@ -339,6 +310,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
         const pedido = reserva as any;
         const lang = (pedido.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
         const t = DICTIONARY[lang];
+        const pedidoMetodoPago = pedido.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
+        const pedidoEsEfectivo = pedidoMetodoPago === 'EFECTIVO';
 
 
 
@@ -357,9 +330,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                         <div className="text-center">
                             <p className="text-sm text-gray-600 mb-1">Código de Pedido</p>
                             <p className="text-3xl font-bold text-[#D6A75D] tracking-wider mb-4">{pedido.codigo}</p>
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold bg-yellow-100 text-yellow-800">
-                                <span>⏳</span>
-                                <span>{pedido.estadoPago === 'PENDIENTE' ? 'Pendiente de Pago' : pedido.estadoPago}</span>
+                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold ${pedidoEsEfectivo ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                <span>{pedidoEsEfectivo ? '💵' : '⏳'}</span>
+                                <span>{pedidoEsEfectivo ? 'Pago en Efectivo' : (pedido.estadoPago === 'PENDIENTE' ? 'Pendiente de Pago' : pedido.estadoPago)}</span>
                             </div>
                         </div>
                     </div>
@@ -381,6 +354,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                         : reserva.servicio?.nombre?.[lang.toLowerCase()] || 'Servicio'}
                                                 </h4>
                                                 <p className="text-sm text-gray-600">Código: {reserva.codigo}</p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Método de pago: {reserva.metodoPago === 'EFECTIVO' ? 'Efectivo' : 'Tarjeta (BOLD)'}
+                                                </p>
                                             </div>
                                             <span className="text-lg font-bold text-[#D6A75D]">
                                                 ${Number(reserva.precioTotal).toLocaleString('es-CO')} COP
@@ -564,10 +540,12 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                 <span className="text-gray-600">Subtotal ({pedido.reservas.length} servicios):</span>
                                 <span className="font-semibold">${Number(pedido.subtotal).toLocaleString('es-CO')} COP</span>
                             </div>
-                            <div className="flex justify-between text-orange-600">
-                                <span>+ 6% Impuestos del pago:</span>
-                                <span className="font-semibold">${Number(pedido.comisionBold).toLocaleString('es-CO')} COP</span>
-                            </div>
+                            {!pedidoEsEfectivo && (
+                                <div className="flex justify-between text-orange-600">
+                                    <span>+ 6% Recargo por pago con tarjeta (BOLD):</span>
+                                    <span className="font-semibold">${Number(pedido.comisionBold).toLocaleString('es-CO')} COP</span>
+                                </div>
+                            )}
                             <div className="border-t-2 border-gray-200 pt-3 mt-3">
                                 <div className="flex justify-between text-2xl font-bold">
                                     <span>TOTAL:</span>
@@ -576,11 +554,21 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                             </div>
                         </div>
 
-                        {/* Botón de Pago Bold */}
-                        {pedido.estadoPago === 'PENDIENTE' && boldConfig && (
+                        {/* Pago en efectivo */}
+                        {pedidoEsEfectivo && (
+                            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                                <p className="font-semibold text-green-800 mb-1">Pago en caja pendiente</p>
+                                <p className="text-sm text-green-700">
+                                    Debes pagar exactamente ${Number(pedido.precioTotal).toLocaleString('es-CO')} COP al momento del servicio.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Botón de Pago BOLD */}
+                        {!pedidoEsEfectivo && pedido.estadoPago === 'PENDIENTE' && boldConfig && (
                             <div className="mt-6">
                                 <p className="text-gray-700 mb-4">
-                                    💳 Completa tu pago a través de Bold, una plataforma verificada y segura.
+                                    💳 Completa tu pago con BOLD, una plataforma verificada y segura.
                                 </p>
                                 <BoldButton
                                     orderId={pedido.codigo}
@@ -614,7 +602,6 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     const metodoPago = reserva.metodoPago || 'BOLD';
     const isEfectivo = metodoPago === 'EFECTIVO';
 
-    const isHotelAlly = reserva.esReservaAliado && (reserva.aliado?.tipo === 'HOTEL' || reserva.aliado?.tipo === 'AGENCIA');
     const isAgency = reserva.aliado?.tipo === 'AGENCIA';
 
     let currentState = TIMELINE_STATES[reserva.estado as EstadoReserva];
@@ -1016,65 +1003,19 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                             </div>
                         )}
 
-                        {/* Payment Method Selection for Tour Compartido Hotels */}
-                        {reserva.servicio?.tipo === 'TOUR_COMPARTIDO' &&
-                            isHotelAlly &&
-                            reserva.estado === 'CONFIRMADA_PENDIENTE_PAGO' &&
-                            metodoPago === 'BOLD' && (
-                                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6">
-                                    <h3 className="text-xl font-bold mb-2 text-amber-900">
-                                        💳 {lang === 'ES' ? 'Seleccione Método de Pago' : 'Select Payment Method'}
-                                    </h3>
-                                    <p className="text-gray-700 mb-4">
-                                        {lang === 'ES'
-                                            ? 'Como aliado hotelero, puede elegir pagar en efectivo o mediante pago en línea.'
-                                            : 'As a hotel partner, you can choose to pay in cash or via online payment.'}
-                                    </p>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {/* Efectivo Option */}
-                                        <button
-                                            onClick={() => handlePaymentMethodSelect('EFECTIVO')}
-                                            disabled={isUpdatingPayment}
-                                            className="flex flex-col items-center justify-center p-6 bg-white border-2 border-green-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="text-4xl mb-2">💵</span>
-                                            <span className="font-bold text-lg text-green-700">
-                                                {lang === 'ES' ? 'Pago en Efectivo' : 'Cash Payment'}
-                                            </span>
-                                            <span className="text-sm text-gray-600 mt-2 text-center">
-                                                {lang === 'ES'
-                                                    ? 'Pagar al recibir el servicio'
-                                                    : 'Pay when receiving the service'}
-                                            </span>
-                                        </button>
-
-                                        {/* Bold Option */}
-                                        <button
-                                            onClick={() => handlePaymentMethodSelect('BOLD')}
-                                            disabled={isUpdatingPayment}
-                                            className="flex flex-col items-center justify-center p-6 bg-white border-2 border-blue-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="text-4xl mb-2">💳</span>
-                                            <span className="font-bold text-lg text-blue-700">
-                                                {lang === 'ES' ? 'Pago en Línea (Bold)' : 'Online Payment (Bold)'}
-                                            </span>
-                                            <span className="text-sm text-gray-600 mt-2 text-center">
-                                                {lang === 'ES'
-                                                    ? 'Pagar ahora con tarjeta'
-                                                    : 'Pay now with card'}
-                                            </span>
-                                        </button>
-                                    </div>
-
-                                    {isUpdatingPayment && (
-                                        <div className="mt-4 text-center text-amber-700">
-                                            <span className="inline-block animate-spin mr-2">⏳</span>
-                                            {lang === 'ES' ? 'Actualizando método de pago...' : 'Updating payment method...'}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                        {/* Pago en efectivo */}
+                        {isEfectivo && reserva.estado !== 'PENDIENTE_COTIZACION' && (
+                            <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6">
+                                <h3 className="text-xl font-bold mb-2 text-green-900">
+                                    💵 {lang === 'ES' ? 'Pago en Efectivo' : 'Cash Payment'}
+                                </h3>
+                                <p className="text-green-800">
+                                    {lang === 'ES'
+                                        ? `Debes pagar en caja exactamente $${Number(reserva.precioTotal).toLocaleString('es-CO')} COP al recibir el servicio.`
+                                        : `You must pay exactly COP $${Number(reserva.precioTotal).toLocaleString('es-CO')} in cash when receiving the service.`}
+                                </p>
+                            </div>
+                        )}
 
                         {/* Botón de Pago Bold */}
                         {mostrarBotonPago && boldConfig && reserva.hashPago && (

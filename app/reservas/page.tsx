@@ -464,7 +464,6 @@ export default function ReservasPage() {
                     aliadoNombre={aliado?.nombre || null}
                     preciosPersonalizados={preciosPersonalizados}
                     tarifasMunicipios={tarifasMunicipios}
-                    metodoPago={aliado ? 'EFECTIVO' : 'BOLD'}
                 />
             )}
 

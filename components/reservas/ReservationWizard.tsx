@@ -46,10 +46,9 @@ interface ReservationWizardProps {
     aliadoNombre?: string | null;
     preciosPersonalizados?: any;
     tarifasMunicipios?: any[];
-    metodoPago?: 'BOLD' | 'EFECTIVO';
 }
 
-export default function ReservationWizard({ service, isOpen, onClose, aliadoId, aliadoTipo, aliadoNombre, preciosPersonalizados, tarifasMunicipios, metodoPago = 'BOLD' }: ReservationWizardProps) {
+export default function ReservationWizard({ service, isOpen, onClose, aliadoId, aliadoTipo, aliadoNombre, preciosPersonalizados, tarifasMunicipios }: ReservationWizardProps) {
     const { language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
     const [maxStepReached, setMaxStepReached] = useState(0);
@@ -77,6 +76,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     const [reservationCode, setReservationCode] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [cartItemCount, setCartItemCount] = useState(0);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'BOLD' | 'EFECTIVO' | null>(null);
     const router = useRouter();
 
     // Update language in form data when context changes
@@ -114,6 +114,13 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
         return () => {
             window.removeEventListener('cartUpdated', handleCartUpdate);
         };
+    }, [isOpen]);
+
+    // Reset payment method when modal opens or initial preference changes
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedPaymentMethod(null);
+        }
     }, [isOpen]);
 
     // Process service data to get localized text
@@ -330,11 +337,13 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     };
 
     const handleConfirmReservation = async () => {
+        if (!selectedPaymentMethod) {
+            showError(language === 'es' ? 'Selecciona un método de pago para continuar' : 'Select a payment method to continue');
+            return;
+        }
+
         setLoading(true);
         try {
-            // For hourly services, force cash payment
-            const paymentMethod = service.esPorHoras ? 'EFECTIVO' : metodoPago;
-
             const res = await fetch('/api/reservas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -344,7 +353,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                     servicioId: service.id,
                     aliadoId: aliadoId || null,
                     esReservaAliado: !!aliadoId,
-                    metodoPago: paymentMethod,
+                    metodoPago: selectedPaymentMethod,
                 }),
             });
 
@@ -356,6 +365,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
 
             // Redirigir a la página de tracking
             setReservationCode(data.data.codigo);
+            router.refresh();
             router.push(`/tracking/${data.data.codigo}`);
         } catch (error: any) {
             showError(error.message || (language === 'es' ? 'Error al crear la reserva' : 'Error creating reservation'));
@@ -365,6 +375,11 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     };
 
     const handleAddToCart = () => {
+        if (!selectedPaymentMethod) {
+            showError(language === 'es' ? 'Selecciona un método de pago para continuar' : 'Select a payment method to continue');
+            return;
+        }
+
         try {
             // Crear item del carrito con toda la información del formulario
             const cartItem = {
@@ -376,7 +391,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null,
                 aliadoId: aliadoId || null,
                 esReservaAliado: !!aliadoId,
-                metodoPago: service.esPorHoras ? 'EFECTIVO' : metodoPago,
+                metodoPago: selectedPaymentMethod,
             };
 
             // Obtener carrito actual del localStorage
@@ -406,6 +421,11 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     };
 
     const handleProceedToPayment = async () => {
+        if (!selectedPaymentMethod) {
+            showError(language === 'es' ? 'Selecciona un método de pago para continuar' : 'Select a payment method to continue');
+            return;
+        }
+
         setLoading(true);
         try {
             // Crear item del servicio actual
@@ -418,7 +438,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null,
                 aliadoId: aliadoId || null,
                 esReservaAliado: !!aliadoId,
-                metodoPago: service.esPorHoras ? 'EFECTIVO' : metodoPago,
+                metodoPago: selectedPaymentMethod,
             };
 
             // Obtener items del carrito
@@ -437,7 +457,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                 body: JSON.stringify({
                     cartItems: allItems,
                     idioma: formData.idioma || 'ES',
-                    metodoPago: metodoPago,
+                    metodoPago: selectedPaymentMethod,
                 }),
             });
 
@@ -453,6 +473,7 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
             window.dispatchEvent(new Event('cartUpdated'));
 
             // Redirigir a la página de tracking del pedido
+            router.refresh();
             router.push(`/tracking/${pedido.codigo}`);
         } catch (error: any) {
             showError(error.message || (language === 'es' ? 'Error al procesar el pedido' : 'Error processing order'));
@@ -579,7 +600,8 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                             onConfirm={handleConfirmReservation}
                             onBack={handleBack}
                             loading={loading}
-                            aliadoTipo={aliadoTipo}
+                            selectedPaymentMethod={selectedPaymentMethod}
+                            onPaymentMethodChange={setSelectedPaymentMethod}
                         />
                     )}
                     {currentStep === 5 && (
@@ -609,43 +631,46 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
                         {/* Step 4: Dynamic buttons based on cart state */}
                         {currentStep === 4 ? (
                             <div className="space-y-2">
-                                {/* Primary button - Changes based on cart state */}
-                                {cartItemCount > 0 ? (
-                                    // HAY items en el carrito: "Proceder al Pago"
-                                    <button
-                                        onClick={handleProceedToPayment}
-                                        disabled={loading}
-                                        className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-                                    >
-                                        {loading
-                                            ? t('comunes.cargando', language)
-                                            : (language === 'es' ? `Proceder al Pago (${cartItemCount + 1} servicios)` : `Proceed to Payment (${cartItemCount + 1} services)`)}
-                                    </button>
+                                {selectedPaymentMethod ? (
+                                    <>
+                                        {/* Primary button - Changes based on cart state */}
+                                        {cartItemCount > 0 ? (
+                                            <button
+                                                onClick={handleProceedToPayment}
+                                                disabled={loading}
+                                                className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
+                                            >
+                                                {loading
+                                                    ? t('comunes.cargando', language)
+                                                    : (language === 'es' ? `Proceder al Pago (${cartItemCount + 1} servicios)` : `Proceed to Payment (${cartItemCount + 1} services)`)}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleConfirmReservation}
+                                                disabled={loading}
+                                                className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
+                                            >
+                                                {loading ? t('comunes.cargando', language) : t('reservas.paso4_confirmar', language)}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={handleAddToCart}
+                                            disabled={loading}
+                                            className="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg border-2 border-gray-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            {language === 'es' ? 'Agregar al Carrito y Seguir Eligiendo' : 'Add to Cart and Continue Shopping'}
+                                        </button>
+                                    </>
                                 ) : (
-                                    // NO HAY items en el carrito: "Confirmar Reserva"
-                                    <button
-                                        onClick={handleConfirmReservation}
-                                        disabled={loading}
-                                        className="w-full bg-[#D6A75D] hover:bg-[#C5964A] text-black font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50"
-                                    >
-                                        {loading ? t('comunes.cargando', language) : t('reservas.paso4_confirmar', language)}
-                                    </button>
-                                )}
-
-
-
-                                {/* Secondary button - Agregar al Carrito (always shown if allowed) */}
-                                {!service.esPorHoras && (
-                                    <button
-                                        onClick={handleAddToCart}
-                                        disabled={loading}
-                                        className="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg border-2 border-gray-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        {language === 'es' ? 'Agregar al Carrito y Seguir Eligiendo' : 'Add to Cart and Continue Shopping'}
-                                    </button>
+                                    <div className="w-full rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        {language === 'es'
+                                            ? 'Selecciona un método de pago para habilitar la confirmación y el carrito.'
+                                            : 'Select a payment method to enable confirmation and cart actions.'}
+                                    </div>
                                 )}
 
                                 {/* Back button */}

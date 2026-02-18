@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
     FiLoader,
     FiSearch,
@@ -22,6 +22,8 @@ import TourCompartidoView from '@/components/admin/TourCompartidoView';
 export default function AdminDashboard() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const [reservas, setReservas] = useState<any[]>([]);
     const [allReservas, setAllReservas] = useState<any[]>([]); // Store all reservations for KPI calculations
@@ -29,15 +31,22 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
 
     // Filters
-    const [estadoFilter, setEstadoFilter] = useState<string>('');
-    const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [tourCompartidoFilter, setTourCompartidoFilter] = useState(false); // NEW: Tour Compartido special filter
+    const [estadoFilter, setEstadoFilter] = useState<string>(() => searchParams.get('estado') || '');
+    const [serviceTypeFilter, setServiceTypeFilter] = useState<string>(() => searchParams.get('servicioTipo') || '');
+    const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+    const [tourCompartidoFilter, setTourCompartidoFilter] = useState(() => searchParams.get('tour') === '1');
+    const paymentDashboardFilter = searchParams.get('payment');
 
 
     // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [currentPage, setCurrentPage] = useState(() => {
+        const page = Number(searchParams.get('page'));
+        return Number.isFinite(page) && page > 0 ? page : 1;
+    });
+    const [itemsPerPage, setItemsPerPage] = useState(() => {
+        const perPage = Number(searchParams.get('perPage'));
+        return Number.isFinite(perPage) && perPage > 0 ? perPage : 20;
+    });
 
 
     useEffect(() => {
@@ -54,19 +63,22 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         // Filter reservas when estadoFilter or tourCompartidoFilter changes
+        const paymentScopedReservas = allReservas.filter((r) => {
+            if (paymentDashboardFilter === 'VOLT') return r.metodoPago === 'BOLD';
+            if (paymentDashboardFilter === 'EFECTIVO') return r.metodoPago === 'EFECTIVO';
+            return true;
+        });
+
         if (tourCompartidoFilter) {
-            // Show only PAID Tour Compartido reservations (exclude CONFIRMADA_PENDIENTE_PAGO)
-            const tourCompartidoReservas = allReservas.filter(r =>
-                r.servicio?.tipo === 'TOUR_COMPARTIDO' &&
-                r.estado !== 'CONFIRMADA_PENDIENTE_PAGO'
-            );
+            // Show all Tour Compartido reservations
+            const tourCompartidoReservas = paymentScopedReservas.filter(r => r.servicio?.tipo === 'TOUR_COMPARTIDO');
             setReservas(tourCompartidoReservas);
         } else if (estadoFilter) {
-            setReservas(allReservas.filter(r => r.estado === estadoFilter));
+            setReservas(paymentScopedReservas.filter(r => r.estado === estadoFilter));
         } else {
-            setReservas(allReservas);
+            setReservas(paymentScopedReservas);
         }
-    }, [estadoFilter, tourCompartidoFilter, allReservas]);
+    }, [estadoFilter, tourCompartidoFilter, allReservas, paymentDashboardFilter]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -108,10 +120,9 @@ export default function AdminDashboard() {
         // Skip serviceTypeFilter if Tour Compartido KPI button is active
         if (tourCompartidoFilter) return true;
         if (!serviceTypeFilter) return true;
-        // For Tour Compartido, also exclude pending payment reservations
+        // Tour Compartido filter should include all states
         if (serviceTypeFilter === 'TOUR_COMPARTIDO') {
-            return reserva.servicio?.tipo === 'TOUR_COMPARTIDO' &&
-                reserva.estado !== 'CONFIRMADA_PENDIENTE_PAGO';
+            return reserva.servicio?.tipo === 'TOUR_COMPARTIDO';
         }
         return reserva.servicio?.tipo === serviceTypeFilter;
     }).sort((a, b) => {
@@ -122,7 +133,47 @@ export default function AdminDashboard() {
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [estadoFilter, searchQuery, serviceTypeFilter, tourCompartidoFilter]);
+    }, [estadoFilter, searchQuery, serviceTypeFilter, tourCompartidoFilter, paymentDashboardFilter]);
+
+    // Persist dashboard filters in URL so "back" restores state
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString());
+
+        if (searchQuery) params.set('q', searchQuery);
+        else params.delete('q');
+
+        if (estadoFilter) params.set('estado', estadoFilter);
+        else params.delete('estado');
+
+        if (serviceTypeFilter) params.set('servicioTipo', serviceTypeFilter);
+        else params.delete('servicioTipo');
+
+        if (tourCompartidoFilter) params.set('tour', '1');
+        else params.delete('tour');
+
+        if (currentPage > 1) params.set('page', String(currentPage));
+        else params.delete('page');
+
+        if (itemsPerPage !== 20) params.set('perPage', String(itemsPerPage));
+        else params.delete('perPage');
+
+        const nextQuery = params.toString();
+        const nextUrl = nextQuery ? `/admin/dashboard?${nextQuery}` : '/admin/dashboard';
+        const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
+        if (currentUrl !== nextUrl) {
+            router.replace(nextUrl, { scroll: false });
+        }
+    }, [
+        searchQuery,
+        estadoFilter,
+        serviceTypeFilter,
+        tourCompartidoFilter,
+        currentPage,
+        itemsPerPage,
+        router,
+        pathname,
+        searchParams,
+    ]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredReservas.length / itemsPerPage);
@@ -174,20 +225,20 @@ export default function AdminDashboard() {
         return null;
     }
 
-    // Calculate KPIs by state (always use ALL reservations, not filtered)
-    const pendienteCotizacion = allReservas.filter(r => r.estado === 'PENDIENTE_COTIZACION').length;
-    const confirmadaPendientePago = allReservas.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_PAGO').length;
-    const pagadaPendienteAsignacion = allReservas.filter(r => r.estado === 'PAGADA_PENDIENTE_ASIGNACION').length;
-    const confirmadaPendienteAsignacion = allReservas.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION').length;
-    const asignadaPendienteCompletar = allReservas.filter(r => r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR').length;
-    const completadas = allReservas.filter(r => r.estado === 'COMPLETADA').length;
-    const canceladas = allReservas.filter(r => r.estado === 'CANCELADA').length;
+    const reservasBase = allReservas.filter((r) => {
+        if (paymentDashboardFilter === 'VOLT') return r.metodoPago === 'BOLD';
+        if (paymentDashboardFilter === 'EFECTIVO') return r.metodoPago === 'EFECTIVO';
+        return true;
+    });
 
-    // 🚌 Tour Compartido: Count only PAID Tour Compartido reservations (exclude CONFIRMADA_PENDIENTE_PAGO)
-    const tourCompartidoCount = allReservas.filter(r =>
-        r.servicio?.tipo === 'TOUR_COMPARTIDO' &&
-        r.estado !== 'CONFIRMADA_PENDIENTE_PAGO'
-    ).length;
+    // Calculate KPIs by state scoped to the current dashboard section
+    const pendienteCotizacion = reservasBase.filter(r => r.estado === 'PENDIENTE_COTIZACION').length;
+    const confirmadaPendientePago = reservasBase.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_PAGO').length;
+    const pagadaPendienteAsignacion = reservasBase.filter(r => r.estado === 'PAGADA_PENDIENTE_ASIGNACION').length;
+    const confirmadaPendienteAsignacion = reservasBase.filter(r => r.estado === 'CONFIRMADA_PENDIENTE_ASIGNACION').length;
+    const asignadaPendienteCompletar = reservasBase.filter(r => r.estado === 'ASIGNADA_PENDIENTE_COMPLETAR').length;
+    const completadas = reservasBase.filter(r => r.estado === 'COMPLETADA').length;
+    const canceladas = reservasBase.filter(r => r.estado === 'CANCELADA').length;
 
     const kpis = [
         {
@@ -225,15 +276,6 @@ export default function AdminDashboard() {
             bgColor: 'bg-blue-50',
             textColor: 'text-blue-600',
             isTourCompartido: false
-        },
-        {
-            title: '🚌 Tour Compartido',
-            value: tourCompartidoCount,
-            estado: null, // Special filter
-            icon: FiCheckCircle,
-            bgColor: 'bg-amber-50',
-            textColor: 'text-amber-600',
-            isTourCompartido: true
         },
         {
             title: 'Asignada - Pendiente Completar',
@@ -296,7 +338,13 @@ export default function AdminDashboard() {
                 <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div className="flex items-center justify-between">
                         <div className="ml-0 lg:ml-0">
-                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reservas</h1>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                                {paymentDashboardFilter === 'VOLT'
+                                    ? 'Reservas BOLD'
+                                    : paymentDashboardFilter === 'EFECTIVO'
+                                        ? 'Reservas EFECTIVO'
+                                        : 'Reservas'}
+                            </h1>
                             <p className="text-xs sm:text-sm text-gray-500 mt-1 hidden sm:block">Gestión de Reservas y Estadísticas</p>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -442,6 +490,9 @@ export default function AdminDashboard() {
                                             Estado
                                         </th>
                                         <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                                            Método Pago
+                                        </th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
                                             Aliado
                                         </th>
                                         <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
@@ -455,7 +506,7 @@ export default function AdminDashboard() {
                                 <tbody className="divide-y divide-gray-200">
                                     {paginatedReservas.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="px-4 sm:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm">
+                                            <td colSpan={10} className="px-4 sm:px-6 py-8 sm:py-12 text-center text-gray-500 text-sm">
                                                 No se encontraron reservas
                                             </td>
                                         </tr>
@@ -521,6 +572,15 @@ export default function AdminDashboard() {
                                                 <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                     <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium ${getStateColor(reserva.estado)}`}>
                                                         {getStateLabel(reserva.estado)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
+                                                    <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium ${
+                                                        reserva.metodoPago === 'EFECTIVO'
+                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                            : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {reserva.metodoPago === 'EFECTIVO' ? 'Efectivo' : 'BOLD'}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 sm:px-6 py-3 sm:py-4">

@@ -57,37 +57,7 @@ export async function GET(request: Request) {
             },
         });
 
-        // 🔒 Filtrar reservas externas no pagadas
-        // Siempre se muestran: aliados HOTEL/AGENCIA (esReservaAliado=true) y cotizaciones (esCotizacion=true).
-        // Las reservas de AIRBNB y externas solo se muestran si:
-        //   - estadoPago === 'APROBADO' (ya pagaron)
-        //   - estado === 'COMPLETADA' o 'CANCELADA' (estados finales)
-        const reservas = allReservas.filter((reserva) => {
-            // Cotizaciones creadas desde el módulo de cotizaciones: siempre visibles
-            if (reserva.esCotizacion) {
-                return true;
-            }
-
-            // Ally reservations: depends on ally type
-            if (reserva.esReservaAliado) {
-                // AIRBNB allies: wait for payment (same as external)
-                if (reserva.aliado?.tipo === 'AIRBNB') {
-                    const isPaid = reserva.estadoPago === 'APROBADO';
-                    const isFinalState = reserva.estado === 'COMPLETADA' || reserva.estado === 'CANCELADA';
-                    return isPaid || isFinalState;
-                }
-                // HOTEL, AGENCIA, and future types (Punto de Venta): always visible
-                return true;
-            }
-
-            // External reservations: only show if paid or in final state
-            const isPaid = reserva.estadoPago === 'APROBADO';
-            const isFinalState = reserva.estado === 'COMPLETADA' || reserva.estado === 'CANCELADA';
-
-            return isPaid || isFinalState;
-        });
-
-        return NextResponse.json({ data: reservas });
+        return NextResponse.json({ data: allReservas });
     } catch (error) {
         console.error('Error fetching reservas:', error);
         return NextResponse.json(
@@ -103,6 +73,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
     try {
+        const requestStart = Date.now();
         const body = await request.json();
 
         // Get service first to check type
@@ -142,12 +113,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // 🔥 TOUR COMPARTIDO - FLUJO MODIFICADO
-        // Para usuarios regulares de Tour Compartido, crear la reserva con estado CONFIRMADA_PENDIENTE_PAGO
-        // El usuario verá la página de tracking con el botón de pago
-        const isTourCompartido = servicio.tipo === 'TOUR_COMPARTIDO';
-        const isRegularUser = !body.esReservaAliado && !body.aliadoId;
-        const metodoPago = body.metodoPago || 'BOLD';
+        const metodoPago = body.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
 
         // Para hoteles o servicios normales, continuar con el flujo normal
         // Generar código único de 8 caracteres
@@ -161,20 +127,9 @@ export async function POST(request: Request) {
             (parseFloat(body.tarifaMunicipio) || 0) -
             (parseFloat(body.descuentoAliado) || 0);
 
-        // 🔥 SPECIAL CASE: Tour Compartido for Hotels
-        // Determine finalMetodoPago BEFORE calculating Bold commission
-        const isHotelTourCompartido = isTourCompartido && body.esReservaAliado;
-        let finalMetodoPago = metodoPago;
-
-        if (isHotelTourCompartido) {
-            // Force BOLD method for hotel Tour Compartido (they'll choose on tracking page)
-            finalMetodoPago = 'BOLD';
-        }
-
-        // Calcular comisión de Bold (6% del subtotal para pagos con Bold)
-        // Use finalMetodoPago instead of metodoPago
+        // Calcular comisión de Volt/Bold (6% del subtotal para pagos con tarjeta)
         let comisionBold = 0;
-        if (finalMetodoPago === 'BOLD') {
+        if (metodoPago === 'BOLD') {
             comisionBold = subtotal * 0.06;
         }
 
@@ -235,11 +190,7 @@ export async function POST(request: Request) {
         let estadoInicial: EstadoReserva;
         let estadoPago: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'PROCESANDO' | null = null;
 
-        // Determine estado inicial based on finalMetodoPago (already determined above)
-        if (isHotelTourCompartido) {
-            estadoInicial = EstadoReserva.CONFIRMADA_PENDIENTE_PAGO;
-            estadoPago = 'PENDIENTE';
-        } else if (body.municipio === 'OTRO') {
+        if (body.municipio === 'OTRO') {
             // Municipio personalizado requiere cotización
             estadoInicial = EstadoReserva.PENDIENTE_COTIZACION;
             estadoPago = null;
@@ -300,7 +251,7 @@ export async function POST(request: Request) {
                 estadoPago: estadoPago,
 
                 // Método de Pago
-                metodoPago: finalMetodoPago,
+                metodoPago: metodoPago,
 
                 // Aliado
                 aliadoId: body.aliadoId || null,
@@ -330,67 +281,64 @@ export async function POST(request: Request) {
             },
         });
 
-        // 📧 Enviar email de confirmación
-        // 🔒 Para reservas EXTERNAS (no aliados), el email se envía al confirmar el pago
+        // 📧📅 Notificaciones externas en segundo plano (no bloqueantes)
         const isExternalReservation = !body.esReservaAliado && !body.aliadoId;
+        void (async () => {
+            const bgStart = Date.now();
+            try {
+                const emailTask = (async () => {
+                    const emailStart = Date.now();
+                    const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
 
-        try {
-            const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
-
-            if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                // Tour Compartido siempre recibe email de confirmación con link de pago
-                await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
-            } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
-                await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
-            } else if (!isExternalReservation) {
-                // Solo enviar email de confirmación INMEDIATO para aliados
-                const aliadoEmail = reserva.aliado?.email || null;
-                await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
-            } else {
-                console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
-            }
-        } catch (emailError) {
-            console.error('Error sending confirmation email:', emailError);
-            // Don't fail the reservation if email fails
-        }
-
-        // 📅 Crear evento en Google Calendar
-        // 🔒 Para reservas EXTERNAS (no aliados), el evento se crea al confirmar el pago
-        // ✅ Para aliados (incluido Tour Compartido), crear evento INMEDIATO
-        try {
-            const shouldSkipCalendar = isExternalReservation;
-
-            if (!shouldSkipCalendar) {
-                if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                    // Tour Compartido de aliados: usar consolidación
-                    const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
-                    const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
-                    if (eventId) {
-                        await prisma.reserva.update({
-                            where: { id: reserva.id },
-                            data: { googleCalendarEventId: eventId }
-                        });
-                        console.log('✅ [Tour Compartido Aliado] Calendar event created/updated:', eventId);
+                    if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                        await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
+                    } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
+                        await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
+                    } else if (!isExternalReservation) {
+                        const aliadoEmail = reserva.aliado?.email || null;
+                        await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
+                    } else {
+                        console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
                     }
-                } else {
-                    // Otros servicios de aliados: crear evento individual
-                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
-                    const eventId = await createCalendarEvent(reserva as any);
-                    if (eventId) {
-                        await prisma.reserva.update({
-                            where: { id: reserva.id },
-                            data: { googleCalendarEventId: eventId }
-                        });
-                        console.log('✅ [Reserva Aliado] Google Calendar event created:', eventId);
+
+                    console.log(`✅ [Reserva] Email flow completed in ${Date.now() - emailStart}ms`);
+                })();
+
+                const calendarTask = (async () => {
+                    const calendarStart = Date.now();
+                    if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                        const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                        const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                        if (eventId) {
+                            await prisma.reserva.update({
+                                where: { id: reserva.id },
+                                data: { googleCalendarEventId: eventId }
+                            });
+                            console.log('✅ [Tour Compartido] Calendar event created/updated:', eventId);
+                        }
+                    } else {
+                        const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                        const eventId = await createCalendarEvent(reserva as any);
+                        if (eventId) {
+                            await prisma.reserva.update({
+                                where: { id: reserva.id },
+                                data: { googleCalendarEventId: eventId }
+                            });
+                            console.log('✅ [Reserva] Google Calendar event created:', eventId);
+                        }
                     }
-                }
-            } else {
-                console.log('📅 [Reserva Externa] Calendar event will be created upon payment confirmation');
+
+                    console.log(`✅ [Reserva] Calendar flow completed in ${Date.now() - calendarStart}ms`);
+                })();
+
+                await Promise.allSettled([emailTask, calendarTask]);
+                console.log(`✅ [Reserva] Background integrations completed in ${Date.now() - bgStart}ms`);
+            } catch (bgError) {
+                console.error('❌ [Reserva] Background integration error:', bgError);
             }
-        } catch (calendarError) {
-            console.error('❌ [Reserva] Error creating calendar event:', calendarError);
-            // No fallar la reserva si el calendario falla
-        }
+        })();
+
+        console.log(`✅ [Reserva] POST responded in ${Date.now() - requestStart}ms`);
 
         return NextResponse.json(
             {

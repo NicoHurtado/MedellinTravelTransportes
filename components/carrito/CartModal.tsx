@@ -35,6 +35,7 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
     const router = useRouter();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'BOLD' | 'EFECTIVO'>('BOLD');
 
     useEffect(() => {
         if (isOpen) {
@@ -47,13 +48,20 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
             const cart = localStorage.getItem('medellin-travel-cart');
             if (cart) {
                 const items = JSON.parse(cart);
-                setCartItems(Array.isArray(items) ? items : []);
+                const normalizedItems = Array.isArray(items) ? items : [];
+                setCartItems(normalizedItems);
+                const firstItemMethod = normalizedItems[0]?.metodoPago;
+                if (firstItemMethod === 'EFECTIVO' || firstItemMethod === 'BOLD') {
+                    setSelectedPaymentMethod(firstItemMethod);
+                }
             } else {
                 setCartItems([]);
+                setSelectedPaymentMethod('BOLD');
             }
         } catch (error) {
             console.error('Error loading cart:', error);
             setCartItems([]);
+            setSelectedPaymentMethod('BOLD');
         }
     };
 
@@ -74,7 +82,7 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
         }
     };
 
-    const isCashPayment = cartItems.some(item => item.metodoPago === 'EFECTIVO');
+    const isCashPayment = selectedPaymentMethod === 'EFECTIVO';
 
     const calculateSubtotal = () => {
         return cartItems.reduce((sum, item) => sum + item.precioTotal, 0);
@@ -108,7 +116,7 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
                 body: JSON.stringify({
                     cartItems,
                     idioma: cartItems[0]?.idioma || 'ES',
-                    metodoPago: isCashPayment ? 'EFECTIVO' : (cartItems[0]?.metodoPago || 'BOLD'),
+                    metodoPago: selectedPaymentMethod,
                 }),
             });
 
@@ -124,6 +132,7 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
             window.dispatchEvent(new Event('cartUpdated'));
 
             // Redirigir a la página de tracking del pedido
+            router.refresh();
             router.push(`/tracking/${pedido.codigo}`);
         } catch (error) {
             console.error('Error creating pedido:', error);
@@ -278,6 +287,37 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
                 {/* Footer - Summary and Actions */}
                 {cartItems.length > 0 && (
                     <div className="border-t p-4 bg-gray-50">
+                        {/* Payment Method */}
+                        <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+                            <p className="text-sm font-semibold text-gray-800">Método de pago</p>
+                            <div className="grid grid-cols-1 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedPaymentMethod('EFECTIVO')}
+                                    className={`text-left px-3 py-2 rounded-md border transition-colors ${
+                                        selectedPaymentMethod === 'EFECTIVO'
+                                            ? 'border-green-500 bg-green-50'
+                                            : 'border-gray-200 hover:border-green-300'
+                                    }`}
+                                >
+                                    <span className="font-medium text-green-700">Efectivo</span>
+                                    <p className="text-xs text-gray-600">Pago exacto al momento del servicio</p>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedPaymentMethod('BOLD')}
+                                    className={`text-left px-3 py-2 rounded-md border transition-colors ${
+                                        selectedPaymentMethod === 'BOLD'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-gray-200 hover:border-blue-300'
+                                    }`}
+                                >
+                                    <span className="font-medium text-blue-700">Tarjeta (BOLD)</span>
+                                    <p className="text-xs text-gray-600">Incluye 6% adicional por pago con tarjeta</p>
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Price Summary */}
                         <div className="space-y-2 mb-4">
                             <div className="flex justify-between text-sm">
@@ -309,7 +349,7 @@ export const CartModal = ({ isOpen, onClose }: CartModalProps) => {
                                 disabled={isProcessing}
                                 className="w-full bg-[#D6A75D] text-white py-3 rounded-lg font-semibold hover:bg-[#c49850] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isProcessing ? 'Procesando...' : (isCashPayment ? 'Confirmar Pedido' : 'Proceder al Pago')}
+                                {isProcessing ? 'Procesando...' : (isCashPayment ? 'Confirmar pedido en efectivo' : 'Proceder al pago con tarjeta')}
                             </button>
                             <button
                                 onClick={clearCart}

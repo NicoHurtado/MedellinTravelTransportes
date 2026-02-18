@@ -376,7 +376,6 @@ export default function HotelPublicPage() {
                     aliadoNombre={aliado?.nombre || null}
                     preciosPersonalizados={preciosPersonalizados}
                     tarifasMunicipios={tarifasMunicipios}
-                    metodoPago="EFECTIVO"
                 />
             )}
         </>

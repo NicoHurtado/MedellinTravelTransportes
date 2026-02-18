@@ -228,6 +228,9 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
         );
     }
 
+    const metodoPago = reserva.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
+    const estadoBold = reserva.estadoPago === 'APROBADO' ? 'PAGADO' : 'PENDIENTE';
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto space-y-6">
@@ -759,10 +762,15 @@ export default function AdminReservaDetails({ params }: { params: { id: string }
                             {/* Payment Status */}
                             <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
                                 <div>
-                                    <p className="text-sm text-gray-500">Estado del Pago</p>
-                                    <p className={`font-bold ${reserva.estadoPago === 'APROBADO' ? 'text-green-600' : 'text-yellow-600'}`}>
-                                        {reserva.estadoPago || 'PENDIENTE'}
+                                    <p className="text-sm text-gray-500">Método de Pago</p>
+                                    <p className={`font-bold ${metodoPago === 'BOLD' ? 'text-blue-700' : 'text-emerald-700'}`}>
+                                        {metodoPago === 'BOLD' ? 'BOLD (Tarjeta)' : 'EFECTIVO'}
                                     </p>
+                                    {metodoPago === 'BOLD' && (
+                                        <p className={`text-sm font-semibold mt-1 ${estadoBold === 'PAGADO' ? 'text-green-600' : 'text-yellow-600'}`}>
+                                            Estado BOLD: {estadoBold}
+                                        </p>
+                                    )}
                                 </div>
                                 {reserva.hashPago && (
                                     <div className="text-right">

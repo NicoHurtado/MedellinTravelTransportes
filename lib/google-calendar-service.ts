@@ -52,6 +52,12 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
     end: { dateTime: string; timeZone: string };
     reminders: { useDefault: boolean; overrides: Array<{ method: string; minutes: number }> };
 } {
+    const metodoPagoLabel = reserva.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
+    const estadoPagoBold =
+        reserva.metodoPago === 'BOLD'
+            ? (reserva.estadoPago === 'APROBADO' ? 'Pagado' : 'Pendiente')
+            : null;
+
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     // Título del evento
@@ -107,6 +113,7 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
         `🎯 Servicio: ${typeof reserva.servicio.nombre === 'object' ? (reserva.servicio.nombre as any).es : reserva.servicio.nombre}`,
         `👥 Pasajeros: ${reserva.numeroPasajeros}`,
         `💰 Precio Total: $${Number(reserva.precioTotal).toLocaleString('es-CO')} COP`,
+        `💳 Método de Pago: ${metodoPagoLabel}${estadoPagoBold ? ` (${estadoPagoBold})` : ''}`,
         ``,
     ];
 
@@ -387,6 +394,12 @@ function formatTourCompartidoEventDetails(
 
     // Agregar detalle de cada reserva
     reservas.forEach((reserva, index) => {
+        const metodoPagoLabel = reserva.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
+        const estadoPagoBold =
+            reserva.metodoPago === 'BOLD'
+                ? (reserva.estadoPago === 'APROBADO' ? 'Pagado' : 'Pendiente')
+                : null;
+
         descripcionParts.push(
             ``,
             `🎫 RESERVA ${index + 1}: #${reserva.codigo}`,
@@ -396,6 +409,7 @@ function formatTourCompartidoEventDetails(
             `📧 Email: ${reserva.emailCliente}`,
             `👥 Pasajeros: ${reserva.numeroPasajeros}`,
             `💰 Precio: $${Number(reserva.precioTotal).toLocaleString('es-CO')} COP`,
+            `💳 Método de Pago: ${metodoPagoLabel}${estadoPagoBold ? ` (${estadoPagoBold})` : ''}`,
             `📊 Estado: ${reserva.estado.replace(/_/g, ' ')}`,
             `🔗 Tracking: ${APP_URL}/tracking/${reserva.codigo}`
         );

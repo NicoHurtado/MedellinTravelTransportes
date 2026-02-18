@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import {
@@ -17,7 +17,8 @@ import {
     FiX,
     FiStar,
     FiMapPin,
-    FiDollarSign
+    FiDollarSign,
+    FiCreditCard
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 
@@ -27,6 +28,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -55,6 +57,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const navigation = [
         { name: 'Reservas', href: '/admin/dashboard', icon: FiHome },
+        { name: 'Reservas BOLD', href: '/admin/dashboard?payment=VOLT', icon: FiCreditCard },
+        { name: 'Reservas EFECTIVO', href: '/admin/dashboard?payment=EFECTIVO', icon: FiDollarSign },
+        { name: 'Tour Compartido', href: '/admin/dashboard/tour-compartido', icon: FiMapPin },
         { name: 'Calendario', href: '/admin/dashboard/calendario', icon: FiCalendar },
         { name: 'Crear Cotización', href: '/admin/dashboard/cotizaciones/crear', icon: FiDollarSign },
         { name: 'Estadísticas', href: '/admin/dashboard/estadisticas', icon: FiBarChart2 },
@@ -70,7 +75,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Vehículos', href: '/admin/dashboard/vehiculos', icon: FiTruck },
     ];
 
-    const isActive = (href: string) => pathname === href;
+    const isActive = (href: string) => {
+        const [path, query] = href.split('?');
+        if (pathname !== path) return false;
+        if (!query) return !searchParams.get('payment');
+        const [key, value] = query.split('=');
+        return searchParams.get(key) === value;
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">

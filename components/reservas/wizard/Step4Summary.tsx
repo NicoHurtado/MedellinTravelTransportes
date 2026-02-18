@@ -10,10 +10,19 @@ interface Step4Props {
     onConfirm: () => void;
     onBack: () => void;
     loading: boolean;
-    aliadoTipo?: string | null;
+    selectedPaymentMethod: 'BOLD' | 'EFECTIVO' | null;
+    onPaymentMethodChange: (method: 'BOLD' | 'EFECTIVO') => void;
 }
 
-export default function Step4Summary({ service, formData, onConfirm, onBack, loading, aliadoTipo }: Step4Props) {
+export default function Step4Summary({
+    service,
+    formData,
+    onConfirm,
+    onBack,
+    loading,
+    selectedPaymentMethod,
+    onPaymentMethodChange,
+}: Step4Props) {
     const { language } = useLanguage();
 
     const municipioLabels: Record<string, string> = {
@@ -82,6 +91,12 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
         console.log('✅ Precio Dinámico Total:', total);
         return total;
     })();
+
+    const subtotal = Number(formData.precioTotal || 0);
+    const cardFee = selectedPaymentMethod === 'BOLD' ? subtotal * 0.06 : 0;
+    const totalToPay = subtotal + cardFee;
+    const boldPreviewFee = subtotal * 0.06;
+    const boldPreviewTotal = subtotal + boldPreviewFee;
 
 
     return (
@@ -380,11 +395,11 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             </div>
                         )}
 
-                        {/* Comisión Bold 6% - Solo para servicios que no son por horas Y NO son Agencia */}
-                        {!service.esPorHoras && aliadoTipo !== 'AGENCIA' && (
+                        {/* Comisión BOLD 6% para pago con tarjeta */}
+                        {selectedPaymentMethod === 'BOLD' && (
                             <div className="flex justify-between text-orange-600">
-                                <span>+ 6% {language === 'es' ? 'Impuestos del pago' : 'Payment taxes'}:</span>
-                                <span className="font-medium">{formatPrice(formData.precioTotal * 0.06)}</span>
+                                <span>+ 6% {language === 'es' ? 'Recargo por pago con tarjeta (BOLD)' : 'Card payment surcharge (BOLD)'}:</span>
+                                <span className="font-medium">{formatPrice(cardFee)}</span>
                             </div>
                         )}
 
@@ -392,9 +407,7 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                             <div className="flex justify-between text-xl font-bold">
                                 <span>{t('reservas.paso4_total', language)}</span>
                                 <span className="text-[#D6A75D]">
-                                    {!service.esPorHoras && aliadoTipo !== 'AGENCIA'
-                                        ? formatPrice(formData.precioTotal * 1.06)
-                                        : formatPrice(formData.precioTotal)}
+                                    {formatPrice(totalToPay)}
                                 </span>
                             </div>
                         </div>
@@ -402,12 +415,51 @@ export default function Step4Summary({ service, formData, onConfirm, onBack, loa
                 </div>
             )}
 
-            {/* Payment method notice for hourly services */}
-            {service.esPorHoras && formData.municipio !== 'OTRO' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                        <strong>💰 {language === 'es' ? 'Método de Pago' : 'Payment Method'}:</strong> {language === 'es' ? 'El pago de este servicio se realiza en efectivo al finalizar el recorrido.' : 'Payment for this service is made in cash at the end of the trip.'}
-                    </p>
+            {/* Payment method selection */}
+            {formData.municipio !== 'OTRO' && (
+                <div className="bg-white border-2 border-gray-200 rounded-lg p-6 space-y-4">
+                    <h3 className="font-bold text-lg">
+                        {language === 'es' ? 'Método de pago' : 'Payment method'}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button
+                            type="button"
+                            onClick={() => onPaymentMethodChange('EFECTIVO')}
+                            className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                selectedPaymentMethod === 'EFECTIVO'
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-200 hover:border-green-300'
+                            }`}
+                        >
+                            <p className="font-bold text-green-700">
+                                {language === 'es' ? 'Pago en efectivo' : 'Cash payment'}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-1">
+                                {language === 'es'
+                                    ? `Pagarás exactamente ${formatPrice(subtotal)} en caja.`
+                                    : `You will pay exactly ${formatPrice(subtotal)} in cash.`}
+                            </p>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => onPaymentMethodChange('BOLD')}
+                            className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                selectedPaymentMethod === 'BOLD'
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                        >
+                            <p className="font-bold text-blue-700">
+                                {language === 'es' ? 'Pagar con tarjeta (BOLD)' : 'Pay with card (BOLD)'}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-1">
+                                {language === 'es'
+                                    ? `Pago seguro con botón de pago BOLD. Se aplica un 6% adicional (${formatPrice(boldPreviewFee)}). Total final: ${formatPrice(boldPreviewTotal)}.`
+                                    : `Secure payment with BOLD payment button. A 6% fee applies (${formatPrice(boldPreviewFee)}). Final total: ${formatPrice(boldPreviewTotal)}.`}
+                            </p>
+                        </button>
+                    </div>
                 </div>
             )}
 
