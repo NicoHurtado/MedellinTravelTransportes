@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FiClock, FiUsers, FiLogOut, FiMapPin, FiChevronRight } from 'react-icons/fi';
-import { useSearchParams } from 'next/navigation';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import Header from '@/components/landing/Header';
@@ -46,7 +45,6 @@ interface Aliado {
 
 export default function ReservasPage() {
     const { language } = useLanguage();
-    const searchParams = useSearchParams();
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -69,6 +67,7 @@ export default function ReservasPage() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [openedFromQuery, setOpenedFromQuery] = useState(false);
     const [wizardInitialStep, setWizardInitialStep] = useState(0);
+    const [urlParams, setUrlParams] = useState<URLSearchParams | null>(null);
 
     useEffect(() => {
         // Check if ally is already logged in
@@ -89,21 +88,26 @@ export default function ReservasPage() {
     }, []);
 
     useEffect(() => {
-        if (loading || openedFromQuery || services.length === 0) return;
+        if (typeof window === 'undefined') return;
+        setUrlParams(new URLSearchParams(window.location.search));
+    }, []);
 
-        const serviceIdParam = searchParams.get('serviceId');
-        const tipoParam = searchParams.get('tipo')?.toUpperCase();
-        let servicioParamRaw = searchParams.get('servicio');
+    useEffect(() => {
+        if (loading || openedFromQuery || services.length === 0) return;
+        if (!urlParams) return;
+
+        const serviceIdParam = urlParams.get('serviceId');
+        const tipoParam = urlParams.get('tipo')?.toUpperCase();
+        let servicioParamRaw = urlParams.get('servicio');
         const servicioParam = servicioParamRaw?.toLowerCase();
 
         // Compatibilidad con QR/lectores que convierten "?servicio=aeropuerto" en "?servicio:aeropuerto"
         if (!servicioParamRaw) {
-            for (const [key, value] of searchParams.entries()) {
+            urlParams.forEach((value, key) => {
                 if (key.toLowerCase().startsWith('servicio:')) {
                     servicioParamRaw = key.split(':').slice(1).join(':') || value;
-                    break;
                 }
-            }
+            });
         }
         const servicioParamSafe = servicioParamRaw?.toLowerCase();
 
@@ -151,14 +155,14 @@ export default function ReservasPage() {
         }
 
         if (targetService) {
-            const formParam = searchParams.get('form');
+            const formParam = urlParams.get('form');
             const shouldOpenDirectForm = formParam === '1' || formParam === 'true';
             setWizardInitialStep(shouldOpenDirectForm ? 1 : 0);
             setSelectedService(targetService);
             setWizardOpen(true);
             setOpenedFromQuery(true);
         }
-    }, [loading, openedFromQuery, services, searchParams]);
+    }, [loading, openedFromQuery, services, urlParams]);
 
     const fetchServices = async (aliadoId?: string) => {
         try {
