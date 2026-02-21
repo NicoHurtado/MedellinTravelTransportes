@@ -41,6 +41,7 @@ interface ReservationWizardProps {
     service: Service;
     isOpen: boolean;
     onClose: () => void;
+    initialStep?: number;
     aliadoId?: string | null;
     aliadoTipo?: string | null;
     aliadoNombre?: string | null;
@@ -48,7 +49,7 @@ interface ReservationWizardProps {
     tarifasMunicipios?: any[];
 }
 
-export default function ReservationWizard({ service, isOpen, onClose, aliadoId, aliadoTipo, aliadoNombre, preciosPersonalizados, tarifasMunicipios }: ReservationWizardProps) {
+export default function ReservationWizard({ service, isOpen, onClose, initialStep = 0, aliadoId, aliadoTipo, aliadoNombre, preciosPersonalizados, tarifasMunicipios }: ReservationWizardProps) {
     const { language } = useLanguage();
     const [currentStep, setCurrentStep] = useState(0);
     const [maxStepReached, setMaxStepReached] = useState(0);
@@ -120,8 +121,10 @@ export default function ReservationWizard({ service, isOpen, onClose, aliadoId, 
     useEffect(() => {
         if (isOpen) {
             setSelectedPaymentMethod(null);
+            setCurrentStep(initialStep);
+            setMaxStepReached(initialStep);
         }
-    }, [isOpen]);
+    }, [isOpen, initialStep]);
 
     // Process service data to get localized text
     const processedService = {

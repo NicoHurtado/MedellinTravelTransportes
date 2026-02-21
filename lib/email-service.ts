@@ -478,16 +478,26 @@ const getOriginDestination = (reserva: ReservaWithRelations, language: 'ES' | 'E
 
   if (reserva.aeropuertoTipo === 'DESDE') {
     origen = airportName;
-    destino = reserva.lugarRecogida || (language === 'ES' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence');
+    destino =
+      reserva.trasladoDestino ||
+      reserva.lugarRecogida ||
+      (language === 'ES' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence');
   } else if (reserva.aeropuertoTipo === 'HACIA') {
-    origen = reserva.lugarRecogida || (language === 'ES' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence');
+    origen =
+      reserva.lugarRecogida ||
+      reserva.trasladoDestino ||
+      (language === 'ES' ? 'Tu Hotel/Residencia' : 'Your Hotel/Residence');
     destino = airportName;
   } else {
     // Standard service / Tour
     origen = reserva.lugarRecogida || (language === 'ES' ? 'No especificado' : 'Not specified');
 
     const serviceName = getLocalizedName(reserva.servicio.nombre, language);
-    destino = reserva.servicio.destinoAutoFill || serviceName || (language === 'ES' ? 'No especificado' : 'Not specified');
+    destino =
+      reserva.trasladoDestino ||
+      reserva.servicio.destinoAutoFill ||
+      serviceName ||
+      (language === 'ES' ? 'No especificado' : 'Not specified');
   }
 
   return { origen, destino };
@@ -753,6 +763,7 @@ export async function sendCotizacionGeneradaEmail(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const trackingUrl = `${appUrl}/tracking/${reserva.codigo}`;
   const serviceName = getLocalizedName(reserva.servicio.nombre, language);
+  const { origen, destino } = getOriginDestination(reserva, language);
 
   const content = language === 'ES' ? `
     <h1>¡Tu Cotización Está Lista! 📋</h1>
@@ -769,7 +780,8 @@ export async function sendCotizacionGeneradaEmail(
       <p><strong>Servicio:</strong> ${serviceName}</p>
       <p><strong>Fecha:</strong> ${formatDate(reserva.fecha, language)}</p>
       <p><strong>Hora:</strong> ${reserva.hora}</p>
-      ${reserva.lugarRecogida ? `<p><strong>Lugar de Recogida:</strong> ${reserva.lugarRecogida}</p>` : ''}
+      <p><strong>Lugar de Recogida:</strong> ${origen}</p>
+      <p><strong>Lugar de Destino:</strong> ${destino}</p>
       <p><strong>Municipio:</strong> ${reserva.otroMunicipio || reserva.municipio}</p>
       <p><strong>Pasajeros:</strong> ${reserva.numeroPasajeros} personas</p>
       ${reserva.vehiculo ? `<p><strong>Vehículo:</strong> ${reserva.vehiculo.nombre}</p>` : ''}
@@ -809,7 +821,8 @@ export async function sendCotizacionGeneradaEmail(
       <p><strong>Service:</strong> ${serviceName}</p>
       <p><strong>Date:</strong> ${formatDate(reserva.fecha, language)}</p>
       <p><strong>Time:</strong> ${reserva.hora}</p>
-      ${reserva.lugarRecogida ? `<p><strong>Pickup Location:</strong> ${reserva.lugarRecogida}</p>` : ''}
+      <p><strong>Pickup Location:</strong> ${origen}</p>
+      <p><strong>Destination:</strong> ${destino}</p>
       <p><strong>City:</strong> ${reserva.otroMunicipio || reserva.municipio}</p>
       <p><strong>Passengers:</strong> ${reserva.numeroPasajeros} people</p>
       ${reserva.vehiculo ? `<p><strong>Vehicle:</strong> ${reserva.vehiculo.nombre}</p>` : ''}

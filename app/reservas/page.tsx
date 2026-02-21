@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FiClock, FiUsers, FiLogOut, FiMapPin, FiChevronRight } from 'react-icons/fi';
+import { useSearchParams } from 'next/navigation';
 import ReservationWizard from '@/components/reservas/ReservationWizard';
 import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalModal';
 import Header from '@/components/landing/Header';
@@ -45,6 +46,7 @@ interface Aliado {
 
 export default function ReservasPage() {
     const { language } = useLanguage();
+    const searchParams = useSearchParams();
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -65,6 +67,8 @@ export default function ReservasPage() {
 
     // Cart state
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [openedFromQuery, setOpenedFromQuery] = useState(false);
+    const [wizardInitialStep, setWizardInitialStep] = useState(0);
 
     useEffect(() => {
         // Check if ally is already logged in
@@ -83,6 +87,78 @@ export default function ReservasPage() {
             fetchServices();
         }
     }, []);
+
+    useEffect(() => {
+        if (loading || openedFromQuery || services.length === 0) return;
+
+        const serviceIdParam = searchParams.get('serviceId');
+        const tipoParam = searchParams.get('tipo')?.toUpperCase();
+        let servicioParamRaw = searchParams.get('servicio');
+        const servicioParam = servicioParamRaw?.toLowerCase();
+
+        // Compatibilidad con QR/lectores que convierten "?servicio=aeropuerto" en "?servicio:aeropuerto"
+        if (!servicioParamRaw) {
+            for (const [key, value] of searchParams.entries()) {
+                if (key.toLowerCase().startsWith('servicio:')) {
+                    servicioParamRaw = key.split(':').slice(1).join(':') || value;
+                    break;
+                }
+            }
+        }
+        const servicioParamSafe = servicioParamRaw?.toLowerCase();
+
+        let targetService: Service | undefined;
+
+        if (serviceIdParam) {
+            targetService = services.find((s) => s.id === serviceIdParam);
+        }
+
+        if (!targetService && tipoParam) {
+            const tipoLooksAirport = tipoParam.includes('AEROPUERTO');
+            const tipoLooksTourCompartido = tipoParam.includes('TOUR_COMPARTIDO');
+            targetService = services.find((s) =>
+                s.tipo === tipoParam ||
+                (tipoLooksAirport && (
+                    s.esAeropuerto ||
+                    s.tipo.includes('AEROPUERTO') ||
+                    getLocalizedText(s.nombre, 'ES').toLowerCase().includes('aeropuerto')
+                )) ||
+                (tipoLooksTourCompartido && (
+                    s.tipo === 'TOUR_COMPARTIDO' &&
+                    getLocalizedText(s.nombre, 'ES').toLowerCase().includes('guatape')
+                ))
+            );
+
+            if (!targetService && tipoLooksTourCompartido) {
+                targetService = services.find((s) => s.tipo === 'TOUR_COMPARTIDO');
+            }
+        }
+
+        if (!targetService && servicioParamRaw) {
+            // Compatibilidad con links existentes: /reservas?servicio=<serviceId>
+            targetService = services.find((s) => s.id === servicioParamRaw);
+        }
+
+        if (!targetService && servicioParamSafe) {
+            const servicioEsAeropuerto = ['aeropuerto', 'transporte-aeropuerto', 'traslado-aeropuerto'].includes(servicioParamSafe);
+            if (servicioEsAeropuerto) {
+                targetService = services.find((s) =>
+                    s.esAeropuerto ||
+                    s.tipo === 'TRANSPORTE_AEROPUERTO' ||
+                    getLocalizedText(s.nombre, 'ES').toLowerCase().includes('aeropuerto')
+                );
+            }
+        }
+
+        if (targetService) {
+            const formParam = searchParams.get('form');
+            const shouldOpenDirectForm = formParam === '1' || formParam === 'true';
+            setWizardInitialStep(shouldOpenDirectForm ? 1 : 0);
+            setSelectedService(targetService);
+            setWizardOpen(true);
+            setOpenedFromQuery(true);
+        }
+    }, [loading, openedFromQuery, services, searchParams]);
 
     const fetchServices = async (aliadoId?: string) => {
         try {
@@ -455,6 +531,7 @@ export default function ReservasPage() {
                 <ReservationWizard
                     service={selectedService}
                     isOpen={wizardOpen}
+                    initialStep={wizardInitialStep}
                     onClose={() => {
                         setWizardOpen(false);
                         setSelectedService(null);

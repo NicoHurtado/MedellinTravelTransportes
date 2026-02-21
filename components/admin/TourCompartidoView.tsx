@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { FiEye, FiCalendar, FiUsers, FiMapPin, FiDownload } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { getLocalizedText } from '@/types/multi-language';
@@ -45,10 +46,36 @@ interface ReservasAgrupadas {
 
 export default function TourCompartidoView({ reservas }: TourCompartidoViewProps) {
     const router = useRouter();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [estadoFilter, setEstadoFilter] = useState<'TODOS' | EstadoReserva>('TODOS');
+    const [fechaFilter, setFechaFilter] = useState('');
+
+    const estadosDisponibles = useMemo(
+        () => Array.from(new Set(reservas.map((reserva) => reserva.estado))),
+        [reservas]
+    );
+
+    const reservasFiltradas = useMemo(() => {
+        const search = searchTerm.trim().toLowerCase();
+
+        return reservas.filter((reserva) => {
+            const matchesEstado = estadoFilter === 'TODOS' || reserva.estado === estadoFilter;
+            const fechaReserva = new Date(reserva.fecha).toISOString().split('T')[0];
+            const matchesFecha = !fechaFilter || fechaReserva === fechaFilter;
+            const matchesSearch =
+                !search ||
+                reserva.codigo.toLowerCase().includes(search) ||
+                reserva.nombreCliente.toLowerCase().includes(search) ||
+                reserva.emailCliente.toLowerCase().includes(search) ||
+                reserva.whatsappCliente.toLowerCase().includes(search);
+
+            return matchesEstado && matchesFecha && matchesSearch;
+        });
+    }, [reservas, searchTerm, estadoFilter, fechaFilter]);
 
     // Agrupar reservas por fecha
     const reservasAgrupadas: ReservasAgrupadas[] = Object.values(
-        reservas.reduce((acc, reserva) => {
+        reservasFiltradas.reduce((acc, reserva) => {
             const fechaKey = new Date(reserva.fecha).toISOString().split('T')[0];
 
             if (!acc[fechaKey]) {
@@ -75,7 +102,7 @@ export default function TourCompartidoView({ reservas }: TourCompartidoViewProps
         }, {} as Record<string, ReservasAgrupadas>)
     ).sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
 
-    if (reservasAgrupadas.length === 0) {
+    if (reservas.length === 0) {
         return (
             <div className="bg-white rounded-xl p-8 text-center">
                 <FiCalendar className="mx-auto text-4xl text-gray-300 mb-4" />
@@ -92,6 +119,72 @@ export default function TourCompartidoView({ reservas }: TourCompartidoViewProps
                     Vista Agrupada por Fecha - Tour Compartido
                 </h2>
             </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+                    <div className="flex-1">
+                        <label htmlFor="tour-search" className="block text-sm font-medium text-gray-700 mb-1">
+                            Buscar
+                        </label>
+                        <input
+                            id="tour-search"
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Código, nombre, email o WhatsApp"
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                        />
+                    </div>
+                    <div className="w-full lg:w-64">
+                        <label htmlFor="estado-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                            Estado
+                        </label>
+                        <select
+                            id="estado-filter"
+                            value={estadoFilter}
+                            onChange={(e) => setEstadoFilter(e.target.value as 'TODOS' | EstadoReserva)}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                        >
+                            <option value="TODOS">Todos</option>
+                            {estadosDisponibles.map((estado) => (
+                                <option key={estado} value={estado}>
+                                    {getStateLabel(estado)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w-full lg:w-52">
+                        <label htmlFor="fecha-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                            Fecha
+                        </label>
+                        <input
+                            id="fecha-filter"
+                            type="date"
+                            value={fechaFilter}
+                            onChange={(e) => setFechaFilter(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400"
+                        />
+                    </div>
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setEstadoFilter('TODOS');
+                            setFechaFilter('');
+                        }}
+                        className="h-10 px-4 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            {reservasAgrupadas.length === 0 && (
+                <div className="bg-white rounded-xl p-8 text-center border border-gray-200">
+                    <FiCalendar className="mx-auto text-4xl text-gray-300 mb-4" />
+                    <p className="text-gray-700 font-medium">No se encontraron resultados con esos filtros</p>
+                    <p className="text-sm text-gray-500 mt-1">Prueba con otro texto, estado o fecha</p>
+                </div>
+            )}
 
             {reservasAgrupadas.map((grupo) => (
                 <div

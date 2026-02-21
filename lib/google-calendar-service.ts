@@ -52,6 +52,15 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
     end: { dateTime: string; timeZone: string };
     reminders: { useDefault: boolean; overrides: Array<{ method: string; minutes: number }> };
 } {
+    const formatHoraAmPm = (hora24: string) => {
+        const [h = '0', m = '00'] = hora24.split(':');
+        const hour24 = Number(h);
+        const minutes = String(m).padStart(2, '0');
+        const suffix = hour24 >= 12 ? 'pm' : 'am';
+        const hour12 = hour24 % 12 || 12;
+        return `${hour12}:${minutes} ${suffix}`;
+    };
+
     const metodoPagoLabel = reserva.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
     const estadoPagoBold =
         reserva.metodoPago === 'BOLD'
@@ -109,6 +118,7 @@ function formatEventDetails(reserva: ReservaConRelaciones): {
         ``,
         `📍 Origen: ${origen}`,
         `📍 Destino: ${destino}`,
+        `HORA: ${formatHoraAmPm(reserva.hora)}`,
         `🏙️ Municipio: ${municipio}`,
         `🎯 Servicio: ${typeof reserva.servicio.nombre === 'object' ? (reserva.servicio.nombre as any).es : reserva.servicio.nombre}`,
         `👥 Pasajeros: ${reserva.numeroPasajeros}`,
@@ -360,6 +370,15 @@ function formatTourCompartidoEventDetails(
     end: { dateTime: string; timeZone: string };
     reminders: { useDefault: boolean; overrides: Array<{ method: string; minutes: number }> };
 } {
+    const formatHoraAmPm = (hora24: string) => {
+        const [h = '0', m = '00'] = hora24.split(':');
+        const hour24 = Number(h);
+        const minutes = String(m).padStart(2, '0');
+        const suffix = hour24 >= 12 ? 'pm' : 'am';
+        const hour12 = hour24 % 12 || 12;
+        return `${hour12}:${minutes} ${suffix}`;
+    };
+
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const primeraReserva = reservas[0];
 
@@ -383,6 +402,7 @@ function formatTourCompartidoEventDetails(
             year: 'numeric'
         })}`,
         `🎯 Servicio: ${servicioNombre}`,
+        `HORA: ${formatHoraAmPm(primeraReserva.hora)}`,
         `👥 CUPO TOTAL: ${totalPasajeros} personas`,
         `📋 Total Reservas: ${reservas.length}`,
         ``,
@@ -407,6 +427,7 @@ function formatTourCompartidoEventDetails(
             `👤 Cliente: ${reserva.nombreCliente}`,
             `📱 WhatsApp: ${reserva.whatsappCliente}`,
             `📧 Email: ${reserva.emailCliente}`,
+            `🕒 Hora: ${formatHoraAmPm(reserva.hora)}`,
             `👥 Pasajeros: ${reserva.numeroPasajeros}`,
             `💰 Precio: $${Number(reserva.precioTotal).toLocaleString('es-CO')} COP`,
             `💳 Método de Pago: ${metodoPagoLabel}${estadoPagoBold ? ` (${estadoPagoBold})` : ''}`,

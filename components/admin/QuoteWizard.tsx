@@ -89,16 +89,26 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
         if (step === 0) return true;
 
         if (step === 1) {
-            if (!formData.fecha || !formData.hora || !formData.municipio) {
+            if (!formData.fecha) {
+                showError('Por favor completa todos los campos obligatorios');
+                return false;
+            }
+            if (formData.numeroPasajeros <= 0) {
+                showError('Por favor ingresa el número de pasajeros');
+                return false;
+            }
+
+            // En Tour Compartido, hora/lugar se autocompletan y no hay selección manual de vehículo/municipio.
+            if (service.tipo === 'TOUR_COMPARTIDO') {
+                return true;
+            }
+
+            if (!formData.hora || !formData.municipio) {
                 showError('Por favor completa todos los campos obligatorios');
                 return false;
             }
             if (formData.municipio === Municipio.OTRO && !formData.otroMunicipio) {
                 showError('Por favor especifica el municipio');
-                return false;
-            }
-            if (formData.numeroPasajeros <= 0) {
-                showError('Por favor ingresa el número de pasajeros');
                 return false;
             }
             if (!formData.vehiculoId) {
@@ -337,6 +347,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                             updateFormData={updateFormData}
                             onNext={handleNext}
                             onBack={handleBack}
+                            isAlly={true}
                         />
                     )}
 
