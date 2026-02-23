@@ -208,7 +208,7 @@ export default function QuotePage({ params }: { params: { linkId: string } }) {
                                 <p className="font-semibold">
                                     {quote.municipio === 'OTRO' && quote.otroMunicipio
                                         ? quote.otroMunicipio
-                                        : quote.municipio.replace(/_/g, ' ')}
+                                        : (quote.municipio ? String(quote.municipio).replace(/_/g, ' ') : t.noEspecificado)}
                                 </p>
                             </div>
                             {quote.vehiculo && (
