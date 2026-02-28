@@ -88,7 +88,7 @@ export async function PUT(
 
 /**
  * DELETE /api/aliados/[id]
- * Eliminar aliado (ADMIN) - Soft delete
+ * Eliminar aliado (ADMIN) - Hard delete
  */
 export async function DELETE(
     req: NextRequest,
@@ -105,32 +105,29 @@ export async function DELETE(
 
         const { id } = await params;
 
-        // Verificar si tiene reservas activas
-        const reservasActivas = await prisma.reserva.count({
-            where: {
-                aliadoId: id,
-                estado: {
-                    notIn: ['COMPLETADA', 'CANCELADA'],
-                },
-            },
-        });
+        // No permitir borrado físico si tiene historial operativo asociado
+        const [reservasCount, pedidosCount] = await Promise.all([
+            prisma.reserva.count({ where: { aliadoId: id } }),
+            prisma.pedido.count({ where: { aliadoId: id } }),
+        ]);
 
-        if (reservasActivas > 0) {
+        if (reservasCount > 0 || pedidosCount > 0) {
             return NextResponse.json(
-                { error: 'No se puede eliminar un aliado con reservas activas' },
+                { error: 'No se puede borrar este aliado porque tiene reservas o pedidos asociados. Puedes desactivarlo en su lugar.' },
                 { status: 400 }
             );
         }
 
-        // Soft delete
-        const aliado = await prisma.aliado.update({
-            where: { id },
-            data: { activo: false },
-        });
+        // Limpiar configuraciones relacionadas y borrar aliado
+        await prisma.$transaction([
+            prisma.tarifaAliado.deleteMany({ where: { aliadoId: id } }),
+            prisma.tarifaMunicipioAliado.deleteMany({ where: { aliadoId: id } }),
+            prisma.servicioAliado.deleteMany({ where: { aliadoId: id } }),
+            prisma.aliado.delete({ where: { id } }),
+        ]);
 
         return NextResponse.json({
-            data: aliado,
-            message: 'Aliado eliminado exitosamente',
+            message: 'Aliado borrado exitosamente',
         });
     } catch (error) {
         console.error('Error deleting aliado:', error);

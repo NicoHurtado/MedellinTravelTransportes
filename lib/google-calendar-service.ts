@@ -524,8 +524,8 @@ export async function createOrUpdateTourCompartidoEvent(
     try {
         console.log('🚌 [Tour Compartido Calendar] Processing reservation:', reserva.codigo);
 
-        // 1. Buscar todas las reservas PAGADAS del mismo día y servicio
-        // Excluir CONFIRMADA_PENDIENTE_PAGO - solo incluir reservas ya pagadas
+        // 1. Buscar todas las reservas ACTIVAS del mismo día y servicio
+        // (incluye efectivo y Bold, estén o no pagadas)
         const fechaReserva = new Date(reserva.fecha);
         const startOfDay = new Date(fechaReserva.getFullYear(), fechaReserva.getMonth(), fechaReserva.getDate());
         const endOfDay = new Date(fechaReserva.getFullYear(), fechaReserva.getMonth(), fechaReserva.getDate() + 1);
@@ -538,9 +538,8 @@ export async function createOrUpdateTourCompartidoEvent(
                     lt: endOfDay
                 },
                 servicio: { tipo: 'TOUR_COMPARTIDO' },
-                // 🔥 Solo incluir reservas que ya han sido pagadas
                 estado: {
-                    not: 'CONFIRMADA_PENDIENTE_PAGO'
+                    not: 'CANCELADA'
                 }
             },
             include: {
@@ -556,6 +555,11 @@ export async function createOrUpdateTourCompartidoEvent(
         });
 
         console.log(`🚌 [Tour Compartido Calendar] Found ${reservasDelDia.length} reservations for this date`);
+
+        if (reservasDelDia.length === 0) {
+            console.warn('⚠️ [Tour Compartido Calendar] No active reservations found to sync');
+            return null;
+        }
 
         // 2. Calcular totales
         const totalPasajeros = reservasDelDia.reduce((sum, r) => sum + r.numeroPasajeros, 0);

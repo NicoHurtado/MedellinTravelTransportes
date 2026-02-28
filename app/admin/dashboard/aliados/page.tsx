@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, Input, Modal, ModalFooter } from '@/components/ui';
-import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiCopy, FiSettings, FiCheck, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiArrowLeft, FiCopy, FiSettings, FiCheck, FiSearch, FiX } from 'react-icons/fi';
 import ConfiguracionPrecios from '@/components/admin/ConfiguracionPrecios';
 
 interface Aliado {
@@ -87,19 +87,48 @@ export default function AliadosPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('¿Estás seguro de eliminar este aliado?')) return;
+    const handleToggleActivo = async (aliado: Aliado) => {
+        const accion = aliado.activo ? 'desactivar' : 'activar';
+        if (!confirm(`¿Estás seguro de ${accion} este aliado?`)) return;
 
         try {
-            const res = await fetch(`/api/aliados/${id}`, {
-                method: 'DELETE'
+            const res = await fetch(`/api/aliados/${aliado.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activo: !aliado.activo }),
             });
 
             if (res.ok) {
                 await fetchAliados();
+                return;
             }
+
+            const data = await res.json().catch(() => null);
+            alert(data?.error || `No se pudo ${accion} el aliado`);
         } catch (error) {
-            console.error('Error deleting aliado:', error);
+            console.error('Error toggling aliado status:', error);
+            alert(`Error al ${accion} aliado`);
+        }
+    };
+
+    const handleHardDelete = async (aliado: Aliado) => {
+        if (!confirm(`Esta acción borrará definitivamente a "${aliado.nombre}". ¿Deseas continuar?`)) return;
+
+        try {
+            const res = await fetch(`/api/aliados/${aliado.id}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                await fetchAliados();
+                return;
+            }
+
+            const data = await res.json().catch(() => null);
+            alert(data?.error || 'No se pudo borrar el aliado');
+        } catch (error) {
+            console.error('Error hard deleting aliado:', error);
+            alert('Error al borrar aliado');
         }
     };
 
@@ -335,13 +364,32 @@ export default function AliadosPage() {
                                         Editar
                                     </Button>
                                     <Button
-                                        variant="danger"
+                                        variant={aliado.activo ? 'danger' : 'outline'}
                                         size="sm"
-                                        onClick={() => handleDelete(aliado.id)}
+                                        onClick={() => handleToggleActivo(aliado)}
                                     >
-                                        <FiTrash2 size={16} />
+                                        {aliado.activo ? (
+                                            <>
+                                                <FiX className="mr-2" size={16} />
+                                                Desactivar
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiCheck className="mr-2" size={16} />
+                                                Activar
+                                            </>
+                                        )}
                                     </Button>
                                 </div>
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    fullWidth
+                                    onClick={() => handleHardDelete(aliado)}
+                                >
+                                    <FiTrash2 className="mr-2" size={16} />
+                                    BORRAR
+                                </Button>
                             </div>
                         </Card>
                     ))}

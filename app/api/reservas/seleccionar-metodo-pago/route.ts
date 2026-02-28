@@ -107,8 +107,24 @@ export async function POST(request: NextRequest) {
                 aliado: true,
                 vehiculo: true,
                 conductor: true,
+                asistentes: true,
             },
         });
+
+        // Sincronizar calendario para que refleje método de pago/estado actualizado
+        try {
+            const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+            const eventId = await createOrUpdateTourCompartidoEvent(updatedReserva as any);
+
+            if (eventId && updatedReserva.googleCalendarEventId !== eventId) {
+                await prisma.reserva.update({
+                    where: { id: updatedReserva.id },
+                    data: { googleCalendarEventId: eventId },
+                });
+            }
+        } catch (calendarError) {
+            console.error('Error sincronizando Tour Compartido con Google Calendar:', calendarError);
+        }
 
         return NextResponse.json({
             success: true,
