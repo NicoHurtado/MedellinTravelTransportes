@@ -45,6 +45,10 @@ export default function AdminTourCompartidoPage() {
         [allReservas]
     );
 
+    const handleReservationDeleted = (reservationId: string) => {
+        setAllReservas((prev) => prev.filter((r) => r.id !== reservationId));
+    };
+
     if (status === 'loading' || loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -76,7 +80,10 @@ export default function AdminTourCompartidoPage() {
             </header>
 
             <main className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-                <TourCompartidoView reservas={tourCompartidoReservas as any} />
+                <TourCompartidoView
+                    reservas={tourCompartidoReservas as any}
+                    onReservationDeleted={handleReservationDeleted}
+                />
             </main>
         </div>
     );

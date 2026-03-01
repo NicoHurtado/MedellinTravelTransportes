@@ -54,6 +54,14 @@ export default function ReservationWizard({ service, isOpen, onClose, initialSte
     const [currentStep, setCurrentStep] = useState(0);
     const [maxStepReached, setMaxStepReached] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string>('');
+    const aliadoNombreNormalizado = (aliadoNombre || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+    const emailPredeterminadoAliado = aliadoNombreNormalizado.includes('medellin florece')
+        ? 'medellinflorece1@gmail.com'
+        : '';
     const [formData, setFormData] = useState<ReservationFormData>({
         idioma: language.toUpperCase() === 'EN' ? Idioma.EN : Idioma.ES,
         fecha: null,
@@ -62,8 +70,8 @@ export default function ReservationWizard({ service, isOpen, onClose, initialSte
         numeroPasajeros: 0,
         nombreCliente: '',
         whatsappCliente: '',
-        emailCliente: '',
-        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.PASAPORTE, numeroDocumento: '', email: '', telefono: '' }],
+        emailCliente: emailPredeterminadoAliado,
+        asistentes: [{ nombre: '', tipoDocumento: TipoDocumento.PASAPORTE, numeroDocumento: '', email: emailPredeterminadoAliado, telefono: '' }],
         precioBase: Number(service.precioBase),
         precioAdicionales: 0,
         recargoNocturno: 0,

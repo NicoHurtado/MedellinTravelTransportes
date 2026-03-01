@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { FiEye, FiCalendar, FiUsers, FiMapPin, FiDownload } from 'react-icons/fi';
+import { FiEye, FiCalendar, FiUsers, FiMapPin, FiDownload, FiTrash2, FiLoader } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { getLocalizedText } from '@/types/multi-language';
 import { getStateLabel, getStateColor } from '@/lib/state-transitions';
@@ -34,6 +34,7 @@ interface Reserva {
 
 interface TourCompartidoViewProps {
     reservas: Reserva[];
+    onReservationDeleted?: (reservationId: string) => void;
 }
 
 interface ReservasAgrupadas {
@@ -44,11 +45,38 @@ interface ReservasAgrupadas {
     cupoTotal: number;
 }
 
-export default function TourCompartidoView({ reservas }: TourCompartidoViewProps) {
+export default function TourCompartidoView({ reservas, onReservationDeleted }: TourCompartidoViewProps) {
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [estadoFilter, setEstadoFilter] = useState<'TODOS' | EstadoReserva>('TODOS');
     const [fechaFilter, setFechaFilter] = useState('');
+    const [deletingReservationId, setDeletingReservationId] = useState<string | null>(null);
+
+    const handleDeleteReservation = async (reservationId: string, reservationCode: string) => {
+        const confirmed = window.confirm(
+            `¿Seguro que deseas eliminar la reserva ${reservationCode}? Esta acción la borra del sistema y actualiza Google Calendar.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setDeletingReservationId(reservationId);
+            const response = await fetch(`/api/reservas/by-id/${reservationId}/delete`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(data?.error || 'No se pudo eliminar la reserva');
+            }
+
+            onReservationDeleted?.(reservationId);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Error eliminando la reserva');
+        } finally {
+            setDeletingReservationId(null);
+        }
+    };
 
     const estadosDisponibles = useMemo(
         () => Array.from(new Set(reservas.map((reserva) => reserva.estado))),
@@ -296,6 +324,17 @@ export default function TourCompartidoView({ reservas }: TourCompartidoViewProps
                                         >
                                             <FiEye size={14} />
                                             Ver
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteReservation(reserva.id, reserva.codigo);
+                                            }}
+                                            disabled={deletingReservationId === reserva.id}
+                                            className="inline-flex items-center justify-center p-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                            title="Eliminar reserva"
+                                        >
+                                            {deletingReservationId === reserva.id ? <FiLoader size={14} className="animate-spin" /> : <FiTrash2 size={14} />}
                                         </button>
                                     </div>
                                 </div>
