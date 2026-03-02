@@ -525,10 +525,10 @@ export async function createOrUpdateTourCompartidoEvent(
         console.log('🚌 [Tour Compartido Calendar] Processing reservation:', reserva.codigo);
 
         // 1. Buscar todas las reservas ACTIVAS del mismo día y servicio
-        // (incluye efectivo y Bold, estén o no pagadas)
+        // Use UTC to match the stored fecha (always saved as YYYY-MM-DDT12:00:00.000Z)
         const fechaReserva = new Date(reserva.fecha);
-        const startOfDay = new Date(fechaReserva.getFullYear(), fechaReserva.getMonth(), fechaReserva.getDate());
-        const endOfDay = new Date(fechaReserva.getFullYear(), fechaReserva.getMonth(), fechaReserva.getDate() + 1);
+        const startOfDay = new Date(Date.UTC(fechaReserva.getUTCFullYear(), fechaReserva.getUTCMonth(), fechaReserva.getUTCDate()));
+        const endOfDay = new Date(Date.UTC(fechaReserva.getUTCFullYear(), fechaReserva.getUTCMonth(), fechaReserva.getUTCDate() + 1));
 
         const reservasDelDia = await prisma.reserva.findMany({
             where: {

@@ -113,9 +113,8 @@ export async function POST(req: NextRequest) {
             if (payment_status === 'approved') {
                 try {
                     const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
-                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                    const { createCalendarEvent, createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
 
-                    // Enviar un email por cada reserva del pedido
                     for (const reserva of pedido.reservas) {
                         const reservaActualizada = await prisma.reserva.findUnique({
                             where: { id: reserva.id },
@@ -123,57 +122,52 @@ export async function POST(req: NextRequest) {
                                 servicio: true,
                                 conductor: true,
                                 vehiculo: true,
-                                aliado: true, // Need ally info
+                                aliado: true,
+                                asistentes: true,
                             },
                         });
 
                         if (reservaActualizada) {
-                            // 1. Send "Pago Aprobado" Email (Always)
                             await sendPagoAprobadoEmail(
                                 reservaActualizada,
                                 pedido.idioma as 'ES' | 'EN'
                             );
 
-                            // 2. Delayed Actions for AIRBNB / HOTEL (Public Link)
-                            // Used to send Confirmation Email & Create Calendar Event which were suppressed on creation
                             const allyType = reservaActualizada.aliado?.tipo;
                             if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
-                                console.log(`🔔 [Webhook] Triggering delayed notifications for ${allyType} reservation: ${reserva.codigo}`);
-
-                                // Send Confirmation Email (contains full details)
                                 try {
                                     await sendReservaConfirmadaEmail(
                                         reservaActualizada as any,
                                         pedido.idioma as 'ES' | 'EN',
                                         reservaActualizada.aliado?.email || null
                                     );
-                                    console.log(`✅ [Webhook] Delayed Confirmation Email sent for: ${reserva.codigo}`);
                                 } catch (e) {
                                     console.error('Error sending delayed confirmation email:', e);
                                 }
+                            }
 
-                                // Create Calendar Event
-                                try {
-                                    // Only if not already created (though it shouldn't be for these types)
-                                    if (!reservaActualizada.googleCalendarEventId) {
-                                        const eventId = await createCalendarEvent(reservaActualizada as any);
-                                        if (eventId) {
-                                            await prisma.reserva.update({
-                                                where: { id: reserva.id },
-                                                data: { googleCalendarEventId: eventId }
-                                            });
-                                            console.log('✅ [Webhook] Delayed Calendar event created for:', reserva.codigo);
-                                        }
+                            // Create/update calendar event for ALL reservation types
+                            try {
+                                if (!reservaActualizada.googleCalendarEventId) {
+                                    const isTourCompartido = reservaActualizada.servicio?.tipo === 'TOUR_COMPARTIDO';
+                                    const eventId = isTourCompartido
+                                        ? await createOrUpdateTourCompartidoEvent(reservaActualizada as any)
+                                        : await createCalendarEvent(reservaActualizada as any);
+                                    if (eventId) {
+                                        await prisma.reserva.update({
+                                            where: { id: reserva.id },
+                                            data: { googleCalendarEventId: eventId }
+                                        });
+                                        console.log(`✅ [Webhook] Calendar event created for: ${reserva.codigo}`);
                                     }
-                                } catch (e) {
-                                    console.error('Error creating delayed calendar event:', e);
                                 }
+                            } catch (e) {
+                                console.error('Error creating calendar event:', e);
                             }
                         }
                     }
                 } catch (emailError) {
                     console.error('Error sending payment emails for pedido:', emailError);
-                    // No fallar el webhook si el email falla
                 }
             }
 
@@ -247,11 +241,10 @@ export async function POST(req: NextRequest) {
                 },
             });
 
-            // Enviar email si el pago fue aprobado
             if (payment_status === 'approved') {
                 try {
                     const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
-                    const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                    const { createCalendarEvent, createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
 
                     const reservaActualizada = await prisma.reserva.findUnique({
                         where: { id: reserva.id },
@@ -260,22 +253,18 @@ export async function POST(req: NextRequest) {
                             conductor: true,
                             vehiculo: true,
                             aliado: true,
+                            asistentes: true,
                         },
                     });
 
                     if (reservaActualizada) {
-                        // 1. Send "Pago Aprobado" Email
                         await sendPagoAprobadoEmail(
                             reservaActualizada,
                             reserva.idioma as 'ES' | 'EN'
                         );
 
-                        // 2. Delayed Actions for AIRBNB / HOTEL
                         const allyType = reservaActualizada.aliado?.tipo;
                         if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
-                            console.log(`🔔 [Webhook] Triggering delayed notifications for ${allyType} reservation: ${reserva.codigo}`);
-
-                            // Send Confirmation Email
                             try {
                                 await sendReservaConfirmadaEmail(
                                     reservaActualizada as any,
@@ -285,27 +274,29 @@ export async function POST(req: NextRequest) {
                             } catch (e) {
                                 console.error('Error sending delayed confirmation email:', e);
                             }
+                        }
 
-                            // Create Calendar Event
-                            try {
-                                if (!reservaActualizada.googleCalendarEventId) {
-                                    const eventId = await createCalendarEvent(reservaActualizada as any);
-                                    if (eventId) {
-                                        await prisma.reserva.update({
-                                            where: { id: reserva.id },
-                                            data: { googleCalendarEventId: eventId }
-                                        });
-                                        console.log('✅ [Webhook] Delayed Calendar event created for:', reserva.codigo);
-                                    }
+                        // Create/update calendar event for ALL reservation types
+                        try {
+                            if (!reservaActualizada.googleCalendarEventId) {
+                                const isTourCompartido = reservaActualizada.servicio?.tipo === 'TOUR_COMPARTIDO';
+                                const eventId = isTourCompartido
+                                    ? await createOrUpdateTourCompartidoEvent(reservaActualizada as any)
+                                    : await createCalendarEvent(reservaActualizada as any);
+                                if (eventId) {
+                                    await prisma.reserva.update({
+                                        where: { id: reserva.id },
+                                        data: { googleCalendarEventId: eventId }
+                                    });
+                                    console.log(`✅ [Webhook] Calendar event created for: ${reserva.codigo}`);
                                 }
-                            } catch (e) {
-                                console.error('Error creating delayed calendar event:', e);
                             }
+                        } catch (e) {
+                            console.error('Error creating calendar event:', e);
                         }
                     }
                 } catch (emailError) {
                     console.error('Error sending payment email:', emailError);
-                    // No fallar el webhook si el email falla
                 }
             }
 

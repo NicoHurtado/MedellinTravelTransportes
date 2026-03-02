@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createCalendarEvent, updateCalendarEvent } from '@/lib/google-calendar-service';
+import { createCalendarEvent, updateCalendarEvent, createOrUpdateTourCompartidoEvent } from '@/lib/google-calendar-service';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -18,10 +18,8 @@ export async function GET(request: Request) {
         };
 
         if (mode === 'update') {
-            // Fetch reservations that HAVE an event ID to update them
             whereClause.googleCalendarEventId = { not: null };
         } else {
-            // Default: Fetch reservations that DO NOT have an event ID to create them
             whereClause.googleCalendarEventId = null;
         }
 
@@ -31,7 +29,8 @@ export async function GET(request: Request) {
                 servicio: true,
                 conductor: true,
                 vehiculo: true,
-                aliado: true
+                aliado: true,
+                asistentes: true
             },
             orderBy: {
                 fecha: 'desc'
@@ -42,37 +41,69 @@ export async function GET(request: Request) {
 
         let syncedCount = 0;
         let errorCount = 0;
-        const results = [];
+        const results: any[] = [];
+        const tourCompartidoSynced = new Set<string>();
 
         // 2. Iterate and sync/update
         for (const reserva of reservationsToSync) {
             try {
-                if (mode === 'update') {
-                    console.log(`🔄 Updating reservation ${reserva.codigo}...`);
-                    const success = await updateCalendarEvent(reserva);
+                const isTourCompartido = reserva.servicio?.tipo === 'TOUR_COMPARTIDO';
 
-                    if (success) {
-                        syncedCount++;
-                        results.push({ codigo: reserva.codigo, status: 'success', action: 'updated' });
+                if (mode === 'update') {
+                    if (isTourCompartido) {
+                        const dateKey = `${reserva.servicioId}-${new Date(reserva.fecha).toISOString().split('T')[0]}`;
+                        if (tourCompartidoSynced.has(dateKey)) {
+                            results.push({ codigo: reserva.codigo, status: 'skipped', action: 'already synced via consolidated event' });
+                            continue;
+                        }
+                        tourCompartidoSynced.add(dateKey);
+                        const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                        if (eventId) {
+                            syncedCount++;
+                            results.push({ codigo: reserva.codigo, status: 'success', eventId, action: 'tour_compartido_updated' });
+                        } else {
+                            errorCount++;
+                            results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not update tour event' });
+                        }
                     } else {
-                        errorCount++;
-                        results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not update event' });
+                        const success = await updateCalendarEvent(reserva);
+                        if (success) {
+                            syncedCount++;
+                            results.push({ codigo: reserva.codigo, status: 'success', action: 'updated' });
+                        } else {
+                            errorCount++;
+                            results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not update event' });
+                        }
                     }
                 } else {
-                    console.log(`➕ Creating event for reservation ${reserva.codigo}...`);
-                    const eventId = await createCalendarEvent(reserva);
-
-                    if (eventId) {
-                        await prisma.reserva.update({
-                            where: { id: reserva.id },
-                            data: { googleCalendarEventId: eventId }
-                        });
-
-                        syncedCount++;
-                        results.push({ codigo: reserva.codigo, status: 'success', eventId, action: 'created' });
+                    if (isTourCompartido) {
+                        const dateKey = `${reserva.servicioId}-${new Date(reserva.fecha).toISOString().split('T')[0]}`;
+                        if (tourCompartidoSynced.has(dateKey)) {
+                            results.push({ codigo: reserva.codigo, status: 'skipped', action: 'already synced via consolidated event' });
+                            continue;
+                        }
+                        tourCompartidoSynced.add(dateKey);
+                        const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                        if (eventId) {
+                            syncedCount++;
+                            results.push({ codigo: reserva.codigo, status: 'success', eventId, action: 'tour_compartido_created' });
+                        } else {
+                            errorCount++;
+                            results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not create tour event' });
+                        }
                     } else {
-                        errorCount++;
-                        results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not create event' });
+                        const eventId = await createCalendarEvent(reserva);
+                        if (eventId) {
+                            await prisma.reserva.update({
+                                where: { id: reserva.id },
+                                data: { googleCalendarEventId: eventId }
+                            });
+                            syncedCount++;
+                            results.push({ codigo: reserva.codigo, status: 'success', eventId, action: 'created' });
+                        } else {
+                            errorCount++;
+                            results.push({ codigo: reserva.codigo, status: 'failed', error: 'Could not create event' });
+                        }
                     }
                 }
 

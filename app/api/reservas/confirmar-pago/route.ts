@@ -118,8 +118,9 @@ async function handleReservaPayment(orderId: string) {
                 });
                 console.log(`📅 [Tour Compartido] Calendar event created/updated: ${eventId}`);
             }
-        } else if (isExternalReservation || (updated.aliado?.tipo === 'AIRBNB' || updated.aliado?.tipo === 'HOTEL')) {
-            // External reservation or AIRBNB/HOTEL ally - create calendar event now
+        } else {
+            // Any non-tour reservation: ensure it has a calendar event after payment confirmation.
+            // This covers external bookings and ALL ally types (e.g., Medellin Florece).
             if (!updated.googleCalendarEventId) {
                 const { createCalendarEvent } = await import('@/lib/google-calendar-service');
                 const eventId = await createCalendarEvent(updated as any);

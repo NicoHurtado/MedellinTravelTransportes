@@ -281,60 +281,54 @@ export async function POST(request: Request) {
             },
         });
 
-        // 📧📅 Notificaciones externas en segundo plano (no bloqueantes)
+        // 📅 Calendar: BLOQUEANTE para que el evento aparezca inmediatamente
         const isExternalReservation = !body.esReservaAliado && !body.aliadoId;
+        try {
+            const calendarStart = Date.now();
+            if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
+                const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
+                if (eventId) {
+                    await prisma.reserva.update({
+                        where: { id: reserva.id },
+                        data: { googleCalendarEventId: eventId }
+                    });
+                    console.log('✅ [Tour Compartido] Calendar event created/updated:', eventId);
+                }
+            } else {
+                const { createCalendarEvent } = await import('@/lib/google-calendar-service');
+                const eventId = await createCalendarEvent(reserva as any);
+                if (eventId) {
+                    await prisma.reserva.update({
+                        where: { id: reserva.id },
+                        data: { googleCalendarEventId: eventId }
+                    });
+                    console.log('✅ [Reserva] Google Calendar event created:', eventId);
+                }
+            }
+            console.log(`✅ [Reserva] Calendar flow completed in ${Date.now() - calendarStart}ms`);
+        } catch (calendarError) {
+            console.error('❌ [Reserva] Calendar error (non-blocking):', calendarError);
+        }
+
+        // 📧 Email: en segundo plano (no bloqueante)
         void (async () => {
-            const bgStart = Date.now();
             try {
-                const emailTask = (async () => {
-                    const emailStart = Date.now();
-                    const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
+                const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
 
-                    if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                        await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
-                    } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
-                        await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
-                    } else if (!isExternalReservation) {
-                        const aliadoEmail = reserva.aliado?.email || null;
-                        await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
-                    } else {
-                        console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
-                    }
-
-                    console.log(`✅ [Reserva] Email flow completed in ${Date.now() - emailStart}ms`);
-                })();
-
-                const calendarTask = (async () => {
-                    const calendarStart = Date.now();
-                    if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
-                        const { createOrUpdateTourCompartidoEvent } = await import('@/lib/google-calendar-service');
-                        const eventId = await createOrUpdateTourCompartidoEvent(reserva as any);
-                        if (eventId) {
-                            await prisma.reserva.update({
-                                where: { id: reserva.id },
-                                data: { googleCalendarEventId: eventId }
-                            });
-                            console.log('✅ [Tour Compartido] Calendar event created/updated:', eventId);
-                        }
-                    } else {
-                        const { createCalendarEvent } = await import('@/lib/google-calendar-service');
-                        const eventId = await createCalendarEvent(reserva as any);
-                        if (eventId) {
-                            await prisma.reserva.update({
-                                where: { id: reserva.id },
-                                data: { googleCalendarEventId: eventId }
-                            });
-                            console.log('✅ [Reserva] Google Calendar event created:', eventId);
-                        }
-                    }
-
-                    console.log(`✅ [Reserva] Calendar flow completed in ${Date.now() - calendarStart}ms`);
-                })();
-
-                await Promise.allSettled([emailTask, calendarTask]);
-                console.log(`✅ [Reserva] Background integrations completed in ${Date.now() - bgStart}ms`);
-            } catch (bgError) {
-                console.error('❌ [Reserva] Background integration error:', bgError);
+                if (reserva.servicio.tipo === 'TOUR_COMPARTIDO') {
+                    await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
+                } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
+                    await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
+                } else if (!isExternalReservation) {
+                    const aliadoEmail = reserva.aliado?.email || null;
+                    await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
+                } else {
+                    console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
+                }
+                console.log('✅ [Reserva] Email flow completed');
+            } catch (emailError) {
+                console.error('❌ [Reserva] Email error:', emailError);
             }
         })();
 
