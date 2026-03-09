@@ -421,6 +421,9 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
         if (formData.municipio === Municipio.OTRO && !formData.otroMunicipio) {
             return false;
         }
+        if (service.esPorHoras && (!formData.cantidadHoras || formData.cantidadHoras < 4)) {
+            return false;
+        }
         return formData.numeroPasajeros > 0;
     };
 
@@ -1184,22 +1187,23 @@ export default function Step1TripDetails({ service, formData, updateFormData, on
                                 {language === 'es' ? 'Cantidad de Horas' : 'Number of Hours'} *
                             </label>
                             <input
-                                type="text"
+                                type="number"
                                 inputMode="numeric"
-                                value={formData.cantidadHoras === 4 ? '' : (formData.cantidadHoras || '')}
+                                min={4}
+                                value={formData.cantidadHoras ?? ''}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    // Allow only numbers or empty
                                     if (val === '') {
                                         updateFormData({ cantidadHoras: undefined });
-                                    } else if (/^\d+$/.test(val)) {
-                                        updateFormData({ cantidadHoras: parseInt(val) });
+                                    } else {
+                                        const num = parseInt(val);
+                                        if (!isNaN(num)) {
+                                            updateFormData({ cantidadHoras: num < 4 ? 4 : num });
+                                        }
                                     }
                                 }}
-                                onBlur={(e) => {
-                                    // On blur, ensure minimum value of 4
-                                    const val = e.target.value;
-                                    if (val === '' || parseInt(val) < 4) {
+                                onBlur={() => {
+                                    if (!formData.cantidadHoras || formData.cantidadHoras < 4) {
                                         updateFormData({ cantidadHoras: 4 });
                                     }
                                 }}
