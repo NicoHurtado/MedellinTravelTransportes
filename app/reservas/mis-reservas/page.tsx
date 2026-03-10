@@ -223,7 +223,7 @@ function MisReservasContent() {
         return servicio.nombre?.es || '';
     };
 
-    const serviciosUnicos = [...new Set(reservas.map(r => getServiceName(r.servicio)))].filter(Boolean).sort();
+    const serviciosUnicos = Array.from(new Set(reservas.map(r => getServiceName(r.servicio)))).filter(Boolean).sort();
 
     const filteredReservas = reservas.filter((reserva) => {
         const createdAt = new Date(reserva.createdAt);
