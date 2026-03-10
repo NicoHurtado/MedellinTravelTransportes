@@ -251,19 +251,34 @@ export async function POST(request: Request) {
 
         // Enviar emails de confirmación individuales a cada cliente
         try {
-            const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+            const { sendReservaConfirmadaEmail, sendCotizacionPendienteEmail, sendTourCompartidoConfirmationEmail } = await import('@/lib/email-service');
 
             console.log(`📧 [Pedido] Sending ${pedido.reservas.length} confirmation emails for pedido: ${pedido.codigo}`);
 
             const aliadoEmail = pedido.aliado?.email || null;
+            const isExternalOrder = !body.cartItems[0]?.esReservaAliado && !body.cartItems[0]?.aliadoId;
 
             for (const reserva of pedido.reservas) {
                 try {
-                    await sendReservaConfirmadaEmail(
-                        reserva as any,
-                        body.idioma || 'ES',
-                        aliadoEmail
-                    );
+                    if (reserva.servicio?.tipo === 'TOUR_COMPARTIDO') {
+                        await sendTourCompartidoConfirmationEmail(reserva as any, body.idioma || 'ES');
+                    } else if (reserva.estado === 'PENDIENTE_COTIZACION') {
+                        await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
+                    } else if (!isExternalOrder) {
+                        await sendReservaConfirmadaEmail(
+                            reserva as any,
+                            body.idioma || 'ES',
+                            aliadoEmail
+                        );
+                    } else if (metodoPago === 'EFECTIVO') {
+                        await sendReservaConfirmadaEmail(
+                            reserva as any,
+                            body.idioma || 'ES',
+                            null
+                        );
+                    } else {
+                        console.log(`📧 [Pedido] Reserva externa ${reserva.codigo}: email se enviará al confirmar pago`);
+                    }
                     console.log(`✅ [Pedido] Email sent successfully for reserva: ${reserva.codigo} to ${reserva.emailCliente}${aliadoEmail ? ` + ally: ${aliadoEmail}` : ''}`);
                 } catch (emailError) {
                     console.error(`❌ [Pedido] Error sending email for reserva ${reserva.codigo}:`, emailError);

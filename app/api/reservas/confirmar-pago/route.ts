@@ -138,15 +138,13 @@ async function handleReservaPayment(orderId: string) {
         console.error('❌ Error creating calendar event:', calendarError);
     }
 
-    // 📧 Enviar email de confirmación de pago
-    if (isExternalReservation || updated.aliado?.tipo === 'AIRBNB' || updated.aliado?.tipo === 'HOTEL') {
-        try {
-            const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
-            await sendReservaConfirmadaEmail(updated as any, updated.idioma || 'ES', updated.aliado?.email || null);
-            console.log(`📧 [Reserva] Email de confirmación enviado para: ${orderId}`);
-        } catch (emailError) {
-            console.error('❌ Error sending confirmation email:', emailError);
-        }
+    // 📧 Enviar email de confirmación de pago a TODOS los tipos de reserva
+    try {
+        const { sendReservaConfirmadaEmail } = await import('@/lib/email-service');
+        await sendReservaConfirmadaEmail(updated as any, updated.idioma || 'ES', updated.aliado?.email || null);
+        console.log(`📧 [Reserva] Email de confirmación enviado para: ${orderId}`);
+    } catch (emailError) {
+        console.error('❌ Error sending confirmation email:', emailError);
     }
 
     return NextResponse.json({

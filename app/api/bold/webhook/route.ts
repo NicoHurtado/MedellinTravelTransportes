@@ -133,17 +133,14 @@ export async function POST(req: NextRequest) {
                                 pedido.idioma as 'ES' | 'EN'
                             );
 
-                            const allyType = reservaActualizada.aliado?.tipo;
-                            if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
-                                try {
-                                    await sendReservaConfirmadaEmail(
-                                        reservaActualizada as any,
-                                        pedido.idioma as 'ES' | 'EN',
-                                        reservaActualizada.aliado?.email || null
-                                    );
-                                } catch (e) {
-                                    console.error('Error sending delayed confirmation email:', e);
-                                }
+                            try {
+                                await sendReservaConfirmadaEmail(
+                                    reservaActualizada as any,
+                                    pedido.idioma as 'ES' | 'EN',
+                                    reservaActualizada.aliado?.email || null
+                                );
+                            } catch (e) {
+                                console.error('Error sending confirmation email:', e);
                             }
 
                             // Create/update calendar event for ALL reservation types
@@ -263,17 +260,14 @@ export async function POST(req: NextRequest) {
                             reserva.idioma as 'ES' | 'EN'
                         );
 
-                        const allyType = reservaActualizada.aliado?.tipo;
-                        if (allyType === 'AIRBNB' || allyType === 'HOTEL') {
-                            try {
-                                await sendReservaConfirmadaEmail(
-                                    reservaActualizada as any,
-                                    reserva.idioma as 'ES' | 'EN',
-                                    reservaActualizada.aliado?.email || null
-                                );
-                            } catch (e) {
-                                console.error('Error sending delayed confirmation email:', e);
-                            }
+                        try {
+                            await sendReservaConfirmadaEmail(
+                                reservaActualizada as any,
+                                reserva.idioma as 'ES' | 'EN',
+                                reservaActualizada.aliado?.email || null
+                            );
+                        } catch (e) {
+                            console.error('Error sending confirmation email:', e);
                         }
 
                         // Create/update calendar event for ALL reservation types

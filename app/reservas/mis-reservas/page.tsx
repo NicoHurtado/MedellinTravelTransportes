@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiSearch } from 'react-icons/fi';
 import Header from '@/components/landing/Header';
 import Footer from '@/components/landing/Footer';
 import { DateInput } from '@/components/ui';
@@ -17,12 +17,31 @@ interface Reserva {
     emailCliente: string;
     whatsappCliente: string;
     estado: string;
+    precioBase: number;
+    precioAdicionales: number;
+    recargoNocturno: number;
+    tarifaMunicipio: number;
+    descuentoAliado: number;
     precioTotal: number;
     comisionAliado: number;
     numeroPasajeros: number;
     municipio: string;
     otroMunicipio?: string;
     lugarRecogida?: string;
+    notas?: string;
+    idioma?: string;
+    aeropuertoTipo?: string;
+    aeropuertoNombre?: string;
+    numeroVuelo?: string;
+    guiaCertificado?: boolean;
+    vueltaBote?: boolean;
+    cantidadAlmuerzos?: number;
+    cantidadMotos?: number;
+    cantidadParticipantes?: number;
+    cantidadHoras?: number;
+    trasladoTipo?: string;
+    trasladoDestino?: string;
+    datosDinamicos?: any;
     servicio: {
         nombre: any;
     };
@@ -33,6 +52,15 @@ interface Reserva {
         nombre: string;
     };
     asistentes?: any[];
+    adicionalesSeleccionados?: {
+        id: string;
+        cantidad: number;
+        precioUnitario: number;
+        precioTotal: number;
+        adicional: {
+            nombre: string;
+        };
+    }[];
 }
 
 function MisReservasContent() {
@@ -50,6 +78,10 @@ function MisReservasContent() {
     // Filters
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
+    const [filterNombre, setFilterNombre] = useState('');
+    const [filterServicio, setFilterServicio] = useState('');
+    const [filterCodigo, setFilterCodigo] = useState('');
+    const [filterEstado, setFilterEstado] = useState('');
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -186,7 +218,13 @@ function MisReservasContent() {
         }
     };
 
-    // Filter reservations by date range
+    const getServiceName = (servicio: { nombre: any }) => {
+        if (typeof servicio.nombre === 'string') return servicio.nombre;
+        return servicio.nombre?.es || '';
+    };
+
+    const serviciosUnicos = [...new Set(reservas.map(r => getServiceName(r.servicio)))].filter(Boolean).sort();
+
     const filteredReservas = reservas.filter((reserva) => {
         const createdAt = new Date(reserva.createdAt);
 
@@ -202,13 +240,33 @@ function MisReservasContent() {
             if (createdAt > hasta) return false;
         }
 
+        if (filterNombre) {
+            const nombre = reserva.nombreCliente.toLowerCase();
+            if (!nombre.includes(filterNombre.toLowerCase())) return false;
+        }
+
+        if (filterServicio) {
+            const servicioName = getServiceName(reserva.servicio);
+            if (servicioName !== filterServicio) return false;
+        }
+
+        if (filterCodigo) {
+            const codigo = reserva.codigo.toLowerCase();
+            if (!codigo.includes(filterCodigo.toLowerCase())) return false;
+        }
+
+        if (filterEstado) {
+            if (reserva.estado !== filterEstado) return false;
+        }
+
         return true;
     });
 
-    // Reset to page 1 when filters change
+    const hasActiveFilters = fechaDesde || fechaHasta || filterNombre || filterServicio || filterCodigo || filterEstado;
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [fechaDesde, fechaHasta]);
+    }, [fechaDesde, fechaHasta, filterNombre, filterServicio, filterCodigo, filterEstado]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredReservas.length / itemsPerPage);
@@ -263,42 +321,114 @@ function MisReservasContent() {
                     <div className="bg-white rounded-2xl shadow-sm p-8">
                         <h1 className="text-3xl font-bold mb-6">Mis Reservas</h1>
 
-                        {/* Date Filters */}
-                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        {/* Filters */}
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Buscar por Nombre
+                                    </label>
+                                    <div className="relative">
+                                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                        <input
+                                            type="text"
+                                            value={filterNombre}
+                                            onChange={(e) => setFilterNombre(e.target.value)}
+                                            placeholder="Nombre del cliente..."
+                                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Buscar por Código
+                                    </label>
+                                    <div className="relative">
+                                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                        <input
+                                            type="text"
+                                            value={filterCodigo}
+                                            onChange={(e) => setFilterCodigo(e.target.value)}
+                                            placeholder="Código de reserva..."
+                                            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm font-mono"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Servicio
+                                    </label>
+                                    <select
+                                        value={filterServicio}
+                                        onChange={(e) => setFilterServicio(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm bg-white"
+                                    >
+                                        <option value="">Todos los servicios</option>
+                                        {serviciosUnicos.map((s) => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                        Estado
+                                    </label>
+                                    <select
+                                        value={filterEstado}
+                                        onChange={(e) => setFilterEstado(e.target.value)}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm bg-white"
+                                    >
+                                        <option value="">Todos los estados</option>
+                                        <option value="PENDIENTE_COTIZACION">Pendiente Cotización</option>
+                                        <option value="CONFIRMADA_PENDIENTE_PAGO">Confirmada</option>
+                                        <option value="PAGADA_PENDIENTE_ASIGNACION">Pagada</option>
+                                        <option value="CONFIRMADA_PENDIENTE_ASIGNACION">Confirmada</option>
+                                        <option value="ASIGNADA_PENDIENTE_COMPLETAR">Asignada</option>
+                                        <option value="COMPLETADA">Completada</option>
+                                        <option value="CANCELADA">Cancelada</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                         Fecha Inicio
                                     </label>
                                     <DateInput
                                         value={fechaDesde}
                                         onChange={(value) => setFechaDesde(value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
                                         Fecha Fin
                                     </label>
                                     <DateInput
                                         value={fechaHasta}
                                         onChange={(value) => setFechaHasta(value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none"
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D6A75D] focus:border-transparent outline-none text-sm"
                                     />
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setFechaDesde('');
-                                        setFechaHasta('');
-                                    }}
-                                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors"
-                                >
-                                    Limpiar Filtros
-                                </button>
+                                <div className="md:col-span-2 flex items-end gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setFechaDesde('');
+                                            setFechaHasta('');
+                                            setFilterNombre('');
+                                            setFilterServicio('');
+                                            setFilterCodigo('');
+                                            setFilterEstado('');
+                                        }}
+                                        className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors text-sm"
+                                    >
+                                        Limpiar Filtros
+                                    </button>
+                                </div>
                             </div>
-                            {(fechaDesde || fechaHasta) && (
-                                <p className="text-sm text-gray-600 mt-2">
-                                    Mostrando {filteredReservas.length} reservas filtradas
+                            {hasActiveFilters && (
+                                <p className="text-sm text-gray-600">
+                                    Mostrando {filteredReservas.length} de {reservas.length} reservas
                                 </p>
                             )}
                         </div>
@@ -507,6 +637,18 @@ function MisReservasContent() {
                                             <p className="font-semibold">{selectedReserva.lugarRecogida}</p>
                                         </div>
                                     )}
+                                    {selectedReserva.idioma && (
+                                        <div>
+                                            <p className="text-sm text-gray-500">Idioma</p>
+                                            <p className="font-semibold">{selectedReserva.idioma}</p>
+                                        </div>
+                                    )}
+                                    {selectedReserva.cantidadHoras && selectedReserva.cantidadHoras > 0 && (
+                                        <div>
+                                            <p className="text-sm text-gray-500">Duración</p>
+                                            <p className="font-semibold">{selectedReserva.cantidadHoras} horas</p>
+                                        </div>
+                                    )}
                                     {selectedReserva.vehiculo && (
                                         <div>
                                             <p className="text-sm text-gray-500">Vehículo</p>
@@ -521,6 +663,117 @@ function MisReservasContent() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Airport Info */}
+                            {(selectedReserva.aeropuertoTipo || selectedReserva.numeroVuelo) && (
+                                <div className="border-t pt-6">
+                                    <h3 className="text-lg font-bold mb-4">Información de Vuelo</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {selectedReserva.aeropuertoTipo && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Tipo de Traslado</p>
+                                                <p className="font-semibold">
+                                                    {selectedReserva.aeropuertoTipo === 'LLEGADA' ? 'Llegada (Aeropuerto → Hotel)' : 'Salida (Hotel → Aeropuerto)'}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.aeropuertoNombre && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Aeropuerto</p>
+                                                <p className="font-semibold">{selectedReserva.aeropuertoNombre}</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.numeroVuelo && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Número de Vuelo</p>
+                                                <p className="font-semibold">{selectedReserva.numeroVuelo}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Transfer Info */}
+                            {(selectedReserva.trasladoTipo || selectedReserva.trasladoDestino) && (
+                                <div className="border-t pt-6">
+                                    <h3 className="text-lg font-bold mb-4">Información de Traslado</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {selectedReserva.trasladoTipo && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Tipo de Traslado</p>
+                                                <p className="font-semibold">{selectedReserva.trasladoTipo}</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.trasladoDestino && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Destino</p>
+                                                <p className="font-semibold">{selectedReserva.trasladoDestino}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Extras */}
+                            {(selectedReserva.guiaCertificado || selectedReserva.vueltaBote || (selectedReserva.cantidadAlmuerzos && selectedReserva.cantidadAlmuerzos > 0) || (selectedReserva.cantidadMotos && selectedReserva.cantidadMotos > 0) || (selectedReserva.cantidadParticipantes && selectedReserva.cantidadParticipantes > 0)) && (
+                                <div className="border-t pt-6">
+                                    <h3 className="text-lg font-bold mb-4">Extras</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {selectedReserva.guiaCertificado && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                                                <p className="font-semibold">Guía Certificado</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.vueltaBote && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                                                <p className="font-semibold">Vuelta en Bote</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.cantidadAlmuerzos !== undefined && selectedReserva.cantidadAlmuerzos > 0 && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Almuerzos</p>
+                                                <p className="font-semibold">{selectedReserva.cantidadAlmuerzos}</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.cantidadMotos !== undefined && selectedReserva.cantidadMotos > 0 && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Motos</p>
+                                                <p className="font-semibold">{selectedReserva.cantidadMotos}</p>
+                                            </div>
+                                        )}
+                                        {selectedReserva.cantidadParticipantes !== undefined && selectedReserva.cantidadParticipantes > 0 && (
+                                            <div>
+                                                <p className="text-sm text-gray-500">Participantes</p>
+                                                <p className="font-semibold">{selectedReserva.cantidadParticipantes}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Adicionales Seleccionados */}
+                            {selectedReserva.adicionalesSeleccionados && selectedReserva.adicionalesSeleccionados.length > 0 && (
+                                <div className="border-t pt-6">
+                                    <h3 className="text-lg font-bold mb-4">Adicionales</h3>
+                                    <div className="space-y-2">
+                                        {selectedReserva.adicionalesSeleccionados.map((adicional) => (
+                                            <div key={adicional.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                                <div>
+                                                    <span className="font-medium">{adicional.adicional.nombre}</span>
+                                                    {adicional.cantidad > 1 && (
+                                                        <span className="text-sm text-gray-500 ml-2">x{adicional.cantidad}</span>
+                                                    )}
+                                                </div>
+                                                <span className="font-semibold">
+                                                    ${Number(adicional.precioTotal).toLocaleString('es-CO')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Client Info */}
                             <div className="border-t pt-6">
@@ -545,11 +798,51 @@ function MisReservasContent() {
                             <div className="border-t pt-6">
                                 <h3 className="text-lg font-bold mb-4">Precios</h3>
                                 <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Total de Reserva</span>
-                                        <span className="font-bold text-lg">
-                                            ${Number(selectedReserva.precioTotal).toLocaleString('es-CO')}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Precio Base</span>
+                                        <span className="font-medium">
+                                            ${Number(selectedReserva.precioBase).toLocaleString('es-CO')}
                                         </span>
+                                    </div>
+                                    {Number(selectedReserva.precioAdicionales) > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Adicionales</span>
+                                            <span className="font-medium">
+                                                +${Number(selectedReserva.precioAdicionales).toLocaleString('es-CO')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {Number(selectedReserva.recargoNocturno) > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Recargo Nocturno</span>
+                                            <span className="font-medium">
+                                                +${Number(selectedReserva.recargoNocturno).toLocaleString('es-CO')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {Number(selectedReserva.tarifaMunicipio) > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Tarifa Municipio</span>
+                                            <span className="font-medium">
+                                                +${Number(selectedReserva.tarifaMunicipio).toLocaleString('es-CO')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {Number(selectedReserva.descuentoAliado) > 0 && (
+                                        <div className="flex justify-between text-sm text-orange-600">
+                                            <span>Descuento Aliado</span>
+                                            <span className="font-medium">
+                                                -${Number(selectedReserva.descuentoAliado).toLocaleString('es-CO')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="border-t pt-2 mt-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-800 font-semibold">Total de Reserva</span>
+                                            <span className="font-bold text-lg">
+                                                ${Number(selectedReserva.precioTotal).toLocaleString('es-CO')}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="flex justify-between text-green-600">
                                         <span className="font-semibold">Tu Comisión</span>
@@ -560,7 +853,7 @@ function MisReservasContent() {
                                 </div>
                             </div>
 
-                            {/* Attendees if any */}
+                            {/* Attendees */}
                             {selectedReserva.asistentes && selectedReserva.asistentes.length > 0 && (
                                 <div className="border-t pt-6">
                                     <h3 className="text-lg font-bold mb-4">Asistentes</h3>
@@ -573,6 +866,36 @@ function MisReservasContent() {
                                                 </span>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dynamic Data */}
+                            {selectedReserva.datosDinamicos && typeof selectedReserva.datosDinamicos === 'object' && Object.keys(selectedReserva.datosDinamicos).length > 0 && (() => {
+                                const datos = selectedReserva.datosDinamicos;
+                                const entries = Object.entries(datos).filter(([, v]) => v !== null && v !== '' && v !== undefined);
+                                if (entries.length === 0) return null;
+                                return (
+                                    <div className="border-t pt-6">
+                                        <h3 className="text-lg font-bold mb-4">Datos Adicionales</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {entries.map(([key, value]) => (
+                                                <div key={key}>
+                                                    <p className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}</p>
+                                                    <p className="font-semibold">{String(value)}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Notes */}
+                            {selectedReserva.notas && (
+                                <div className="border-t pt-6">
+                                    <h3 className="text-lg font-bold mb-4">Notas Adicionales</h3>
+                                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <p className="text-gray-800 whitespace-pre-wrap">{selectedReserva.notas}</p>
                                     </div>
                                 </div>
                             )}

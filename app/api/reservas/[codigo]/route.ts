@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { generateBoldHash } from '@/lib/bold';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { sendCambioEstadoEmail, sendPagoAprobadoEmail, sendConductorAsignadoEmail, sendServicioCompletadoEmail, sendCotizacionListaEmail } from '@/lib/email-service';
+import { sendCambioEstadoEmail, sendPagoAprobadoEmail, sendConductorAsignadoEmail, sendServicioCompletadoEmail, sendCotizacionListaEmail, sendCancelacionEmail } from '@/lib/email-service';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -157,28 +157,28 @@ export async function PUT(
         });
 
         // Enviar emails según cambios de estado
-        if (body.estado && body.estado !== reservaActual.estado) {
-            // Cambió estado
-            await sendCambioEstadoEmail(reservaActualizada, reservaActual.estado);
+        try {
+            if (body.estado && body.estado !== reservaActual.estado) {
+                await sendCambioEstadoEmail(reservaActualizada, reservaActual.estado);
 
-            // Emails específicos por estado
-            if (body.estado === 'PAGADA_PENDIENTE_ASIGNACION' && reservaActual.estado !== 'PAGADA_PENDIENTE_ASIGNACION') {
-                await sendPagoAprobadoEmail(reservaActualizada);
+                if (body.estado === 'PAGADA_PENDIENTE_ASIGNACION' && reservaActual.estado !== 'PAGADA_PENDIENTE_ASIGNACION') {
+                    await sendPagoAprobadoEmail(reservaActualizada);
+                }
+
+                if (body.estado === 'COMPLETADA' && reservaActual.estado !== 'COMPLETADA') {
+                    await sendServicioCompletadoEmail(reservaActualizada);
+                }
+
+                if (reservaActual.estado === 'PENDIENTE_COTIZACION' && body.estado === 'CONFIRMADA_PENDIENTE_PAGO') {
+                    await sendCotizacionListaEmail(reservaActualizada);
+                }
             }
 
-            if (body.estado === 'COMPLETADA' && reservaActual.estado !== 'COMPLETADA') {
-                await sendServicioCompletadoEmail(reservaActualizada);
+            if (body.conductorId && body.conductorId !== reservaActual.conductorId) {
+                await sendConductorAsignadoEmail(reservaActualizada);
             }
-
-            // Trigger específico: Cotización Lista (De Pendiente Cotización -> Confirmada Pendiente Pago)
-            if (reservaActual.estado === 'PENDIENTE_COTIZACION' && body.estado === 'CONFIRMADA_PENDIENTE_PAGO') {
-                await sendCotizacionListaEmail(reservaActualizada);
-            }
-        }
-
-        // Si se asignó conductor
-        if (body.conductorId && body.conductorId !== reservaActual.conductorId) {
-            await sendConductorAsignadoEmail(reservaActualizada);
+        } catch (emailError) {
+            console.error('❌ [Reserva] Error sending status change email:', emailError);
         }
 
         // Actualizar evento en Google Calendar si cambió fecha/hora o se asignó conductor
@@ -261,7 +261,11 @@ export async function DELETE(
         });
 
         // Enviar email de cancelación
-        await sendCambioEstadoEmail(reservaActualizada, reserva.estado);
+        try {
+            await sendCancelacionEmail(reservaActualizada);
+        } catch (emailError) {
+            console.error('❌ [Reserva] Error sending cancellation email:', emailError);
+        }
 
         // Actualizar/eliminar evento de Google Calendar
         try {

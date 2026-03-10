@@ -41,6 +41,22 @@ export async function GET(
                         nombre: true,
                     },
                 },
+                vehiculo: {
+                    select: {
+                        nombre: true,
+                    },
+                },
+                conductor: {
+                    select: {
+                        nombre: true,
+                    },
+                },
+                asistentes: true,
+                adicionalesSeleccionados: {
+                    include: {
+                        adicional: true,
+                    },
+                },
             },
         });
 
