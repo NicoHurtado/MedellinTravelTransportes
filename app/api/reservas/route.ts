@@ -321,9 +321,14 @@ export async function POST(request: Request) {
                 } else if (estadoInicial === EstadoReserva.PENDIENTE_COTIZACION) {
                     await sendCotizacionPendienteEmail(reserva as any, body.idioma || 'ES');
                 } else if (!isExternalReservation) {
+                    // Reserva de aliado: enviar email al cliente y al aliado
                     const aliadoEmail = reserva.aliado?.email || null;
                     await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', aliadoEmail);
+                } else if (metodoPago === 'EFECTIVO') {
+                    // Reserva externa con pago en efectivo: enviar confirmación inmediatamente
+                    await sendReservaConfirmadaEmail(reserva as any, body.idioma || 'ES', null);
                 } else {
+                    // Reserva externa con Bold: el email se enviará al confirmar pago
                     console.log('📧 [Reserva Externa] Email de confirmación se enviará al confirmar pago');
                 }
                 console.log('✅ [Reserva] Email flow completed');
