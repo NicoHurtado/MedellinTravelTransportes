@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { FiStar, FiPhone, FiMail, FiLoader, FiCheckCircle } from 'react-icons/fi';
+import { FiStar, FiPhone, FiMail, FiLoader, FiCheckCircle, FiGlobe } from 'react-icons/fi';
 import { TIMELINE_STATES, getStateOrder, canCancelReservation } from '@/lib/timeline-states';
 import { EstadoReserva } from '@prisma/client';
 import { BoldButton } from '@/components/bold/BoldButton';
@@ -60,7 +60,57 @@ const DICTIONARY = {
         noEspecificado: 'No especificado',
         tuHotel: 'Tu Hotel/Residencia',
         aeropuertoJMC: 'Aeropuerto JMC',
-        aeropuertoOH: 'Aeropuerto Olaya Herrera'
+        aeropuertoOH: 'Aeropuerto Olaya Herrera',
+        // Pedido view
+        codigoPedido: 'Código de Pedido',
+        pagoEfectivo: 'Pago en Efectivo',
+        pendientePago: 'Pendiente de Pago',
+        serviciosIncluidos: 'Servicios Incluidos',
+        codigo: 'Código',
+        metodoPagoLabel: 'Método de pago',
+        efectivo: 'Efectivo',
+        tarjetaBold: 'Tarjeta (BOLD)',
+        cliente: 'Cliente',
+        fecha: 'Fecha',
+        hora: 'Hora',
+        ocultarDetalles: '▼ Ocultar detalles',
+        verMasDetalles: '▶ Ver más detalles',
+        informacionCompleta: 'Información Completa',
+        contacto: 'Contacto',
+        ubicacion: 'Ubicación',
+        especificacion: 'Especificación',
+        vehiculoLabel: 'Vehículo',
+        aeropuertoLabel: 'Aeropuerto',
+        tipo: 'Tipo',
+        vuelo: 'Vuelo',
+        trasladoLabel: 'Traslado',
+        extras: 'Extras',
+        si: 'Sí',
+        no: 'No',
+        tourCompartidoInfo: 'Información del Tour Compartido',
+        puntoEncuentro: 'Punto de Encuentro:',
+        horaSalida: 'Hora de Salida:',
+        notaTourCompartido: 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.',
+        notas: 'Notas',
+        desglosePrecio: 'Desglose de Precio',
+        adicionales: 'Adicionales',
+        descuento: 'Descuento',
+        resumenPago: 'Resumen de Pago',
+        subtotal: 'Subtotal',
+        servicios: 'servicios',
+        recargoTarjeta: '+ 6% Recargo por pago con tarjeta (BOLD)',
+        pagoCajaPendiente: 'Pago en caja pendiente',
+        pagarExacto: 'Debes pagar exactamente',
+        alMomento: 'COP al momento del servicio.',
+        completaPagoBold: 'Completa tu pago con BOLD, una plataforma verificada y segura.',
+        impuestosPago: '+ 6% Impuestos del pago:',
+        pagoEfectivoServicio: 'Pago en Efectivo',
+        pagarCajaExacto: 'Debes pagar en caja exactamente',
+        copAlRecibir: 'COP al recibir el servicio.',
+        seleccionaCalificacion: 'Por favor selecciona una calificación',
+        confirmarCancelacion: '¿Estás seguro que deseas cancelar esta reserva?',
+        canceladaExito: 'Reserva cancelada exitosamente',
+        numeroVuelo: 'Número de Vuelo'
     },
     EN: {
         progreso: 'Progress',
@@ -114,7 +164,57 @@ const DICTIONARY = {
         noEspecificado: 'Not specified',
         tuHotel: 'Your Hotel/Residence',
         aeropuertoJMC: 'JMC Airport',
-        aeropuertoOH: 'Olaya Herrera Airport'
+        aeropuertoOH: 'Olaya Herrera Airport',
+        // Pedido view
+        codigoPedido: 'Order Code',
+        pagoEfectivo: 'Cash Payment',
+        pendientePago: 'Pending Payment',
+        serviciosIncluidos: 'Included Services',
+        codigo: 'Code',
+        metodoPagoLabel: 'Payment method',
+        efectivo: 'Cash',
+        tarjetaBold: 'Card (BOLD)',
+        cliente: 'Client',
+        fecha: 'Date',
+        hora: 'Time',
+        ocultarDetalles: '▼ Hide details',
+        verMasDetalles: '▶ View more details',
+        informacionCompleta: 'Full Information',
+        contacto: 'Contact',
+        ubicacion: 'Location',
+        especificacion: 'Specification',
+        vehiculoLabel: 'Vehicle',
+        aeropuertoLabel: 'Airport',
+        tipo: 'Type',
+        vuelo: 'Flight',
+        trasladoLabel: 'Transfer',
+        extras: 'Extras',
+        si: 'Yes',
+        no: 'No',
+        tourCompartidoInfo: 'Shared Tour Information',
+        puntoEncuentro: 'Meeting Point:',
+        horaSalida: 'Departure Time:',
+        notaTourCompartido: 'Note: You must arrive on your own. No pickup service available.',
+        notas: 'Notes',
+        desglosePrecio: 'Price Breakdown',
+        adicionales: 'Add-ons',
+        descuento: 'Discount',
+        resumenPago: 'Payment Summary',
+        subtotal: 'Subtotal',
+        servicios: 'services',
+        recargoTarjeta: '+ 6% Card payment surcharge (BOLD)',
+        pagoCajaPendiente: 'Pending cash payment',
+        pagarExacto: 'You must pay exactly',
+        alMomento: 'COP at the time of service.',
+        completaPagoBold: 'Complete your payment with BOLD, a verified and secure platform.',
+        impuestosPago: '+ 6% Payment taxes:',
+        pagoEfectivoServicio: 'Cash Payment',
+        pagarCajaExacto: 'You must pay exactly',
+        copAlRecibir: 'COP in cash when receiving the service.',
+        seleccionaCalificacion: 'Please select a rating',
+        confirmarCancelacion: 'Are you sure you want to cancel this reservation?',
+        canceladaExito: 'Reservation cancelled successfully',
+        numeroVuelo: 'Flight Number'
     }
 };
 
@@ -125,6 +225,10 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     const [reserva, setReserva] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [boldConfig, setBoldConfig] = useState<any>(null);
+    const [userLang, setUserLang] = useState<'ES' | 'EN' | null>(null);
+
+    // Read ?lang= URL param
+    const langParam = searchParams?.get('lang');
 
     // Rating state
     const [rating, setRating] = useState(0);
@@ -207,7 +311,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
 
     const handleSubmitRating = async () => {
         if (rating === 0) {
-            alert('Por favor selecciona una calificación');
+            const currentLang = (userLang || (langParam?.toUpperCase() === 'EN' ? 'EN' : null) || (reserva?.idioma === 'EN' ? 'EN' : 'ES')) as keyof typeof DICTIONARY;
+            alert(DICTIONARY[currentLang].seleccionaCalificacion);
             return;
         }
 
@@ -239,7 +344,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     };
 
     const handleCancelReservation = async () => {
-        if (!confirm('¿Estás seguro que deseas cancelar esta reserva?')) {
+        const currentLang = (userLang || (langParam?.toUpperCase() === 'EN' ? 'EN' : null) || (reserva?.idioma === 'EN' ? 'EN' : 'ES')) as keyof typeof DICTIONARY;
+        if (!confirm(DICTIONARY[currentLang].confirmarCancelacion)) {
             return;
         }
 
@@ -256,7 +362,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
 
             const data = await res.json();
             setReserva(data.data);
-            alert('Reserva cancelada exitosamente');
+            const cl = (userLang || (langParam?.toUpperCase() === 'EN' ? 'EN' : null) || (reserva?.idioma === 'EN' ? 'EN' : 'ES')) as keyof typeof DICTIONARY;
+            alert(DICTIONARY[cl].canceladaExito);
         } catch (error: any) {
             alert(error.message);
         } finally {
@@ -278,11 +385,14 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     };
 
     if (loading) {
+        // Determine initial lang from URL param or default to ES
+        const loadLang = (langParam?.toUpperCase() === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
+        const loadT = DICTIONARY[loadLang];
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <FiLoader className="animate-spin text-4xl text-[#D6A75D] mx-auto mb-4" />
-                    <p className="text-gray-600">Cargando...</p>
+                    <p className="text-gray-600">{loadT.cargando}</p>
                 </div>
             </div>
         );
@@ -305,10 +415,37 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     // Detectar si es un pedido (tiene campo 'reservas' en lugar de 'servicio')
     const isPedido = 'reservas' in reserva && Array.isArray(reserva.reservas);
 
+    // Determine effective language: userLang override > URL param > reservation idioma > ES
+    const effectiveLang = (
+        userLang ||
+        (langParam?.toUpperCase() === 'EN' ? 'EN' : null) ||
+        (reserva.idioma === 'EN' ? 'EN' : 'ES')
+    ) as keyof typeof DICTIONARY;
+
+    // Language toggle helper for inline switcher
+    const toggleLang = () => {
+        setUserLang(prev => {
+            const current = prev || effectiveLang;
+            return current === 'ES' ? 'EN' : 'ES';
+        });
+    };
+
+    // Inline language switcher component for tracking headers
+    const TrackingLanguageSwitcher = () => (
+        <button
+            onClick={toggleLang}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20"
+            aria-label="Switch Language"
+        >
+            <FiGlobe className="w-4 h-4" />
+            <span className="text-sm font-medium">{effectiveLang === 'ES' ? 'ES' : 'EN'}</span>
+        </button>
+    );
+
     // Si es un pedido, mostrar vista de pedido
     if (isPedido) {
         const pedido = reserva as any;
-        const lang = (pedido.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
+        const lang = effectiveLang;
         const t = DICTIONARY[lang];
         const pedidoMetodoPago = pedido.metodoPago === 'EFECTIVO' ? 'EFECTIVO' : 'BOLD';
         const pedidoEsEfectivo = pedidoMetodoPago === 'EFECTIVO';
@@ -319,8 +456,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
             <div className="min-h-screen bg-gray-50">
                 {/* Header */}
                 <header className="bg-black text-white py-6 shadow-lg">
-                    <div className="container mx-auto px-4">
+                    <div className="container mx-auto px-4 flex items-center justify-between">
                         <h1 className="text-2xl md:text-3xl font-bold">Transportes Medellín Travel</h1>
+                        <TrackingLanguageSwitcher />
                     </div>
                 </header>
 
@@ -328,18 +466,18 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                     {/* Código del Pedido */}
                     <div className="bg-white rounded-xl shadow-md p-6 mb-6">
                         <div className="text-center">
-                            <p className="text-sm text-gray-600 mb-1">Código de Pedido</p>
+                            <p className="text-sm text-gray-600 mb-1">{t.codigoPedido}</p>
                             <p className="text-3xl font-bold text-[#D6A75D] tracking-wider mb-4">{pedido.codigo}</p>
                             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold ${pedidoEsEfectivo ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                <span>{pedidoEsEfectivo ? '💵' : '⏳'}</span>
-                                <span>{pedidoEsEfectivo ? 'Pago en Efectivo' : (pedido.estadoPago === 'PENDIENTE' ? 'Pendiente de Pago' : pedido.estadoPago)}</span>
+                                <span>{pedidoEsEfectivo ? '💵' : '⌛'}</span>
+                                <span>{pedidoEsEfectivo ? t.pagoEfectivo : (pedido.estadoPago === 'PENDIENTE' ? t.pendientePago : pedido.estadoPago)}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Servicios en el Pedido */}
                     <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                        <h3 className="text-xl font-bold mb-4">📋 Servicios Incluidos ({pedido.reservas.length})</h3>
+                        <h3 className="text-xl font-bold mb-4">📋 {t.serviciosIncluidos} ({pedido.reservas.length})</h3>
                         <div className="space-y-4">
                             {pedido.reservas.map((reserva: any, index: number) => {
                                 const isExpanded = expandedServices.has(reserva.id);
@@ -351,11 +489,11 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                 <h4 className="font-bold text-lg">
                                                     {index + 1}. {typeof reserva.servicio?.nombre === 'string'
                                                         ? reserva.servicio.nombre
-                                                        : reserva.servicio?.nombre?.[lang.toLowerCase()] || 'Servicio'}
+                                                        : reserva.servicio?.nombre?.[lang.toLowerCase()] || lang === 'ES' ? 'Servicio' : 'Service'}
                                                 </h4>
-                                                <p className="text-sm text-gray-600">Código: {reserva.codigo}</p>
+                                                <p className="text-sm text-gray-600">{t.codigo}: {reserva.codigo}</p>
                                                 <p className="text-xs text-gray-500 mt-1">
-                                                    Método de pago: {reserva.metodoPago === 'EFECTIVO' ? 'Efectivo' : 'Tarjeta (BOLD)'}
+                                                    {t.metodoPagoLabel}: {reserva.metodoPago === 'EFECTIVO' ? t.efectivo : t.tarjetaBold}
                                                 </p>
                                             </div>
                                             <span className="text-lg font-bold text-[#D6A75D]">
@@ -366,19 +504,19 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                         {/* Información básica */}
                                         <div className="grid grid-cols-2 gap-2 text-sm mt-3">
                                             <div>
-                                                <span className="text-gray-600">Cliente:</span>
+                                                <span className="text-gray-600">{t.cliente}:</span>
                                                 <p className="font-medium">{reserva.nombreCliente}</p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-600">Fecha:</span>
-                                                <p className="font-medium">{new Date(reserva.fecha).toLocaleDateString('es-CO')}</p>
+                                                <span className="text-gray-600">{t.fecha}:</span>
+                                                <p className="font-medium">{new Date(reserva.fecha).toLocaleDateString(lang === 'EN' ? 'en-US' : 'es-CO')}</p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-600">Hora:</span>
+                                                <span className="text-gray-600">{t.hora}:</span>
                                                 <p className="font-medium">{reserva.hora}</p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-600">Pasajeros:</span>
+                                                <span className="text-gray-600">{t.pasajeros}:</span>
                                                 <p className="font-medium">{reserva.numeroPasajeros}</p>
                                             </div>
                                         </div>
@@ -388,32 +526,32 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                             onClick={() => toggleExpanded(reserva.id)}
                                             className="mt-3 text-[#D6A75D] hover:text-[#B8894A] font-medium text-sm flex items-center gap-1"
                                         >
-                                            {isExpanded ? '▼ Ocultar detalles' : '▶ Ver más detalles'}
+                                            {isExpanded ? t.ocultarDetalles : t.verMasDetalles}
                                         </button>
 
                                         {/* Detalles expandidos */}
                                         {isExpanded && (
                                             <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-                                                <h5 className="font-bold text-sm text-gray-700">Información Completa</h5>
+                                                <h5 className="font-bold text-sm text-gray-700">{t.informacionCompleta}</h5>
 
                                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                                     {/* Contacto */}
                                                     <div className="col-span-2 bg-white p-3 rounded">
-                                                        <p className="font-semibold text-gray-700 mb-2">📞 Contacto</p>
+                                                        <p className="font-semibold text-gray-700 mb-2">📞 {t.contacto}</p>
                                                         <p><span className="text-gray-600">WhatsApp:</span> {reserva.whatsappCliente}</p>
-                                                        <p><span className="text-gray-600">Email:</span> {reserva.emailCliente}</p>
+                                                        <p><span className="text-gray-600">{t.email}:</span> {reserva.emailCliente}</p>
                                                     </div>
 
                                                     {/* Ubicación */}
                                                     {reserva.municipio && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">📍 Ubicación</p>
-                                                            <p><span className="text-gray-600">Municipio:</span> {reserva.municipio}</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">📍 {t.ubicacion}</p>
+                                                            <p><span className="text-gray-600">{t.municipio}:</span> {reserva.municipio}</p>
                                                             {reserva.otroMunicipio && (
-                                                                <p><span className="text-gray-600">Especificación:</span> {reserva.otroMunicipio}</p>
+                                                                <p><span className="text-gray-600">{t.especificacion}:</span> {reserva.otroMunicipio}</p>
                                                             )}
                                                             {reserva.lugarRecogida && (
-                                                                <p><span className="text-gray-600">Lugar de recogida:</span> {reserva.lugarRecogida}</p>
+                                                                <p><span className="text-gray-600">{t.lugarRecogida}:</span> {reserva.lugarRecogida}</p>
                                                             )}
                                                         </div>
                                                     )}
@@ -421,7 +559,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Vehículo */}
                                                     {reserva.vehiculo && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">🚗 Vehículo</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">🚗 {t.vehiculoLabel}</p>
                                                             <p>{reserva.vehiculo.nombre}</p>
                                                         </div>
                                                     )}
@@ -429,13 +567,13 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Aeropuerto */}
                                                     {reserva.aeropuertoTipo && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">✈️ Aeropuerto</p>
-                                                            <p><span className="text-gray-600">Tipo:</span> {reserva.aeropuertoTipo}</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">✈️ {t.aeropuertoLabel}</p>
+                                                            <p><span className="text-gray-600">{t.tipo}:</span> {reserva.aeropuertoTipo}</p>
                                                             {reserva.aeropuertoNombre && (
-                                                                <p><span className="text-gray-600">Aeropuerto:</span> {reserva.aeropuertoNombre}</p>
+                                                                <p><span className="text-gray-600">{t.aeropuertoLabel}:</span> {reserva.aeropuertoNombre}</p>
                                                             )}
                                                             {reserva.numeroVuelo && (
-                                                                <p><span className="text-gray-600">Vuelo:</span> {reserva.numeroVuelo}</p>
+                                                                <p><span className="text-gray-600">{t.vuelo}:</span> {reserva.numeroVuelo}</p>
                                                             )}
                                                         </div>
                                                     )}
@@ -443,10 +581,10 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Traslado */}
                                                     {reserva.trasladoTipo && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">🚌 Traslado</p>
-                                                            <p><span className="text-gray-600">Tipo:</span> {reserva.trasladoTipo}</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">🚌 {t.trasladoLabel}</p>
+                                                            <p><span className="text-gray-600">{t.tipo}:</span> {reserva.trasladoTipo}</p>
                                                             {reserva.trasladoDestino && (
-                                                                <p><span className="text-gray-600">Destino:</span> {reserva.trasladoDestino}</p>
+                                                                <p><span className="text-gray-600">{t.destino}:</span> {reserva.trasladoDestino}</p>
                                                             )}
                                                         </div>
                                                     )}
@@ -454,11 +592,11 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Extras dinámicos */}
                                                     {reserva.datosDinamicos && Object.keys(reserva.datosDinamicos).length > 0 && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">➕ Extras</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">➕ {t.extras}</p>
                                                             {Object.entries(reserva.datosDinamicos).map(([key, value]: [string, any]) => (
                                                                 <p key={key}>
                                                                     <span className="text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span> {
-                                                                        typeof value === 'boolean' ? (value ? 'Sí' : 'No') : value
+                                                                        typeof value === 'boolean' ? (value ? t.si : t.no) : value
                                                                     }
                                                                 </p>
                                                             ))}
@@ -468,11 +606,11 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Shared Tour Information Box */}
                                                     {reserva.servicio?.tipo === 'TOUR_COMPARTIDO' && (
                                                         <div className="col-span-2 bg-amber-50 border-l-4 border-amber-500 p-3 rounded">
-                                                            <p className="font-semibold text-amber-800 mb-2">🚌 {lang === 'ES' ? 'Información del Tour Compartido' : 'Shared Tour Information'}</p>
+                                                            <p className="font-semibold text-amber-800 mb-2">🚌 {t.tourCompartidoInfo}</p>
                                                             <div className="text-sm text-amber-900 space-y-1">
-                                                                <p><strong>{lang === 'ES' ? 'Punto de Encuentro:' : 'Meeting Point:'}</strong> Casa del Reloj<br />Carrera 35 con Calle 7 en Provenza.</p>
-                                                                <p><strong>{lang === 'ES' ? 'Hora de Salida:' : 'Departure Time:'}</strong> 7:50 AM</p>
-                                                                <p className="italic">{lang === 'ES' ? 'Nota: Debes llegar por tus propios medios. No hay servicio de recogida.' : 'Note: You must arrive on your own. No pickup service available.'}</p>
+                                                                <p><strong>{t.puntoEncuentro}</strong> Casa del Reloj<br />Carrera 35 con Calle 7 en Provenza.</p>
+                                                                <p><strong>{t.horaSalida}</strong> 7:50 AM</p>
+                                                                <p className="italic">{t.notaTourCompartido}</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -480,45 +618,45 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                                     {/* Notas */}
                                                     {reserva.notas && (
                                                         <div className="col-span-2 bg-white p-3 rounded">
-                                                            <p className="font-semibold text-gray-700 mb-2">📝 Notas</p>
+                                                            <p className="font-semibold text-gray-700 mb-2">📝 {t.notas}</p>
                                                             <p className="text-gray-700">{reserva.notas}</p>
                                                         </div>
                                                     )}
 
                                                     {/* Desglose de precio */}
                                                     <div className="col-span-2 bg-blue-50 p-3 rounded">
-                                                        <p className="font-semibold text-gray-700 mb-2">💰 Desglose de Precio</p>
+                                                        <p className="font-semibold text-gray-700 mb-2">💰 {t.desglosePrecio}</p>
                                                         <div className="space-y-1">
                                                             <p className="flex justify-between">
-                                                                <span className="text-gray-600">Precio base:</span>
+                                                                <span className="text-gray-600">{t.precioBase}:</span>
                                                                 <span>${Number(reserva.precioBase).toLocaleString('es-CO')}</span>
                                                             </p>
                                                             {reserva.precioAdicionales > 0 && (
                                                                 <p className="flex justify-between">
-                                                                    <span className="text-gray-600">Adicionales:</span>
+                                                                    <span className="text-gray-600">{t.adicionales}:</span>
                                                                     <span>${Number(reserva.precioAdicionales).toLocaleString('es-CO')}</span>
                                                                 </p>
                                                             )}
                                                             {reserva.recargoNocturno > 0 && (
                                                                 <p className="flex justify-between">
-                                                                    <span className="text-gray-600">Recargo nocturno:</span>
+                                                                    <span className="text-gray-600">{t.recargoNocturno}:</span>
                                                                     <span>${Number(reserva.recargoNocturno).toLocaleString('es-CO')}</span>
                                                                 </p>
                                                             )}
                                                             {reserva.tarifaMunicipio > 0 && (
                                                                 <p className="flex justify-between">
-                                                                    <span className="text-gray-600">Tarifa municipio:</span>
+                                                                    <span className="text-gray-600">{t.tarifaMunicipio}:</span>
                                                                     <span>${Number(reserva.tarifaMunicipio).toLocaleString('es-CO')}</span>
                                                                 </p>
                                                             )}
                                                             {reserva.descuentoAliado > 0 && (
                                                                 <p className="flex justify-between text-green-600">
-                                                                    <span>Descuento:</span>
+                                                                    <span>{t.descuento}:</span>
                                                                     <span>-${Number(reserva.descuentoAliado).toLocaleString('es-CO')}</span>
                                                                 </p>
                                                             )}
                                                             <p className="flex justify-between font-bold pt-2 border-t border-gray-300">
-                                                                <span>Total:</span>
+                                                                <span>{t.total}:</span>
                                                                 <span className="text-[#D6A75D]">${Number(reserva.precioTotal).toLocaleString('es-CO')}</span>
                                                             </p>
                                                         </div>
@@ -534,21 +672,21 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
 
                     {/* Resumen de Precio */}
                     <div className="bg-white rounded-xl shadow-md p-6">
-                        <h3 className="text-xl font-bold mb-4">💰 Resumen de Pago</h3>
+                        <h3 className="text-xl font-bold mb-4">💰 {t.resumenPago}</h3>
                         <div className="space-y-2">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Subtotal ({pedido.reservas.length} servicios):</span>
+                                <span className="text-gray-600">{t.subtotal} ({pedido.reservas.length} {t.servicios}):</span>
                                 <span className="font-semibold">${Number(pedido.subtotal).toLocaleString('es-CO')} COP</span>
                             </div>
                             {!pedidoEsEfectivo && (
                                 <div className="flex justify-between text-orange-600">
-                                    <span>+ 6% Recargo por pago con tarjeta (BOLD):</span>
+                                    <span>{t.recargoTarjeta}:</span>
                                     <span className="font-semibold">${Number(pedido.comisionBold).toLocaleString('es-CO')} COP</span>
                                 </div>
                             )}
                             <div className="border-t-2 border-gray-200 pt-3 mt-3">
                                 <div className="flex justify-between text-2xl font-bold">
-                                    <span>TOTAL:</span>
+                                    <span>{t.total}:</span>
                                     <span className="text-[#D6A75D]">${Number(pedido.precioTotal).toLocaleString('es-CO')} COP</span>
                                 </div>
                             </div>
@@ -557,9 +695,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                         {/* Pago en efectivo */}
                         {pedidoEsEfectivo && (
                             <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                                <p className="font-semibold text-green-800 mb-1">Pago en caja pendiente</p>
+                                <p className="font-semibold text-green-800 mb-1">{t.pagoCajaPendiente}</p>
                                 <p className="text-sm text-green-700">
-                                    Debes pagar exactamente ${Number(pedido.precioTotal).toLocaleString('es-CO')} COP al momento del servicio.
+                                    {t.pagarExacto} ${Number(pedido.precioTotal).toLocaleString('es-CO')} {t.alMomento}
                                 </p>
                             </div>
                         )}
@@ -568,7 +706,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                         {!pedidoEsEfectivo && pedido.estadoPago === 'PENDIENTE' && boldConfig && (
                             <div className="mt-6">
                                 <p className="text-gray-700 mb-4">
-                                    💳 Completa tu pago con BOLD, una plataforma verificada y segura.
+                                    💳 {t.completaPagoBold}
                                 </p>
                                 <BoldButton
                                     orderId={pedido.codigo}
@@ -594,8 +732,8 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
     }
 
     // Vista normal de reserva individual
-    // Determine language and get dictionary
-    const lang = (reserva.idioma === 'EN' ? 'EN' : 'ES') as keyof typeof DICTIONARY;
+    // Use effectiveLang so user can switch language on tracking page
+    const lang = effectiveLang;
     const t = DICTIONARY[lang];
 
     // Detect payment method
@@ -640,8 +778,9 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
             <header className="bg-black text-white py-6 shadow-lg">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 flex items-center justify-between">
                     <h1 className="text-2xl md:text-3xl font-bold">Transportes Medellín Travel</h1>
+                    <TrackingLanguageSwitcher />
                 </div>
             </header>
 
@@ -982,7 +1121,7 @@ export default function TrackingPage({ params }: { params: { codigo: string } })
                                     {/* Bold Commission - Direct from database */}
                                     {Number(reserva.comisionBold || 0) > 0 && (
                                         <div className="flex justify-between text-orange-600">
-                                            <span>+ 6% Impuestos del pago:</span>
+                                            <span>{t.impuestosPago}</span>
                                             <span className="font-semibold">${Number(reserva.comisionBold).toLocaleString('es-CO')}</span>
                                         </div>
                                     )}

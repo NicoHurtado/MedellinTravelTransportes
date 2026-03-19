@@ -9,6 +9,7 @@ import TransporteMunicipalModal from '@/components/reservas/TransporteMunicipalM
 import AllyHeader from '@/components/landing/AllyHeader';
 import AllyFooter from '@/components/landing/AllyFooter';
 import { CartIcon } from '@/components/carrito/CartIcon';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { CartModal } from '@/components/carrito/CartModal';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
@@ -199,13 +200,15 @@ export default function ReservaAliadoPage() {
                     <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <FiAlertCircle size={32} />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Enlace no válido</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                        {language === 'en' ? 'Invalid Link' : 'Enlace no válido'}
+                    </h1>
                     <p className="text-gray-600 mb-6">{error}</p>
                     <button
                         onClick={() => router.push('/')}
                         className="bg-[#D6A75D] text-black font-bold py-3 px-6 rounded-lg hover:bg-[#C5964A] transition-colors w-full"
                     >
-                        Ir al inicio
+                        {language === 'en' ? 'Go to Home' : 'Ir al inicio'}
                     </button>
                 </div>
             </div>
@@ -215,25 +218,26 @@ export default function ReservaAliadoPage() {
     return (
         <>
             <AllyHeader allyName={aliado?.nombre || ''} allyType={aliado?.tipo}>
+                <LanguageSwitcher />
                 <CartIcon onClick={() => setIsCartOpen(true)} />
             </AllyHeader>
             <main className="min-h-screen pt-24 pb-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     {/* Partner Header */}
                     <div className="bg-white rounded-2xl p-8 shadow-sm mb-12 text-center border-b-4 border-[#D6A75D]">
-                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">Reservas Exclusivas</p>
+                        <p className="text-sm text-gray-500 uppercase tracking-widest mb-2">{t('header.portal_exclusivo', language)}</p>
                         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                             {aliado?.nombre}
                         </h1>
                         <p className="text-gray-600">
-                            Tarifas especiales para nuestros huéspedes
+                            {t('hotel.servicios_exclusivos', language)}
                         </p>
                     </div>
 
                     {/* Services Catalog */}
                     {services.length === 0 ? (
                         <div className="text-center py-12">
-                            <p className="text-gray-500 text-lg">No hay servicios disponibles en este momento.</p>
+                            <p className="text-gray-500 text-lg">{t('hotel.no_servicios', language)}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
