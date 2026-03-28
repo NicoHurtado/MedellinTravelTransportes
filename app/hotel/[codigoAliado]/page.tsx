@@ -238,10 +238,6 @@ export default function HotelPublicPage() {
                         <p className="text-gray-600">
                             {t('hotel.servicios_exclusivos', language)}
                         </p>
-                        <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            {t('hotel.pago_efectivo', language)}
-                        </div>
                     </div>
 
                     {/* Services Catalog */}
