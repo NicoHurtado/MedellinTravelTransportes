@@ -232,10 +232,10 @@ export default function TerminosCondicionesPage() {
                             Para consultas o reclamos relacionados con estos términos:
                         </p>
                         <p className="mb-2">
-                            <strong>Correo:</strong> medellintraveltransportes@gmail.com
+                            <strong>Correo:</strong> comercial@tmedellintravel.com
                         </p>
                         <p className="mb-2">
-                            <strong>Teléfono:</strong> +57 317 5177409
+                            <strong>Teléfono:</strong> +57 310 6676736
                         </p>
                         <p>
                             <strong>Dirección:</strong> Medellín, Colombia

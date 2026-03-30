@@ -147,15 +147,15 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
         <!-- Sección de Contacto -->
         <div class="contact-section">
           <h3>${language === 'ES' ? 'Contacta a tu conductor' : 'Contact your driver'}</h3>
-          <a href="https://wa.me/573175177409" class="whatsapp-link">
-            📱 +57 317 5177409
+          <a href="https://wa.me/573106676736" class="whatsapp-link">
+            📱 +57 310 6676736
           </a>
         </div>
         
         <div class="footer">
           <p>
             <strong>${language === 'ES' ? 'Contacto:' : 'Contact:'}</strong><br>
-            Email: <a href="mailto:medellintraveltransportes@gmail.com">medellintraveltransportes@gmail.com</a><br>
+            Email: <a href="mailto:comercial@tmedellintravel.com">comercial@tmedellintravel.com</a><br>
             Instagram: <a href="https://instagram.com/transportesmedellintravel">@transportesmedellintravel</a>
           </p>
           <p style="margin-top: 16px; font-size: 12px; color: #999;">

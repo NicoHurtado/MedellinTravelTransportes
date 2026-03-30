@@ -700,7 +700,7 @@ export async function sendCancelacionEmail(
     
     <p style="color: #666; font-size: 14px; margin-top: 24px;">
       Si tienes alguna pregunta, no dudes en contactarnos por WhatsApp: 
-      <a href="https://wa.me/573175177409" style="color: #25D366; font-weight: bold;">+57 317 5177409</a>
+      <a href="https://wa.me/573106676736" style="color: #25D366; font-weight: bold;">+57 310 6676736</a>
     </p>
     
     <p>Esperamos verte pronto de nuevo.</p>
@@ -734,7 +734,7 @@ export async function sendCancelacionEmail(
     
     <p style="color: #666; font-size: 14px; margin-top: 24px;">
       If you have any questions, don't hesitate to contact us via WhatsApp: 
-      <a href="https://wa.me/573175177409" style="color: #25D366; font-weight: bold;">+57 317 5177409</a>
+      <a href="https://wa.me/573106676736" style="color: #25D366; font-weight: bold;">+57 310 6676736</a>
     </p>
     
     <p>We hope to see you again soon.</p>

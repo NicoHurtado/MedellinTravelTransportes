@@ -14,6 +14,7 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { sortServicesByPriority } from '@/lib/service-order';
+import WhatsAppButton from '@/components/ui/WhatsAppButton';
 
 interface Service {
     id: string;
@@ -374,6 +375,9 @@ export default function HotelPublicPage() {
                     tarifasMunicipios={tarifasMunicipios}
                 />
             )}
+
+            {/* WhatsApp Floating Button */}
+            <WhatsAppButton />
         </>
     );
 }

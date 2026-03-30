@@ -34,7 +34,7 @@ export default function AllyFooter() {
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 text-gray-300">
                                 <FiPhone className="text-[#D6A75D] flex-shrink-0" size={18} />
-                                <span className="text-sm">+57 317 5177409</span>
+                                <span className="text-sm">+57 310 6676736</span>
                             </div>
 
                             <div className="flex items-center gap-3 text-gray-300">
@@ -44,7 +44,7 @@ export default function AllyFooter() {
 
                             <div className="flex items-center gap-3 text-gray-300">
                                 <FiMail className="text-[#D6A75D] flex-shrink-0" size={18} />
-                                <span className="text-sm">medellintraveltransportes@gmail.com</span>
+                                <span className="text-sm">comercial@tmedellintravel.com</span>
                             </div>
                         </div>
                     </div>

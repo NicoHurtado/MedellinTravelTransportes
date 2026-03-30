@@ -19,10 +19,10 @@ export default function PoliticaPrivacidadPage() {
                             <strong>Domicilio:</strong> Medellín, Colombia
                         </p>
                         <p className="mb-2">
-                            <strong>Correo Electrónico:</strong> medellintraveltransportes@gmail.com
+                            <strong>Correo Electrónico:</strong> comercial@tmedellintravel.com
                         </p>
                         <p className="mb-2">
-                            <strong>Teléfono:</strong> +57 317 5177409
+                            <strong>Teléfono:</strong> +57 310 6676736
                         </p>
                     </section>
 
@@ -132,10 +132,10 @@ export default function PoliticaPrivacidadPage() {
                         </p>
                         <ul className="list-disc pl-6 space-y-2">
                             <li>
-                                Enviar una solicitud al correo electrónico: <strong>medellintraveltransportes@gmail.com</strong>
+                                Enviar una solicitud al correo electrónico: <strong>comercial@tmedellintravel.com</strong>
                             </li>
                             <li>
-                                Comunicarse al teléfono: <strong>+57 317 5177409</strong>
+                                Comunicarse al teléfono: <strong>+57 310 6676736</strong>
                             </li>
                             <li>
                                 Dirigirse a nuestras oficinas en: <strong>Medellín, Colombia</strong>

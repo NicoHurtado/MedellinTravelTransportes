@@ -13,6 +13,7 @@ import { CartModal } from '@/components/carrito/CartModal';
 import { useLanguage, t } from '@/lib/i18n';
 import { getLocalizedText, getLocalizedArray } from '@/types/multi-language';
 import { sortServicesByPriority } from '@/lib/service-order';
+import WhatsAppButton from '@/components/ui/WhatsAppButton';
 
 interface Service {
     id: string;
@@ -562,6 +563,9 @@ export default function ReservasPage() {
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
             />
+
+            {/* WhatsApp Floating Button */}
+            <WhatsAppButton />
         </>
     );
 }

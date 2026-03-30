@@ -71,13 +71,13 @@ export default function Footer() {
                         <ul className="space-y-4 text-gray-300">
                             <li>
                                 <a
-                                    href="https://wa.me/573175177409"
+                                    href="https://wa.me/573106676736"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-3 hover:text-white transition-colors"
                                 >
                                     <FiPhone className="text-[#D6A75D]" />
-                                    <span>+57 317 5177409</span>
+                                    <span>+57 310 6676736</span>
                                 </a>
                             </li>
                             <li>
@@ -93,11 +93,11 @@ export default function Footer() {
                             </li>
                             <li>
                                 <a
-                                    href="mailto:medellintraveltransportes@gmail.com"
+                                    href="mailto:comercial@tmedellintravel.com"
                                     className="flex items-center gap-3 hover:text-white transition-colors"
                                 >
                                     <FiMail className="text-[#D6A75D]" />
-                                    <span>medellintraveltransportes@gmail.com</span>
+                                    <span>comercial@tmedellintravel.com</span>
                                 </a>
                             </li>
                         </ul>

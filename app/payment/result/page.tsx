@@ -279,14 +279,14 @@ function PaymentResultContent() {
                         <p className="text-sm text-gray-600 mb-3">¿Necesitas ayuda?</p>
                         <div className="flex justify-center space-x-6">
                             <a
-                                href="https://wa.me/573175177409"
+                                href="https://wa.me/573106676736"
                                 className="text-green-600 hover:text-green-700 font-medium"
                             >
                                 <span className="inline-block mr-1">📱</span>
                                 WhatsApp
                             </a>
                             <a
-                                href="mailto:medellintraveltransportes@gmail.com"
+                                href="mailto:comercial@tmedellintravel.com"
                                 className="text-blue-600 hover:text-blue-700 font-medium"
                             >
                                 <span className="inline-block mr-1">✉️</span>
