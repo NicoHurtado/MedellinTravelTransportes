@@ -147,8 +147,8 @@ export const getEmailLayout = (content: string, language: 'ES' | 'EN' = 'ES') =>
         <!-- Sección de Contacto -->
         <div class="contact-section">
           <h3>${language === 'ES' ? 'Contacta a tu conductor' : 'Contact your driver'}</h3>
-          <a href="https://wa.me/573106676736" class="whatsapp-link">
-            📱 +57 310 6676736
+          <a href="https://wa.me/573175177409" class="whatsapp-link">
+            📱 +57 317 5177409
           </a>
         </div>
         
