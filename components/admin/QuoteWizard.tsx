@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiX, FiAlertCircle, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiX, FiAlertCircle, FiCopy, FiCheck, FiDollarSign, FiCreditCard } from 'react-icons/fi';
 import Step0ServiceInfo from '../reservas/wizard/Step0ServiceInfo';
 import Step1TripDetails from '../reservas/wizard/Step1TripDetails';
 import Step2ContactInfo from '../reservas/wizard/Step2ContactInfo';
@@ -63,6 +63,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
         cantidadHoras: service.esPorHoras ? 4 : undefined,
     });
     const [precioPersonalizado, setPrecioPersonalizado] = useState<string>('');
+    const [metodoPago, setMetodoPago] = useState<'BOLD' | 'EFECTIVO'>('BOLD');
     const [loading, setLoading] = useState(false);
     const [quoteLink, setQuoteLink] = useState<string>('');
     const [reservationCode, setReservationCode] = useState<string>('');
@@ -222,6 +223,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                     fecha: formData.fecha ? formData.fecha.toISOString().split('T')[0] : null,
                     servicioId: service.id,
                     precioPersonalizado: Number(precioPersonalizado),
+                    metodoPago,
                 }),
             });
 
@@ -363,9 +365,9 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                     {currentStep === 4 && (
                         <div className="space-y-6">
                             <div className="text-center">
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Precio Personalizado</h2>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Precio y Método de Pago</h2>
                                 <p className="text-gray-600">
-                                    Revisa los detalles de la reserva e ingresa el precio total
+                                    Revisa los detalles, ingresa el precio y selecciona el método de pago
                                 </p>
                             </div>
 
@@ -456,7 +458,7 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                             {/* Campo de Precio */}
                             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Precio Total (COP)
+                                    Precio Base del Servicio (COP)
                                 </label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg font-bold">
@@ -473,8 +475,78 @@ export default function QuoteWizard({ service, isOpen, onClose }: QuoteWizardPro
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Este será el precio final que verá el cliente
+                                    Ingresa el precio base del servicio
                                 </p>
+                            </div>
+
+                            {/* Selector de Método de Pago */}
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-gray-700">
+                                    Método de Pago
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {/* Opción Efectivo */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setMetodoPago('EFECTIVO')}
+                                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                                            metodoPago === 'EFECTIVO'
+                                                ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-200'
+                                                : 'border-gray-200 bg-white hover:border-green-300 hover:bg-green-50/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className={`p-2 rounded-lg ${metodoPago === 'EFECTIVO' ? 'bg-green-200 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                <FiDollarSign size={22} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900">Efectivo</p>
+                                                <p className="text-xs text-gray-500">Sin recargo adicional</p>
+                                            </div>
+                                        </div>
+                                        {metodoPago === 'EFECTIVO' && precioPersonalizado && Number(precioPersonalizado) > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-green-200">
+                                                <p className="text-sm text-green-700">
+                                                    Total: <span className="font-bold text-lg">${Number(precioPersonalizado).toLocaleString('es-CO')}</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </button>
+
+                                    {/* Opción Bold */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setMetodoPago('BOLD')}
+                                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                                            metodoPago === 'BOLD'
+                                                ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200'
+                                                : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className={`p-2 rounded-lg ${metodoPago === 'BOLD' ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                <FiCreditCard size={22} />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900">Bold (en línea)</p>
+                                                <p className="text-xs text-gray-500">+6% recargo por pago con tarjeta</p>
+                                            </div>
+                                        </div>
+                                        {metodoPago === 'BOLD' && precioPersonalizado && Number(precioPersonalizado) > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-blue-200 space-y-1">
+                                                <p className="text-xs text-blue-600">
+                                                    Base: ${Number(precioPersonalizado).toLocaleString('es-CO')}
+                                                </p>
+                                                <p className="text-xs text-blue-600">
+                                                    + 6%: ${Math.round(Number(precioPersonalizado) * 0.06).toLocaleString('es-CO')}
+                                                </p>
+                                                <p className="text-sm text-blue-700">
+                                                    Total cliente: <span className="font-bold text-lg">${Math.round(Number(precioPersonalizado) * 1.06).toLocaleString('es-CO')}</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

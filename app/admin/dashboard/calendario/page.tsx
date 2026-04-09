@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@/components/ui';
-import { FiArrowLeft, FiCalendar, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiX, FiDownload } from 'react-icons/fi';
 import { getLocalizedText } from '@/types/multi-language';
+import * as XLSX from 'xlsx';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -51,6 +52,12 @@ export default function CalendarioPage() {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+    const [currentMonth, setCurrentMonth] = useState<{ start: Date; end: Date; label: string }>({
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+        label: new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+    });
+    const rawReservasRef = useRef<any[]>([]);
 
     useEffect(() => {
         fetchReservas();
@@ -88,6 +95,7 @@ export default function CalendarioPage() {
             const res = await fetch('/api/reservas');
             const data = await res.json();
             const reservas = data.data || [];
+            rawReservasRef.current = reservas;
 
             const calendarEvents: CalendarEvent[] = reservas.map((reserva: any) => {
                 const colors = estadoColors[reserva.estado] || { bg: '#6B7280', border: '#4B5563' };
@@ -179,6 +187,122 @@ export default function CalendarioPage() {
         console.log('Date clicked:', info.dateStr);
     };
 
+    const handleDatesSet = (dateInfo: any) => {
+        setCurrentMonth({
+            start: dateInfo.start,
+            end: dateInfo.end,
+            label: new Date(dateInfo.start.getTime() + 7 * 24 * 60 * 60 * 1000)
+                .toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
+        });
+    };
+
+    const handleExportExcel = () => {
+        const reservas = rawReservasRef.current;
+        if (!reservas.length) return;
+
+        // Filter reservations for the visible month range
+        const monthReservas = reservas.filter((r: any) => {
+            const fecha = new Date(r.fecha);
+            return fecha >= currentMonth.start && fecha < currentMonth.end;
+        }).sort((a: any, b: any) => {
+            // Sort by date, then by hour
+            const dateCompare = new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+            if (dateCompare !== 0) return dateCompare;
+            return (a.hora || '').localeCompare(b.hora || '');
+        });
+
+        if (monthReservas.length === 0) {
+            alert('No hay reservas en este mes para exportar');
+            return;
+        }
+
+        const estadoLabels: Record<string, string> = {
+            'PENDIENTE_COTIZACION': 'Pendiente Cotización',
+            'CONFIRMADA_PENDIENTE_PAGO': 'Confirmada - Pendiente Pago',
+            'PAGADA_PENDIENTE_ASIGNACION': 'Pagada - Pendiente Asignación',
+            'ASIGNADA_PENDIENTE_COMPLETAR': 'Asignada',
+            'COMPLETADA': 'Completada',
+            'CANCELADA': 'Cancelada',
+            'CONFIRMADA_PENDIENTE_ASIGNACION': 'Confirmada - Pendiente Asignación',
+        };
+
+        const excelData = monthReservas.map((r: any) => {
+            // Determine pickup and destination
+            let recogida = r.lugarRecogida || 'No especificado';
+            let destino = 'No especificado';
+
+            if (r.servicio?.esAeropuerto) {
+                const aeropuertoName = r.aeropuertoNombre === 'JOSE_MARIA_CORDOVA'
+                    ? 'Aeropuerto JMC'
+                    : 'Aeropuerto Olaya Herrera';
+                if (r.aeropuertoTipo === 'DESDE') {
+                    recogida = aeropuertoName;
+                    destino = r.lugarRecogida || 'No especificado';
+                } else {
+                    recogida = r.lugarRecogida || 'No especificado';
+                    destino = aeropuertoName;
+                }
+            } else if (r.trasladoTipo) {
+                if (r.trasladoTipo === 'DESDE_UBICACION') {
+                    recogida = r.lugarRecogida || 'No especificado';
+                    destino = r.trasladoDestino || r.municipio || 'No especificado';
+                } else {
+                    recogida = r.municipio || 'No especificado';
+                    destino = r.trasladoDestino || 'No especificado';
+                }
+            } else {
+                destino = r.servicio?.destinoAutoFill
+                    ? (typeof r.servicio.destinoAutoFill === 'string'
+                        ? r.servicio.destinoAutoFill
+                        : getLocalizedText(r.servicio.destinoAutoFill, 'ES'))
+                    : 'No especificado';
+            }
+
+            return {
+                'FECHA': new Date(r.fecha).toLocaleDateString('es-CO'),
+                'HORA': r.hora || '',
+                'CÓDIGO': r.codigo,
+                'SERVICIO': r.servicio?.nombre ? getLocalizedText(r.servicio.nombre, 'ES') : '-',
+                'CLIENTE': r.nombreCliente,
+                'WHATSAPP': r.whatsappCliente || '',
+                'RECOGIDA': recogida,
+                'DESTINO': destino,
+                'PASAJEROS': r.numeroPasajeros || 1,
+                'Nº VUELO': r.numeroVuelo || '',
+                'ESTADO': estadoLabels[r.estado] || r.estado,
+                'ESTADO PAGO': r.estadoPago || 'PENDIENTE',
+                'CONDUCTOR': r.conductor?.nombre || 'Sin asignar',
+                'TOTAL': Number(r.precioTotal) || 0,
+            };
+        });
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Column widths
+        ws['!cols'] = [
+            { wch: 12 }, // FECHA
+            { wch: 8 },  // HORA
+            { wch: 12 }, // CÓDIGO
+            { wch: 28 }, // SERVICIO
+            { wch: 25 }, // CLIENTE
+            { wch: 15 }, // WHATSAPP
+            { wch: 25 }, // RECOGIDA
+            { wch: 25 }, // DESTINO
+            { wch: 10 }, // PASAJEROS
+            { wch: 12 }, // Nº VUELO
+            { wch: 22 }, // ESTADO
+            { wch: 14 }, // ESTADO PAGO
+            { wch: 20 }, // CONDUCTOR
+            { wch: 12 }, // TOTAL
+        ];
+
+        const monthLabel = currentMonth.label.replace(/\s+/g, '_');
+        XLSX.utils.book_append_sheet(wb, ws, 'Calendario');
+        XLSX.writeFile(wb, `Calendario_${monthLabel}.xlsx`);
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -200,6 +324,13 @@ export default function CalendarioPage() {
                             <h1 className="text-2xl font-bold text-gray-900">Calendario de Reservas</h1>
                             <p className="text-sm text-gray-500 mt-1">Vista mensual de todas las reservas</p>
                         </div>
+                        <button
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-2 px-4 py-2 bg-black text-white border border-gray-900 rounded-lg hover:bg-gray-800 transition-all shadow-sm"
+                        >
+                            <FiDownload size={18} />
+                            <span className="font-medium">Descargar Excel</span>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -219,6 +350,7 @@ export default function CalendarioPage() {
                                 }}
                                 eventClick={handleEventClick}
                                 dateClick={handleDateClick}
+                                datesSet={handleDatesSet}
                                 headerToolbar={{
                                     left: 'prev,next today',
                                     center: 'title',

@@ -16,6 +16,48 @@ function generateQuoteLink(): string {
 }
 
 /**
+ * GET /api/admin/cotizaciones
+ * Obtener historial de cotizaciones
+ * Requiere autenticación de admin
+ */
+export async function GET(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return NextResponse.json(
+                { error: 'No autorizado' },
+                { status: 401 }
+            );
+        }
+
+        const cotizaciones = await prisma.reserva.findMany({
+            where: {
+                esCotizacion: true,
+            },
+            include: {
+                servicio: true,
+                vehiculo: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+
+        return NextResponse.json({
+            success: true,
+            data: cotizaciones,
+        });
+
+    } catch (error: any) {
+        console.error('❌ Error obteniendo cotizaciones:', error);
+        return NextResponse.json(
+            { error: error.message || 'Error al obtener cotizaciones' },
+            { status: 500 }
+        );
+    }
+}
+
+/**
  * POST /api/admin/cotizaciones
  * Crear una cotización con precio personalizado
  * Requiere autenticación de admin
@@ -41,6 +83,10 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
+
+        // Determinar método de pago (default Bold para backwards compatibility)
+        const metodoPagoSeleccionado: MetodoPago = body.metodoPago === 'EFECTIVO' ? MetodoPago.EFECTIVO : MetodoPago.BOLD;
+        const esBold = metodoPagoSeleccionado === MetodoPago.BOLD;
 
         // Generar link único de cotización
         let linkCotizacion = generateQuoteLink();
@@ -85,16 +131,30 @@ export async function POST(req: NextRequest) {
             attempts++;
         }
 
-        // Calcular precio con comisión Bold (6%)
-        const comisionBold = Math.round(precioPersonalizado * 0.06);
-        const precioTotal = precioPersonalizado + comisionBold;
+        // Calcular precio según método de pago
+        let precioTotal: number;
+        let hashPago: string | null = null;
 
-        // Generar hash de Bold para el pago con el precio TOTAL
-        const hashPago = generateBoldHash(
-            codigo,
-            precioTotal,
-            'COP'
-        );
+        if (esBold) {
+            // Bold: aplicar comisión del 6%
+            const comisionBold = Math.round(precioPersonalizado * 0.06);
+            precioTotal = precioPersonalizado + comisionBold;
+
+            // Generar hash de Bold para el pago con el precio TOTAL
+            hashPago = generateBoldHash(codigo, precioTotal, 'COP');
+        } else {
+            // Efectivo: precio directo sin comisión
+            precioTotal = precioPersonalizado;
+        }
+
+        // Determinar estado inicial según método de pago
+        const estadoInicial = esBold
+            ? EstadoReserva.CONFIRMADA_PENDIENTE_PAGO
+            : EstadoReserva.CONFIRMADA_PENDIENTE_ASIGNACION;
+
+        const estadoPagoInicial = esBold
+            ? EstadoPago.PENDIENTE
+            : EstadoPago.APROBADO;
 
         // Crear la cotización (reserva con precio manual)
         const cotizacion = await prisma.reserva.create({
@@ -134,19 +194,19 @@ export async function POST(req: NextRequest) {
                 recargoNocturno: 0,
                 tarifaMunicipio: 0,
                 descuentoAliado: 0,
-                precioTotal: precioTotal, // Guardar total con comisión
+                precioTotal: precioTotal,
 
                 // Estado
-                estado: EstadoReserva.CONFIRMADA_PENDIENTE_PAGO,
-                estadoPago: EstadoPago.PENDIENTE,
-                metodoPago: MetodoPago.BOLD,
+                estado: estadoInicial,
+                estadoPago: estadoPagoInicial,
+                metodoPago: metodoPagoSeleccionado,
 
                 // Pago
                 hashPago,
 
                 // Notas
                 notas: body.notas || null,
-                notasInternas: body.notasInternas || `Cotización creada por ${session.user?.email}`,
+                notasInternas: body.notasInternas || `Cotización creada por ${session.user?.email} (${metodoPagoSeleccionado})`,
 
                 // Datos dinámicos
                 datosDinamicos: body.datosDinamicos || {},
@@ -173,6 +233,7 @@ export async function POST(req: NextRequest) {
             codigo: cotizacion.codigo,
             linkCotizacion: cotizacion.linkCotizacion,
             precioTotal: cotizacion.precioTotal,
+            metodoPago: cotizacion.metodoPago,
         });
 
         // Enviar email al cliente con el link de la reserva

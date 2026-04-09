@@ -530,11 +530,11 @@ export default function BaseDatosPage() {
                                     </tbody>
                                     <tfoot className="bg-gray-50 border-t border-gray-200 font-semibold">
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-3 text-right text-sm text-gray-600">Totales (Vista Actual):</td>
+                                            <td colSpan={7} className="px-4 py-3 text-right text-sm text-gray-600">Totales (Vista Actual, sin canceladas):</td>
                                             <td className="px-4 py-3 text-sm">
                                                 {showCommissionSum ? (
                                                     <span className="text-green-600">
-                                                        ${filteredData.reduce((sum, r) => sum + (Number(r.comisionAliado) || 0), 0).toLocaleString('es-CO')}
+                                                        ${filteredData.filter(r => r.estado !== 'CANCELADA').reduce((sum, r) => sum + (Number(r.comisionAliado) || 0), 0).toLocaleString('es-CO')}
                                                     </span>
                                                 ) : (
                                                     <button
@@ -548,7 +548,7 @@ export default function BaseDatosPage() {
                                             <td className="px-4 py-3 text-sm">
                                                 {showTotalSum ? (
                                                     <span className="text-gray-900">
-                                                        ${filteredData.reduce((sum, r) => sum + (Number(r.precioTotal) || 0), 0).toLocaleString('es-CO')}
+                                                        ${filteredData.filter(r => r.estado !== 'CANCELADA').reduce((sum, r) => sum + (Number(r.precioTotal) || 0), 0).toLocaleString('es-CO')}
                                                     </span>
                                                 ) : (
                                                     <button

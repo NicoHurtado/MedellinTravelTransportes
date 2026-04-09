@@ -35,7 +35,10 @@ const DICTIONARY = {
         origen: 'Origen',
         yaPagada: 'Cotización Ya Pagada',
         yaPagadaMensaje: 'Esta cotización ya ha sido pagada. Usa el código de tracking para ver el estado de tu reserva.',
-        verTracking: 'Ver Estado de Reserva'
+        verTracking: 'Ver Estado de Reserva',
+        pagoEfectivo: 'Pago en Efectivo',
+        pagoEfectivoMensaje: 'Esta cotización se debe pagar en efectivo. Al momento del servicio, realiza el pago directamente al conductor asignado.',
+        estadoConfirmada: 'Reserva Confirmada',
     },
     EN: {
         tuCotizacion: 'Your Custom Quote',
@@ -65,7 +68,10 @@ const DICTIONARY = {
         origen: 'Origin',
         yaPagada: 'Quote Already Paid',
         yaPagadaMensaje: 'This quote has already been paid. Use the tracking code to see your reservation status.',
-        verTracking: 'View Reservation Status'
+        verTracking: 'View Reservation Status',
+        pagoEfectivo: 'Cash Payment',
+        pagoEfectivoMensaje: 'This quote must be paid in cash. At the time of service, make the payment directly to the assigned driver.',
+        estadoConfirmada: 'Reservation Confirmed',
     }
 };
 
@@ -137,7 +143,8 @@ export default function QuotePage({ params }: { params: { linkId: string } }) {
     const t = DICTIONARY[lang];
 
     // Check if already paid
-    const isPaid = quote.estado !== 'CONFIRMADA_PENDIENTE_PAGO';
+    const isPaid = quote.estado !== 'CONFIRMADA_PENDIENTE_PAGO' && quote.estado !== 'CONFIRMADA_PENDIENTE_ASIGNACION';
+    const isEfectivo = quote.metodoPago === 'EFECTIVO';
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -253,8 +260,8 @@ export default function QuotePage({ params }: { params: { linkId: string } }) {
                         </div>
                     </div>
 
-                    {/* Payment Button */}
-                    {!isPaid && boldConfig && quote.hashPago && (
+                    {/* Payment Button - Bold */}
+                    {!isPaid && !isEfectivo && boldConfig && quote.hashPago && (
                         <div className="bg-white rounded-xl shadow-md p-6">
                             <h3 className="text-xl font-bold mb-2">💳 {t.pagarAhora}</h3>
                             <p className="text-gray-700 mb-6">{t.pagoMensaje}</p>
@@ -273,6 +280,27 @@ export default function QuotePage({ params }: { params: { linkId: string } }) {
                                     dialCode: '+57'
                                 } : undefined}
                             />
+                        </div>
+                    )}
+
+                    {/* Cash Payment Notice */}
+                    {!isPaid && isEfectivo && (
+                        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
+                            <div className="text-5xl mb-3">💵</div>
+                            <h3 className="text-xl font-bold text-green-900 mb-2">{t.pagoEfectivo}</h3>
+                            <p className="text-green-700 mb-4">{t.pagoEfectivoMensaje}</p>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-200 text-green-800 rounded-full font-semibold">
+                                <FiCheckCircle size={18} />
+                                {t.estadoConfirmada}
+                            </div>
+                            <div className="mt-4">
+                                <button
+                                    onClick={() => router.push(`/tracking/${quote.codigo}`)}
+                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all"
+                                >
+                                    {t.verTracking}
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

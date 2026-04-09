@@ -61,7 +61,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         { name: 'Reservas EFECTIVO', href: '/admin/dashboard?payment=EFECTIVO', icon: FiDollarSign },
         { name: 'Tour Compartido', href: '/admin/dashboard/tour-compartido', icon: FiMapPin },
         { name: 'Calendario', href: '/admin/dashboard/calendario', icon: FiCalendar },
-        { name: 'Crear Cotización', href: '/admin/dashboard/cotizaciones/crear', icon: FiDollarSign },
+        { name: 'Cotizaciones', href: '/admin/dashboard/cotizaciones', icon: FiDollarSign },
         { name: 'Estadísticas', href: '/admin/dashboard/estadisticas', icon: FiBarChart2 },
         { name: 'Calificaciones', href: '/admin/dashboard/calificaciones', icon: FiStar },
         { name: 'Base de Datos', href: '/admin/dashboard/base-datos', icon: FiDatabase },
@@ -77,10 +77,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const isActive = (href: string) => {
         const [path, query] = href.split('?');
-        if (pathname !== path) return false;
-        if (!query) return !searchParams.get('payment');
-        const [key, value] = query.split('=');
-        return searchParams.get(key) === value;
+        if (query) {
+            if (pathname !== path) return false;
+            const [key, value] = query.split('=');
+            return searchParams.get(key) === value;
+        }
+        // Exact match or prefix match for subroutes (e.g. cotizaciones/crear)
+        if (pathname === path) return !searchParams.get('payment');
+        if (pathname.startsWith(path + '/')) return !searchParams.get('payment');
+        return false;
     };
 
     return (
