@@ -65,7 +65,7 @@ export async function sendReservaConfirmadaEmail(
     <h2>Total a Pagar</h2>
     <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
     
-    ${!reserva.esReservaAliado ? `
+    ${reserva.metodoPago !== 'EFECTIVO' ? `
       <p style="margin-top: 24px;">
         <a href="${trackingUrl}" class="button">Realizar Pago</a>
       </p>
@@ -113,7 +113,7 @@ export async function sendReservaConfirmadaEmail(
     <h2>Total Amount</h2>
     <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
     
-    ${!reserva.esReservaAliado ? `
+    ${reserva.metodoPago !== 'EFECTIVO' ? `
       <p style="margin-top: 24px;">
         <a href="${trackingUrl}" class="button">Make Payment</a>
       </p>
@@ -915,7 +915,7 @@ export async function sendTourCompartidoConfirmationEmail(
     <h2>Total a Pagar</h2>
     <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
     
-    ${!reserva.esReservaAliado ? `
+    ${reserva.metodoPago !== 'EFECTIVO' ? `
       <p style="margin-top: 24px;">
         <a href="${trackingUrl}" class="button">Realizar Pago</a>
       </p>
@@ -968,7 +968,7 @@ export async function sendTourCompartidoConfirmationEmail(
     <h2>Total Amount</h2>
     <p class="price">${formatPrice(Number(reserva.precioTotal))}</p>
     
-    ${!reserva.esReservaAliado ? `
+    ${reserva.metodoPago !== 'EFECTIVO' ? `
       <p style="margin-top: 24px;">
         <a href="${trackingUrl}" class="button">Make Payment</a>
       </p>
